@@ -2429,7 +2429,7 @@ func (e *SimpleSpriteDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFr
 
 // ActorDef is a declaration of ACTORDEF
 type ActorDef struct {
-	fragID         int16
+	fragID         int32
 	Tag            string
 	Callback       string
 	BoundsRef      int32
@@ -2743,7 +2743,7 @@ func (e *ActorDef) Read(token *AsciiReadToken) error {
 	return nil
 }
 
-func (e *ActorDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
+func (e *ActorDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 	var err error
 	if e.fragID != 0 {
 		return e.fragID, nil
@@ -2894,8 +2894,8 @@ func (e *ActorDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
 	actorDef.NameRef = rawWld.NameAdd(e.Tag)
 
 	rawWld.Fragments = append(rawWld.Fragments, actorDef)
-	e.fragID = int16(len(rawWld.Fragments))
-	return int16(len(rawWld.Fragments)), err
+	e.fragID = int32(len(rawWld.Fragments))
+	return int32(len(rawWld.Fragments)), err
 }
 
 func (e *ActorDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragActorDef, fragIndex int) error {
@@ -2904,7 +2904,7 @@ func (e *ActorDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragActor
 	}
 
 	// Save the fragment ID
-	e.fragID = int16(fragIndex)
+	e.fragID = int32(fragIndex)
 
 	e.Tag = rawWld.Name(frag.NameRef)
 	e.Callback = rawWld.Name(frag.CallbackNameRef)
