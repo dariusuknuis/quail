@@ -2898,10 +2898,13 @@ func (e *ActorDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
 	return int16(len(rawWld.Fragments)), err
 }
 
-func (e *ActorDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragActorDef) error {
+func (e *ActorDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragActorDef, fragIndex int) error {
 	if frag == nil {
 		return fmt.Errorf("frag is not actordef (wrong fragcode?)")
 	}
+
+	// Save the fragment ID
+	e.fragID = int16(fragIndex)
 
 	e.Tag = rawWld.Name(frag.NameRef)
 	e.Callback = rawWld.Name(frag.CallbackNameRef)
