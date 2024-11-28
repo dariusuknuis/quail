@@ -47,7 +47,7 @@ func (wce *Wce) ReadWldRaw(src *raw.Wld) error {
 			wce.lastReadModelTag = modelChunks[i]
 		}
 
-		err := readRawFrag(wce, src, fragment)
+		err := readRawFrag(wce, src, fragment, i)
 		if err != nil {
 			return fmt.Errorf("fragment %d (%s): %w", i, raw.FragName(fragment.FragCode()), err)
 		}
@@ -56,7 +56,7 @@ func (wce *Wce) ReadWldRaw(src *raw.Wld) error {
 	return nil
 }
 
-func readRawFrag(e *Wce, rawWld *raw.Wld, fragment model.FragmentReadWriter) error {
+func readRawFrag(e *Wce, rawWld *raw.Wld, fragment model.FragmentReadWriter, fragIndex int) error {
 
 	switch fragment.FragCode() {
 	case rawfrag.FragCodeGlobalAmbientLightDef:
@@ -166,7 +166,7 @@ func readRawFrag(e *Wce, rawWld *raw.Wld, fragment model.FragmentReadWriter) err
 	case rawfrag.FragCodeDMSprite:
 	case rawfrag.FragCodeActorDef:
 		def := &ActorDef{}
-		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragActorDef))
+		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragActorDef), fragIndex)
 		if err != nil {
 			return fmt.Errorf("actordef: %w", err)
 		}
