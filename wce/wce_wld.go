@@ -174,6 +174,10 @@ func (e *DMSpriteDef2) Definition() string {
 }
 
 func (e *DMSpriteDef2) Write(token *AsciiWriteToken) error {
+	// Debug log for fragID and associated Tag
+	fmt.Printf("Writing DMSpriteDef2: fragID=%d, Tag=%s, MaterialPaletteTag=%s, DmTrackTag=%s, PolyhedronTag=%s\n",
+		e.fragID, e.Tag, e.MaterialPaletteTag, e.DmTrackTag, e.PolyhedronTag)
+
 	w, err := token.Writer()
 	if err != nil {
 		return err
@@ -2457,6 +2461,9 @@ func (e *ActorDef) Definition() string {
 }
 
 func (e *ActorDef) Write(token *AsciiWriteToken) error {
+	// Debug log for fragID and associated data
+	fmt.Printf("Writing ActorDef: fragID=%d, Tag=%s, Callback=%s, BoundsRef=%d\n",
+		e.fragID, e.Tag, e.Callback, e.BoundsRef)
 	w, err := token.Writer()
 	if err != nil {
 		return err
