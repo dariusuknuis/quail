@@ -15,7 +15,7 @@ type WldFragSprite2DDef struct {
 	TextureCount                uint32
 	PitchCount                  uint32
 	Scale                       [2]float32
-	SphereListRef               uint32
+	SphereListRef               int32
 	DepthScale                  float32
 	CenterOffset                [3]float32
 	BoundingRadius              float32
@@ -27,7 +27,7 @@ type WldFragSprite2DDef struct {
 	RenderPen                   uint32
 	RenderBrightness            float32
 	RenderScaledAmbient         float32
-	RenderSimpleSpriteReference uint32
+	RenderSimpleSpriteReference int32
 	RenderUVInfoOrigin          [3]float32
 	RenderUVInfoUAxis           [3]float32
 	RenderUVInfoVAxis           [3]float32
@@ -47,7 +47,7 @@ func (e *WldFragSprite2DDef) Write(w io.Writer, isNewWorld bool) error {
 
 	enc.Float32(e.Scale[0])
 	enc.Float32(e.Scale[1])
-	enc.Uint32(e.SphereListRef)
+	enc.Int32(e.SphereListRef)
 	if e.Flags&0x80 == 0x80 {
 		enc.Float32(e.DepthScale)
 	}
@@ -82,7 +82,7 @@ func (e *WldFragSprite2DDef) Write(w io.Writer, isNewWorld bool) error {
 			enc.Float32(e.RenderScaledAmbient)
 		}
 		if e.RenderFlags&0x08 == 0x08 {
-			enc.Uint32(e.RenderSimpleSpriteReference)
+			enc.Int32(e.RenderSimpleSpriteReference)
 		}
 		if e.RenderFlags&0x10 == 0x10 {
 			enc.Float32(e.RenderUVInfoOrigin[0])
@@ -119,7 +119,7 @@ func (e *WldFragSprite2DDef) Read(r io.ReadSeeker, isNewWorld bool) error {
 	e.PitchCount = dec.Uint32()
 	e.Scale[0] = dec.Float32()
 	e.Scale[1] = dec.Float32()
-	e.SphereListRef = dec.Uint32()
+	e.SphereListRef = dec.Int32()
 	if e.Flags&0x80 == 0x80 {
 		e.DepthScale = dec.Float32()
 	}
@@ -155,7 +155,7 @@ func (e *WldFragSprite2DDef) Read(r io.ReadSeeker, isNewWorld bool) error {
 			e.RenderScaledAmbient = dec.Float32()
 		}
 		if e.RenderFlags&0x08 == 0x08 {
-			e.RenderSimpleSpriteReference = dec.Uint32()
+			e.RenderSimpleSpriteReference = dec.Int32()
 		}
 		if e.RenderFlags&0x10 == 0x10 {
 			e.RenderUVInfoOrigin[0] = dec.Float32()

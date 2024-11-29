@@ -12,7 +12,7 @@ import (
 type WldFragSprite3DDef struct {
 	NameRef        int32
 	Flags          uint32
-	SphereListRef  uint32
+	SphereListRef  int32
 	CenterOffset   [3]float32
 	BoundingRadius float32
 	Vertices       [][3]float32
@@ -28,7 +28,7 @@ type WldFragThreeDSpriteBspNode struct {
 	RenderPen                   uint32
 	RenderBrightness            float32
 	RenderScaledAmbient         float32
-	RenderSimpleSpriteReference uint32
+	RenderSimpleSpriteReference int32
 	RenderUVInfoOrigin          [3]float32
 	RenderUVInfoUAxis           [3]float32
 	RenderUVInfoVAxis           [3]float32
@@ -45,7 +45,7 @@ func (e *WldFragSprite3DDef) Write(w io.Writer, isNewWorld bool) error {
 	enc.Uint32(e.Flags)
 	enc.Uint32(uint32(len(e.Vertices)))
 	enc.Uint32(uint32(len(e.BspNodes)))
-	enc.Uint32(e.SphereListRef)
+	enc.Int32(e.SphereListRef)
 	if e.Flags&0x01 == 0x01 {
 		enc.Float32(e.CenterOffset[0])
 		enc.Float32(e.CenterOffset[1])
@@ -80,7 +80,7 @@ func (e *WldFragSprite3DDef) Write(w io.Writer, isNewWorld bool) error {
 			enc.Float32(node.RenderScaledAmbient)
 		}
 		if node.RenderFlags&0x08 == 0x08 {
-			enc.Uint32(node.RenderSimpleSpriteReference)
+			enc.Int32(node.RenderSimpleSpriteReference)
 		}
 		if node.RenderFlags&0x10 == 0x10 {
 			enc.Float32(node.RenderUVInfoOrigin[0])
@@ -120,7 +120,7 @@ func (e *WldFragSprite3DDef) Read(r io.ReadSeeker, isNewWorld bool) error {
 	e.Flags = dec.Uint32()
 	vertexCount := dec.Uint32()
 	bspNodeCount := dec.Uint32()
-	e.SphereListRef = dec.Uint32()
+	e.SphereListRef = dec.Int32()
 	if e.Flags&0x01 == 0x01 {
 		e.CenterOffset[0] = dec.Float32()
 		e.CenterOffset[1] = dec.Float32()
@@ -153,7 +153,7 @@ func (e *WldFragSprite3DDef) Read(r io.ReadSeeker, isNewWorld bool) error {
 			node.RenderScaledAmbient = dec.Float32()
 		}
 		if node.RenderFlags&0x08 == 0x08 {
-			node.RenderSimpleSpriteReference = dec.Uint32()
+			node.RenderSimpleSpriteReference = dec.Int32()
 		}
 		if node.RenderFlags&0x10 == 0x10 {
 			node.RenderUVInfoOrigin[0] = dec.Float32()
