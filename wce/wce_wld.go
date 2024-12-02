@@ -6895,19 +6895,12 @@ func (e *Region) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragRegion,
 		if len(rawWld.Fragments) < int(frag.MeshReference) {
 			return fmt.Errorf("mesh ref %d not found", frag.MeshReference)
 		}
-		rawMesh, ok := rawWld.Fragments[frag.MeshReference].(*rawfrag.WldFragDMSprite)
+		rawMesh, ok := rawWld.Fragments[frag.MeshReference].(*rawfrag.WldFragDmSpriteDef2)
 		if !ok {
 			return fmt.Errorf("mesh ref %d not valid", frag.MeshReference)
 		}
-		if len(rawWld.Fragments) < int(rawMesh.DMSpriteRef) {
-			return fmt.Errorf("dmspritedef ref %d not found", rawMesh.DMSpriteRef)
-		}
-		e.FragRefs = append(e.FragRefs, rawMesh.DMSpriteRef)
-		MeshDef, ok := rawWld.Fragments[rawMesh.DMSpriteRef].(*rawfrag.WldFragDmSpriteDef2)
-		if !ok {
-			return fmt.Errorf("dmspritedef ref %d not valid", rawMesh.DMSpriteRef)
-		}
-		e.SpriteTag = rawWld.Name(MeshDef.NameRef)
+		e.FragRefs = append(e.FragRefs, frag.MeshReference)
+		e.SpriteTag = rawWld.Name(rawMesh.NameRef)
 	}
 
 	return nil
