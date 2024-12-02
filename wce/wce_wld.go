@@ -6908,7 +6908,6 @@ func (e *Region) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragRegion,
 			return fmt.Errorf("dmspritedef ref %d not valid", rawMesh.DMSpriteRef)
 		}
 		e.SpriteTag = rawWld.Name(MeshDef.NameRef)
-		}
 	}
 
 	return nil
