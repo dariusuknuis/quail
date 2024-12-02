@@ -81,7 +81,7 @@ func (e *GlobalAmbientLightDef) Definition() string {
 
 func (e *GlobalAmbientLightDef) Write(token *AsciiWriteToken) error {
 	// Debug log for fragID and associated Tag
-	fmt.Printf("Writing DMSpriteDef2: fragID=%d\n",
+	fmt.Printf("Writing GlobalAmbientLightDef: fragID=%d\n",
 		e.fragID)
 	w, err := token.Writer()
 	if err != nil {
@@ -183,8 +183,7 @@ func (e *DMSpriteDef2) Definition() string {
 
 func (e *DMSpriteDef2) Write(token *AsciiWriteToken) error {
 	// Debug log for fragID and associated Tag
-	fmt.Printf("Writing DMSpriteDef2: fragID=%d, Tag=%s\n",
-		e.fragID, e.Tag)
+	fmt.Printf("Writing DMSpriteDef2: fragID=%d, Tag=%s, FragRefs=%v\n", e.fragID, e.Tag, e.FragRefs)
 
 	w, err := token.Writer()
 	if err != nil {
@@ -1719,8 +1718,8 @@ func (e *MaterialPalette) Definition() string {
 
 func (e *MaterialPalette) Write(token *AsciiWriteToken) error {
 	// Debug log for fragID and associated Tag
-	fmt.Printf("Writing MaterialPalette: fragID=%d, Tag=%s\n",
-		e.fragID, e.Tag)
+	fmt.Printf("Writing MaterialPalette: fragID=%d, Tag=%s, FragRefs=%v\n", e.fragID, e.Tag, e.FragRefs)
+
 	w, err := token.Writer()
 	if err != nil {
 		return err
@@ -2281,8 +2280,8 @@ func (e *SimpleSpriteDef) Definition() string {
 
 func (e *SimpleSpriteDef) Write(token *AsciiWriteToken) error {
 	// Debug log for fragID and associated Tag
-	fmt.Printf("Writing SimpleSpriteDef: fragID=%d, Tag=%s\n",
-		e.fragID, e.Tag)
+	fmt.Printf("Writing SimpleSpriteDef: fragID=%d, Tag=%s, FragRefs=%v\n", e.fragID, e.Tag, e.FragRefs)
+
 	w, err := token.Writer()
 	if err != nil {
 		return err
@@ -2520,8 +2519,8 @@ func (e *ActorDef) Definition() string {
 
 func (e *ActorDef) Write(token *AsciiWriteToken) error {
 	// Debug log for fragID and associated Tag
-	fmt.Printf("Writing ActorDef: fragID=%d, Tag=%s\n",
-		e.fragID, e.Tag)
+	fmt.Printf("Writing ActorDef: fragID=%d, Tag=%s, FragRefs=%v\n", e.fragID, e.Tag, e.FragRefs)
+
 	w, err := token.Writer()
 	if err != nil {
 		return err
@@ -3103,8 +3102,8 @@ func (e *ActorInst) Definition() string {
 
 func (e *ActorInst) Write(token *AsciiWriteToken) error {
 	// Debug log for fragID and associated Tag
-	fmt.Printf("Writing ActorInst: fragID=%d, Tag=%s\n",
-		e.fragID, e.Tag)
+	fmt.Printf("Writing ActorInst: fragID=%d, Tag=%s, FragRefs=%v\n", e.fragID, e.Tag, e.FragRefs)
+
 	w, err := token.Writer()
 	if err != nil {
 		return err
@@ -3910,8 +3909,8 @@ func (e *Sprite3DDef) Definition() string {
 
 func (e *Sprite3DDef) Write(token *AsciiWriteToken) error {
 	// Debug log for fragID and associated Tag
-	fmt.Printf("Writing Sprite3DDef: fragID=%d, Tag=%s\n",
-		e.fragID, e.Tag)
+	fmt.Printf("Writing Sprite3DDef: fragID=%d, Tag=%s, FragRefs=%v\n", e.fragID, e.Tag, e.FragRefs)
+
 	w, err := token.Writer()
 	if err != nil {
 		return err
@@ -5105,8 +5104,8 @@ func (e *HierarchicalSpriteDef) Definition() string {
 
 func (e *HierarchicalSpriteDef) Write(token *AsciiWriteToken) error {
 	// Debug log for fragID and associated Tag
-	fmt.Printf("Writing HierarchicalSpriteDef: fragID=%d, Tag=%s\n",
-		e.fragID, e.Tag)
+	fmt.Printf("Writing HierarchicalSpriteDef: fragID=%d, Tag=%s, FragRefs=%v\n", e.fragID, e.Tag, e.FragRefs)
+
 	w, err := token.Writer()
 	if err != nil {
 		return err
@@ -6039,8 +6038,7 @@ func (e *Region) Definition() string {
 func (e *Region) Write(token *AsciiWriteToken) error {
 	var err error
 	// Debug log for fragID and associated Tag
-	fmt.Printf("Writing Region: fragID=%d, Tag=%s\n",
-		e.fragID, e.Tag)
+	fmt.Printf("Writing Region: fragID=%d, Tag=%s, FragRefs=%v\n", e.fragID, e.Tag, e.FragRefs)
 
 	if e.SpriteTag != "" {
 		sprite := token.wce.ByTag(e.SpriteTag)
@@ -7856,8 +7854,8 @@ func (e *Sprite2DDef) Definition() string {
 
 func (e *Sprite2DDef) Write(token *AsciiWriteToken) error {
 	// Debug log for fragID and associated Tag
-	fmt.Printf("Writing Sprite2DDef: fragID=%d, Tag=%s\n",
-		e.fragID, e.Tag)
+	fmt.Printf("Writing Sprite2DDef: fragID=%d, Tag=%s, FragRefs=%v\n", e.fragID, e.Tag, e.FragRefs)
+
 	w, err := token.Writer()
 	if err != nil {
 		return err
