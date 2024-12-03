@@ -17,8 +17,8 @@ type Wce struct {
 	modelTags              []string
 	maxMaterialHeads       map[string]int
 	maxMaterialTextures    map[string]int
-	tagIndexes             map[string]int           // used when parsing to keep track of indexes
-	FragReferenceTrees     map[int32]interface{}    // Map to hold the nested tree structure
+	tagIndexes             map[string]int        // used when parsing to keep track of indexes
+	FragReferenceTrees     map[int32]interface{} // Map to hold the nested tree structure
 	FileName               string
 	WorldDef               *WorldDef
 	GlobalAmbientLightDef  *GlobalAmbientLightDef

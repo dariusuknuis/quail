@@ -3,6 +3,7 @@ package wce
 import (
 	"fmt"
 	"io"
+	"reflect"
 	"regexp"
 	"sort"
 	"strconv"
@@ -675,157 +676,156 @@ func baseTagTrim(isObj bool, tag string) string {
 }
 
 func (wce *Wce) BuildFragReferenceTrees() {
-    // Ensure FragReferenceTrees is initialized
-    if wce.FragReferenceTrees == nil {
-        wce.FragReferenceTrees = make(map[int32]interface{})
-    }
+	// Ensure FragReferenceTrees is initialized
+	if wce.FragReferenceTrees == nil {
+		wce.FragReferenceTrees = make(map[int32]interface{})
+	}
 
-    // Helper to process each slice of definitions
-    processDefinitions := func(definitions interface{}) {
-        // Use reflection to iterate through slices of definitions
-        slice := reflect.ValueOf(definitions)
-        if slice.Kind() != reflect.Slice {
-            return
-        }
+	// Helper to process each slice of definitions
+	processDefinitions := func(definitions interface{}) {
+		// Use reflection to iterate through slices of definitions
+		slice := reflect.ValueOf(definitions)
+		if slice.Kind() != reflect.Slice {
+			return
+		}
 
-        for i := 0; i < slice.Len(); i++ {
-            def := slice.Index(i).Interface()
+		for i := 0; i < slice.Len(); i++ {
+			def := slice.Index(i).Interface()
 
-            // Extract fragID and FragRefs
-            fragID := extractFragID(def)        // Extract the fragID
-            fragRefs := extractFragRefs(def)   // Extract the FragRefs
+			// Extract fragID and FragRefs
+			fragID := extractFragID(def)     // Extract the fragID
+			fragRefs := extractFragRefs(def) // Extract the FragRefs
 
-            // Update the tree with the extracted data
-            updateFragReferenceTrees(wce, fragID, fragRefs)
-        }
-    }
+			// Update the tree with the extracted data
+			updateFragReferenceTrees(wce, fragID, fragRefs)
+		}
+	}
 
-    // Process each slice of definitions in the Wce struct
-    processDefinitions(wce.ActorDefs)
-    processDefinitions(wce.ActorInsts)
-    processDefinitions(wce.AmbientLights)
-    processDefinitions(wce.BlitSpriteDefs)
-    processDefinitions(wce.DMSpriteDef2s)
-    processDefinitions(wce.DMSpriteDefs)
-    processDefinitions(wce.DMTrackDef2s)
-    processDefinitions(wce.HierarchicalSpriteDefs)
-    processDefinitions(wce.LightDefs)
-    processDefinitions(wce.MaterialDefs)
-    processDefinitions(wce.MaterialPalettes)
-    processDefinitions(wce.ParticleCloudDefs)
-    processDefinitions(wce.PointLights)
-    processDefinitions(wce.PolyhedronDefs)
-    processDefinitions(wce.Regions)
-    processDefinitions(wce.RGBTrackDefs)
-    processDefinitions(wce.SimpleSpriteDefs)
-    processDefinitions(wce.Sprite2DDefs)
-    processDefinitions(wce.Sprite3DDefs)
-    processDefinitions(wce.TrackDefs)
-    processDefinitions(wce.TrackInstances)
-    processDefinitions(wce.WorldTrees)
-    processDefinitions(wce.Zones)
-    processDefinitions(wce.MdsDefs)
-    processDefinitions(wce.ModDefs)
-    processDefinitions(wce.TerDefs)
-    processDefinitions(wce.EQMaterialDefs)
+	// Process each slice of definitions in the Wce struct
+	processDefinitions(wce.ActorDefs)
+	processDefinitions(wce.ActorInsts)
+	processDefinitions(wce.AmbientLights)
+	processDefinitions(wce.BlitSpriteDefs)
+	processDefinitions(wce.DMSpriteDef2s)
+	processDefinitions(wce.DMSpriteDefs)
+	processDefinitions(wce.DMTrackDef2s)
+	processDefinitions(wce.HierarchicalSpriteDefs)
+	processDefinitions(wce.LightDefs)
+	processDefinitions(wce.MaterialDefs)
+	processDefinitions(wce.MaterialPalettes)
+	processDefinitions(wce.ParticleCloudDefs)
+	processDefinitions(wce.PointLights)
+	processDefinitions(wce.PolyhedronDefs)
+	processDefinitions(wce.Regions)
+	processDefinitions(wce.RGBTrackDefs)
+	processDefinitions(wce.SimpleSpriteDefs)
+	processDefinitions(wce.Sprite2DDefs)
+	processDefinitions(wce.Sprite3DDefs)
+	processDefinitions(wce.TrackDefs)
+	processDefinitions(wce.TrackInstances)
+	processDefinitions(wce.WorldTrees)
+	processDefinitions(wce.Zones)
+	processDefinitions(wce.MdsDefs)
+	processDefinitions(wce.ModDefs)
+	processDefinitions(wce.TerDefs)
+	processDefinitions(wce.EQMaterialDefs)
 }
 
 // Extract the fragID from a definition
 func extractFragID(def interface{}) int32 {
-    v := reflect.ValueOf(def)
-    if v.Kind() == reflect.Ptr {
-        v = v.Elem()
-    }
-    field := v.FieldByName("FragID")
-    if field.IsValid() && field.Kind() == reflect.Int32 {
-        return field.Int()
-    }
-    return -1 // Return -1 if FragID is not found
+	v := reflect.ValueOf(def)
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+	field := v.FieldByName("FragID")
+	if field.IsValid() && field.Kind() == reflect.Int32 {
+		return int32(field.Int())
+	}
+	return -1 // Return -1 if FragID is not found
 }
 
 // Handles both int32 and []int32 FragRefs
 func extractFragRefs(def interface{}) []int32 {
-    v := reflect.ValueOf(def)
-    if v.Kind() == reflect.Ptr {
-        v = v.Elem()
-    }
-    field := v.FieldByName("FragRefs")
-    if field.IsValid() {
-        switch field.Kind() {
-        case reflect.Int32:
-            return []int32{int32(field.Int())}
-        case reflect.Slice:
-            refs := make([]int32, field.Len())
-            for i := 0; i < field.Len(); i++ {
-                refs[i] = int32(field.Index(i).Int())
-            }
-            return refs
-        }
-    }
-    return nil
+	v := reflect.ValueOf(def)
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+	field := v.FieldByName("FragRefs")
+	if field.IsValid() {
+		switch field.Kind() {
+		case reflect.Int32:
+			return []int32{int32(field.Int())}
+		case reflect.Slice:
+			refs := make([]int32, field.Len())
+			for i := 0; i < field.Len(); i++ {
+				refs[i] = int32(field.Index(i).Int())
+			}
+			return refs
+		}
+	}
+	return nil
 }
 
 func updateFragReferenceTrees(wce *Wce, fragID int32, fragRefs []int32) {
-    if wce.FragReferenceTrees == nil {
-        wce.FragReferenceTrees = make(map[int32]interface{})
-    }
+	if wce.FragReferenceTrees == nil {
+		wce.FragReferenceTrees = make(map[int32]interface{})
+	}
 
-    // Helper: Find a fragment in the tree and return the parent map if found
-    var findParent func(tree interface{}, target int32) (map[int32]interface{}, bool)
-    findParent = func(tree interface{}, target int32) (map[int32]interface{}, bool) {
-        if subtree, ok := tree.(map[int32]interface{}); ok {
-            for k, v := range subtree {
-                if k == target {
-                    return subtree, true
-                }
-                if result, found := findParent(v, target); found {
-                    return result, found
-                }
-            }
-        }
-        return nil, false
-    }
+	// Helper: Find a fragment in the tree and return the parent map if found
+	var findParent func(tree interface{}, target int32) (map[int32]interface{}, bool)
+	findParent = func(tree interface{}, target int32) (map[int32]interface{}, bool) {
+		if subtree, ok := tree.(map[int32]interface{}); ok {
+			for k, v := range subtree {
+				if k == target {
+					return subtree, true
+				}
+				if result, found := findParent(v, target); found {
+					return result, found
+				}
+			}
+		}
+		return nil, false
+	}
 
-    // Check if the fragment is already part of any existing tree
-    parent, found := findParent(wce.FragReferenceTrees, fragID)
+	// Check if the fragment is already part of any existing tree
+	parent, found := findParent(wce.FragReferenceTrees, fragID)
 
-    if found {
-        // Append references to the existing fragment's subtree
-        for _, ref := range fragRefs {
-            if _, exists := parent[ref]; !exists {
-                parent[ref] = make(map[int32]interface{})
-            }
-        }
-    } else {
-        // Check if any references are already part of the tree
-        var rootParent map[int32]interface{}
-        for _, ref := range fragRefs {
-            parent, found := findParent(wce.FragReferenceTrees, ref)
-            if found {
-                rootParent = parent
-                break
-            }
-        }
+	if found {
+		// Append references to the existing fragment's subtree
+		for _, ref := range fragRefs {
+			if _, exists := parent[ref]; !exists {
+				parent[ref] = make(map[int32]interface{})
+			}
+		}
+	} else {
+		// Check if any references are already part of the tree
+		var rootParent map[int32]interface{}
+		for _, ref := range fragRefs {
+			parent, found := findParent(wce.FragReferenceTrees, ref)
+			if found {
+				rootParent = parent
+				break
+			}
+		}
 
-        if rootParent != nil {
-            // Add this fragment as the new root, attaching the existing tree
-            newSubTree := make(map[int32]interface{})
-            for _, ref := range fragRefs {
-                if childTree, exists := rootParent[ref]; exists {
-                    newSubTree[ref] = childTree
-                } else {
-                    newSubTree[ref] = make(map[int32]interface{})
-                }
-            }
-            rootParent[fragID] = newSubTree
-        } else {
-            // Create a new tree for this fragment
-            newTree := make(map[int32]interface{})
-            for _, ref := range fragRefs {
-                newTree[ref] = make(map[int32]interface{})
-            }
-            wce.FragReferenceTrees[fragID] = newTree
-        }
-    }
+		if rootParent != nil {
+			// Add this fragment as the new root, attaching the existing tree
+			newSubTree := make(map[int32]interface{})
+			for _, ref := range fragRefs {
+				if childTree, exists := rootParent[ref]; exists {
+					newSubTree[ref] = childTree
+				} else {
+					newSubTree[ref] = make(map[int32]interface{})
+				}
+			}
+			rootParent[fragID] = newSubTree
+		} else {
+			// Create a new tree for this fragment
+			newTree := make(map[int32]interface{})
+			for _, ref := range fragRefs {
+				newTree[ref] = make(map[int32]interface{})
+			}
+			wce.FragReferenceTrees[fragID] = newTree
+		}
+	}
 }
-
