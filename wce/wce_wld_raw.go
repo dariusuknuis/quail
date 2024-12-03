@@ -18,6 +18,7 @@ func (wce *Wce) ReadWldRaw(src *raw.Wld) error {
 	wce.maxMaterialHeads = make(map[string]int)
 	wce.maxMaterialTextures = make(map[string]int)
 	wce.WorldDef = &WorldDef{}
+	wce.FragReferenceTrees = make(map[int]map[int]struct{}) // New reference tree map
 	if src.IsNewWorld {
 		wce.WorldDef.NewWorld = 1
 	}
