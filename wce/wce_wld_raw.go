@@ -833,7 +833,7 @@ func updateFragReferenceTrees(wce *Wce, fragID int32, fragRefs []int32) {
 	}
 }
 
-// Recursive function to print FragReferenceTrees with indentation
+// Recursive function to print FragReferenceTrees with proper hierarchy
 func printFragReferenceTree(tree interface{}, indent int) {
 	spacer := strings.Repeat("  ", indent)
 	if subtree, ok := tree.(map[int32]interface{}); ok {
@@ -841,5 +841,7 @@ func printFragReferenceTree(tree interface{}, indent int) {
 			fmt.Printf("%sFragID: %d\n", spacer, fragID)
 			printFragReferenceTree(refs, indent+1)
 		}
+	} else {
+		fmt.Printf("%s(No further references)\n", spacer)
 	}
 }
