@@ -740,7 +740,7 @@ func extractFragID(def interface{}) int32 {
 	if v.Kind() == reflect.Ptr {
 		v = v.Elem()
 	}
-	field := v.FieldByName("FragID")
+	field := v.FieldByName("fragID")
 	if field.IsValid() && field.Kind() == reflect.Int32 {
 		return int32(field.Int())
 	}
