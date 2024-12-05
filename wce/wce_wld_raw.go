@@ -775,62 +775,81 @@ func updateFragReferenceTrees(wce *Wce, fragID int32, fragRefs []int32) {
 	}
 
 	// Helper: Find a fragment in the tree and return the parent map if found
-	var findParent func(tree interface{}, target int32) (map[int32]interface{}, bool)
-	findParent = func(tree interface{}, target int32) (map[int32]interface{}, bool) {
+	var findParent func(tree interface{}, target int32) (map[int32]interface{}, bool, bool)
+	findParent = func(tree interface{}, target int32) (map[int32]interface{}, bool, bool) {
 		if subtree, ok := tree.(map[int32]interface{}); ok {
 			for k, v := range subtree {
 				if k == target {
-					return subtree, true
+					return subtree, true, k == fragID // Return if it's root
 				}
-				if result, found := findParent(v, target); found {
-					return result, found
+				if result, found, isRoot := findParent(v, target); found {
+					return result, found, isRoot
 				}
 			}
 		}
-		return nil, false
+		return nil, false, false
 	}
 
-	// Check if the fragment is already part of any existing tree
-	parent, found := findParent(wce.FragReferenceTrees, fragID)
+	// Step 1: Check if fragID is already in the tree
+	parent, found, _ := findParent(wce.FragReferenceTrees, fragID)
 
 	if found {
-		// Append references to the existing fragment's subtree
+		// Step 2 & 3: Add missing FragRefs to the existing tree under fragID
 		for _, ref := range fragRefs {
 			if _, exists := parent[ref]; !exists {
 				parent[ref] = make(map[int32]interface{})
 			}
 		}
-	} else {
-		// Check if any references are already part of the tree
-		var rootParent map[int32]interface{}
-		for _, ref := range fragRefs {
-			parent, found := findParent(wce.FragReferenceTrees, ref)
-			if found {
+		return
+	}
+
+	// Step 4: Check if any FragRefs are in the tree
+	var rootParent map[int32]interface{}
+	var refsInTree []int32
+	for _, ref := range fragRefs {
+		parent, found, isRoot := findParent(wce.FragReferenceTrees, ref)
+		if found {
+			refsInTree = append(refsInTree, ref)
+			if isRoot {
 				rootParent = parent
 				break
 			}
 		}
-
-		if rootParent != nil {
-			// Add this fragment as the new root, attaching the existing tree
-			newSubTree := make(map[int32]interface{})
-			for _, ref := range fragRefs {
-				if childTree, exists := rootParent[ref]; exists {
-					newSubTree[ref] = childTree
-				} else {
-					newSubTree[ref] = make(map[int32]interface{})
-				}
-			}
-			rootParent[fragID] = newSubTree
-		} else {
-			// Create a new tree for this fragment
-			newTree := make(map[int32]interface{})
-			for _, ref := range fragRefs {
-				newTree[ref] = make(map[int32]interface{})
-			}
-			wce.FragReferenceTrees[fragID] = newTree
-		}
 	}
+
+	if rootParent != nil {
+		// Step 4.1: Attach fragID as new root if a FragRef is root of an existing tree
+		newSubTree := make(map[int32]interface{})
+		for _, ref := range fragRefs {
+			if childTree, exists := rootParent[ref]; exists {
+				newSubTree[ref] = childTree
+			} else {
+				newSubTree[ref] = make(map[int32]interface{})
+			}
+		}
+		rootParent[fragID] = newSubTree
+		delete(wce.FragReferenceTrees, refsInTree[0]) // Remove old root
+		wce.FragReferenceTrees[fragID] = rootParent
+		return
+	}
+
+	if len(refsInTree) > 0 {
+		// Step 4.2: Create a new tree copying subtree of FragRefs
+		newTree := make(map[int32]interface{})
+		for _, ref := range refsInTree {
+			parent, _, _ := findParent(wce.FragReferenceTrees, ref)
+			newTree[ref] = parent[ref]
+		}
+		wce.FragReferenceTrees[fragID] = newTree
+		return
+	}
+
+	// Step 5: Create a completely new tree for fragID and FragRefs
+	newTree := make(map[int32]interface{})
+	for _, ref := range fragRefs {
+		newTree[ref] = make(map[int32]interface{})
+	}
+	wce.FragReferenceTrees[fragID] = newTree
 }
 
 // Recursive function to print FragReferenceTrees with proper hierarchy
