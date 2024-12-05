@@ -852,46 +852,63 @@ func updateFragReferenceTrees(wce *Wce, fragID int32, fragRefs []int32) {
 	wce.FragReferenceTrees[fragID] = newTree
 }
 
-// Recursive function to print FragReferenceTrees with proper hierarchy
 func printFragReferenceTree(tree interface{}, indent int) {
-	roots := findTreeRoots(tree)
+	// Helper to find the roots of the tree
+	findTreeRoots := func(tree interface{}) []int32 {
+		referenced := make(map[int32]bool)
 
-	fmt.Println("FragReferenceTrees:")
-	for _, root := range roots {
-		fmt.Printf("FragID: %d\n", root)
-	}
-}
-
-func findTreeRoots(tree interface{}) []int32 {
-	referenced := make(map[int32]bool)
-
-	// Helper function to traverse the tree and find all referenced fragments
-	var traverse func(subtree interface{})
-	traverse = func(subtree interface{}) {
-		if children, ok := subtree.(map[int32]interface{}); ok {
-			for fragID, refs := range children {
-				referenced[fragID] = true
-				traverse(refs)
+		// Traverse to mark all referenced fragments
+		var traverse func(subtree interface{})
+		traverse = func(subtree interface{}) {
+			if children, ok := subtree.(map[int32]interface{}); ok {
+				for fragID, refs := range children {
+					referenced[fragID] = true
+					traverse(refs)
+				}
 			}
 		}
-	}
 
-	// Traverse the entire tree to mark all referenced fragments
-	if topLevel, ok := tree.(map[int32]interface{}); ok {
-		for _, subtree := range topLevel {
-			traverse(subtree)
-		}
-	}
-
-	// Collect fragments that are not referenced by any other fragment
-	roots := []int32{}
-	if topLevel, ok := tree.(map[int32]interface{}); ok {
-		for fragID := range topLevel {
-			if !referenced[fragID] {
-				roots = append(roots, fragID)
+		// Mark all referenced nodes
+		if topLevel, ok := tree.(map[int32]interface{}); ok {
+			for _, subtree := range topLevel {
+				traverse(subtree)
 			}
 		}
+
+		// Collect fragments not referenced by others (true roots)
+		roots := []int32{}
+		if topLevel, ok := tree.(map[int32]interface{}); ok {
+			for fragID := range topLevel {
+				if !referenced[fragID] {
+					roots = append(roots, fragID)
+				}
+			}
+		}
+
+		return roots
 	}
 
-	return roots
+	// Print the tree
+	if indent == 0 { // Only find roots at the top level
+		roots := findTreeRoots(tree)
+		fmt.Println("FragReferenceTrees:")
+		for _, root := range roots {
+			fmt.Printf("FragID: %d\n", root)
+			if topLevel, ok := tree.(map[int32]interface{}); ok {
+				if rootSubtree, exists := topLevel[root]; exists {
+					printFragReferenceTree(rootSubtree, indent+1)
+				}
+			}
+		}
+	} else { // Recursive printing for non-root nodes
+		spacer := strings.Repeat("  ", indent)
+		if subtree, ok := tree.(map[int32]interface{}); ok {
+			for fragID, refs := range subtree {
+				fmt.Printf("%sFragID: %d\n", spacer, fragID)
+				printFragReferenceTree(refs, indent+1)
+			}
+		} else {
+			fmt.Printf("%s(No further references)\n", spacer)
+		}
+	}
 }
