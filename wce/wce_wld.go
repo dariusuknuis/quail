@@ -7322,7 +7322,7 @@ func (e *ParticleCloudDef) Definition() string {
 
 func (e *ParticleCloudDef) Write(token *AsciiWriteToken) error {
 	// Debug log for fragID and associated Tag
-	// fmt.Printf("Writing ParticleCloudDef: fragID=%d, Tag=%s, FragRefs=%d\n", e.fragID, e.Tag, e.FragRefs)
+	fmt.Printf("Writing ParticleCloudDef: fragID=%d, Tag=%s, FragRefs=%d\n", e.fragID, e.Tag, e.FragRefs)
 
 	w, err := token.Writer()
 	if err != nil {
