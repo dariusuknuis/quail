@@ -57,8 +57,8 @@ func (wce *Wce) ReadWldRaw(src *raw.Wld) error {
 	// Build the FragReferenceTrees after processing all fragments
 	wce.BuildFragReferenceTrees()
 
-	// fmt.Println("FragReferenceTrees:")
-	// printFragReferenceTree(wce.FragReferenceTrees, 0)
+	fmt.Println("FragReferenceTrees:")
+	PrintAllTrees(wce.FragReferenceTrees)
 
 	return nil
 }
@@ -679,14 +679,24 @@ func baseTagTrim(isObj bool, tag string) string {
 }
 
 func (wce *Wce) BuildFragReferenceTrees() {
-	// Ensure FragReferenceTrees is initialized
-	if wce.FragReferenceTrees == nil {
-		wce.FragReferenceTrees = make(map[int32]interface{})
+	// Helper to find or create a node
+	findOrCreateNode := func(trees map[int32]*Node, fragID int32) *Node {
+		if node, exists := trees[fragID]; exists {
+			return node
+		}
+		node := &Node{
+			FragID:   fragID,
+			Children: make(map[int32]*Node),
+		}
+		trees[fragID] = node
+		return node
 	}
 
-	// Helper to process each slice of definitions
+	// Create the root map to hold all trees
+	trees := make(map[int32]*Node)
+
+	// Process each definition to build trees
 	processDefinitions := func(definitions interface{}) {
-		// Use reflection to iterate through slices of definitions
 		slice := reflect.ValueOf(definitions)
 		if slice.Kind() != reflect.Slice {
 			return
@@ -694,13 +704,17 @@ func (wce *Wce) BuildFragReferenceTrees() {
 
 		for i := 0; i < slice.Len(); i++ {
 			def := slice.Index(i).Interface()
+			fragID := extractFragID(def)
+			fragRefs := extractFragRefs(def)
 
-			// Extract fragID and FragRefs
-			fragID := extractFragID(def)     // Extract the fragID
-			fragRefs := extractFragRefs(def) // Extract the FragRefs
+			// Find or create the node for fragID
+			node := findOrCreateNode(trees, fragID)
 
-			// Update the tree with the extracted data
-			updateFragReferenceTrees(wce, fragID, fragRefs)
+			// Add references as children of the current node
+			for _, refID := range fragRefs {
+				child := findOrCreateNode(trees, refID)
+				node.Children[refID] = child
+			}
 		}
 	}
 
@@ -732,6 +746,9 @@ func (wce *Wce) BuildFragReferenceTrees() {
 	processDefinitions(wce.ModDefs)
 	processDefinitions(wce.TerDefs)
 	processDefinitions(wce.EQMaterialDefs)
+
+	// Assign the tree map to the FragReferenceTrees
+	wce.FragReferenceTrees = trees
 }
 
 // Extract the fragID from a definition
@@ -769,146 +786,15 @@ func extractFragRefs(def interface{}) []int32 {
 	return nil
 }
 
-func updateFragReferenceTrees(wce *Wce, fragID int32, fragRefs []int32) {
-	if wce.FragReferenceTrees == nil {
-		wce.FragReferenceTrees = make(map[int32]interface{})
+func PrintTree(node *Node, indent string) {
+	fmt.Printf("%sNode: %d\n", indent, node.FragID)
+	for _, child := range node.Children {
+		PrintTree(child, indent+"  ")
 	}
-
-	// Helper: Find a fragment in the tree and return the parent map if found
-	var findParent func(tree interface{}, target int32) (map[int32]interface{}, bool, bool)
-	findParent = func(tree interface{}, target int32) (map[int32]interface{}, bool, bool) {
-		if subtree, ok := tree.(map[int32]interface{}); ok {
-			for k, v := range subtree {
-				if k == target {
-					return subtree, true, k == fragID // Return if it's root
-				}
-				if result, found, isRoot := findParent(v, target); found {
-					return result, found, isRoot
-				}
-			}
-		}
-		return nil, false, false
-	}
-
-	// Step 1: Check if fragID is already in the tree
-	parent, found, _ := findParent(wce.FragReferenceTrees, fragID)
-
-	if found {
-		// Step 2 & 3: Add missing FragRefs to the existing tree under fragID
-		for _, ref := range fragRefs {
-			if _, exists := parent[ref]; !exists {
-				parent[ref] = make(map[int32]interface{})
-			}
-		}
-		return
-	}
-
-	// Step 4: Check if any FragRefs are in the tree
-	var rootParent map[int32]interface{}
-	var refsInTree []int32
-	for _, ref := range fragRefs {
-		parent, found, isRoot := findParent(wce.FragReferenceTrees, ref)
-		if found {
-			refsInTree = append(refsInTree, ref)
-			if isRoot {
-				rootParent = parent
-				break
-			}
-		}
-	}
-
-	if rootParent != nil {
-		// Step 4.1: Attach fragID as new root if a FragRef is root of an existing tree
-		newSubTree := make(map[int32]interface{})
-		for _, ref := range fragRefs {
-			if childTree, exists := rootParent[ref]; exists {
-				newSubTree[ref] = childTree
-			} else {
-				newSubTree[ref] = make(map[int32]interface{})
-			}
-		}
-		rootParent[fragID] = newSubTree
-		delete(wce.FragReferenceTrees, refsInTree[0]) // Remove old root
-		wce.FragReferenceTrees[fragID] = rootParent
-		return
-	}
-
-	if len(refsInTree) > 0 {
-		// Step 4.2: Create a new tree copying subtree of FragRefs
-		newTree := make(map[int32]interface{})
-		for _, ref := range refsInTree {
-			parent, _, _ := findParent(wce.FragReferenceTrees, ref)
-			newTree[ref] = parent[ref]
-		}
-		wce.FragReferenceTrees[fragID] = newTree
-		return
-	}
-
-	// Step 5: Create a completely new tree for fragID and FragRefs
-	newTree := make(map[int32]interface{})
-	for _, ref := range fragRefs {
-		newTree[ref] = make(map[int32]interface{})
-	}
-	wce.FragReferenceTrees[fragID] = newTree
 }
 
-func printFragReferenceTree(tree interface{}, indent int) {
-	// Helper to find the roots of the tree
-	findTreeRoots := func(tree interface{}) []int32 {
-		referenced := make(map[int32]bool)
-
-		// Traverse to mark all referenced fragments
-		var traverse func(subtree interface{})
-		traverse = func(subtree interface{}) {
-			if children, ok := subtree.(map[int32]interface{}); ok {
-				for fragID, refs := range children {
-					referenced[fragID] = true
-					traverse(refs)
-				}
-			}
-		}
-
-		// Mark all referenced nodes
-		if topLevel, ok := tree.(map[int32]interface{}); ok {
-			for _, subtree := range topLevel {
-				traverse(subtree)
-			}
-		}
-
-		// Collect fragments not referenced by others (true roots)
-		roots := []int32{}
-		if topLevel, ok := tree.(map[int32]interface{}); ok {
-			for fragID := range topLevel {
-				if !referenced[fragID] {
-					roots = append(roots, fragID)
-				}
-			}
-		}
-
-		return roots
-	}
-
-	// Print the tree
-	if indent == 0 { // Only find roots at the top level
-		roots := findTreeRoots(tree)
-		fmt.Println("FragReferenceTrees:")
-		for _, root := range roots {
-			fmt.Printf("FragID: %d\n", root)
-			if topLevel, ok := tree.(map[int32]interface{}); ok {
-				if rootSubtree, exists := topLevel[root]; exists {
-					printFragReferenceTree(rootSubtree, indent+1)
-				}
-			}
-		}
-	} else { // Recursive printing for non-root nodes
-		spacer := strings.Repeat("  ", indent)
-		if subtree, ok := tree.(map[int32]interface{}); ok {
-			for fragID, refs := range subtree {
-				fmt.Printf("%sFragID: %d\n", spacer, fragID)
-				printFragReferenceTree(refs, indent+1)
-			}
-		} else {
-			fmt.Printf("%s(No further references)\n", spacer)
-		}
+func PrintAllTrees(trees map[int32]*Node) {
+	for _, root := range trees {
+		PrintTree(root, "")
 	}
 }
