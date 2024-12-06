@@ -58,7 +58,7 @@ func (wce *Wce) ReadWldRaw(src *raw.Wld) error {
 	wce.BuildFragReferenceTrees()
 
 	fmt.Println("FragReferenceTrees:")
-	PrintAllTrees(wce.FragReferenceTrees)
+	PrintTopLevelTrees(wce.FragReferenceTrees)
 
 	return nil
 }
@@ -786,15 +786,27 @@ func extractFragRefs(def interface{}) []int32 {
 	return nil
 }
 
+func PrintTopLevelTrees(trees map[int32]*Node) {
+	// Helper function to recursively print a tree
+	var printTree func(node *Node, indent string)
+	printTree = func(node *Node, indent string) {
+		fmt.Printf("%sNode: %d\n", indent, node.FragID)
+		for _, child := range node.Children {
+			printTree(child, indent+"  ")
+		}
+	}
+
+	// Print each root node and its tree
+	fmt.Println("Top-Level FragReferenceTrees:")
+	for _, node := range trees {
+		// Root nodes are directly stored in the map, so print each one
+		printTree(node, "")
+	}
+}
+
 func PrintTree(node *Node, indent string) {
 	fmt.Printf("%sNode: %d\n", indent, node.FragID)
 	for _, child := range node.Children {
 		PrintTree(child, indent+"  ")
-	}
-}
-
-func PrintAllTrees(trees map[int32]*Node) {
-	for _, root := range trees {
-		PrintTree(root, "")
 	}
 }
