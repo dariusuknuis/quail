@@ -796,11 +796,20 @@ func PrintTopLevelTrees(trees map[int32]*Node) {
 		}
 	}
 
-	// Print each root node and its tree
-	fmt.Println("Top-Level FragReferenceTrees:")
+	// Determine all nodes that have a parent
+	hasParent := make(map[int32]bool)
 	for _, node := range trees {
-		// Root nodes are directly stored in the map, so print each one
-		printTree(node, "")
+		for _, child := range node.Children {
+			hasParent[child.FragID] = true
+		}
+	}
+
+	// Print only true root nodes
+	fmt.Println("Top-Level FragReferenceTrees:")
+	for fragID, node := range trees {
+		if !hasParent[fragID] { // Only print if the node does not have a parent
+			printTree(node, "")
+		}
 	}
 }
 
