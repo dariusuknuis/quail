@@ -57,8 +57,8 @@ func (wce *Wce) ReadWldRaw(src *raw.Wld) error {
 	// Build the FragReferenceTrees after processing all fragments
 	wce.BuildFragReferenceTrees()
 
-	fmt.Println("FragReferenceTrees:")
-	printFragReferenceTree(wce.FragReferenceTrees, 0)
+	// fmt.Println("FragReferenceTrees:")
+	// printFragReferenceTree(wce.FragReferenceTrees, 0)
 
 	return nil
 }

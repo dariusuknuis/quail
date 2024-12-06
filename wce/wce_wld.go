@@ -81,8 +81,8 @@ func (e *GlobalAmbientLightDef) Definition() string {
 
 func (e *GlobalAmbientLightDef) Write(token *AsciiWriteToken) error {
 	// Debug log for fragID and associated Tag
-	// fmt.Printf("Writing GlobalAmbientLightDef: fragID=%d\n",
-	// 	e.fragID)
+	fmt.Printf("Writing GlobalAmbientLightDef: fragID=%d\n", e.fragID)
+
 	w, err := token.Writer()
 	if err != nil {
 		return err
@@ -183,7 +183,7 @@ func (e *DMSpriteDef2) Definition() string {
 
 func (e *DMSpriteDef2) Write(token *AsciiWriteToken) error {
 	// Debug log for fragID and associated Tag
-	// fmt.Printf("Writing DMSpriteDef2: fragID=%d, Tag=%s, FragRefs=%v\n", e.fragID, e.Tag, e.FragRefs)
+	fmt.Printf("Writing DMSpriteDef2: fragID=%d, Tag=%s, FragRefs=%v\n", e.fragID, e.Tag, e.FragRefs)
 
 	w, err := token.Writer()
 	if err != nil {
@@ -1076,7 +1076,7 @@ func (e *DMSpriteDef) Definition() string {
 
 func (e *DMSpriteDef) Write(token *AsciiWriteToken) error {
 	// Debug log for fragID and associated Tag
-	// fmt.Printf("Writing DMSpriteDef: fragID=%d, Tag=%s, FragRefs=%d\n", e.fragID, e.Tag, e.FragRefs)
+	fmt.Printf("Writing DMSpriteDef: fragID=%d, Tag=%s, FragRefs=%d\n", e.fragID, e.Tag, e.FragRefs)
 
 	w, err := token.Writer()
 	if err != nil {
@@ -1718,7 +1718,7 @@ func (e *MaterialPalette) Definition() string {
 
 func (e *MaterialPalette) Write(token *AsciiWriteToken) error {
 	// Debug log for fragID and associated Tag
-	// fmt.Printf("Writing MaterialPalette: fragID=%d, Tag=%s, FragRefs=%v\n", e.fragID, e.Tag, e.FragRefs)
+	fmt.Printf("Writing MaterialPalette: fragID=%d, Tag=%s, FragRefs=%v\n", e.fragID, e.Tag, e.FragRefs)
 
 	w, err := token.Writer()
 	if err != nil {
@@ -1850,7 +1850,7 @@ func (e *MaterialDef) Definition() string {
 
 func (e *MaterialDef) Write(token *AsciiWriteToken) error {
 	// Debug log for fragID and associated Tag
-	// fmt.Printf("Writing MaterialDef: fragID=%d, Tag=%s, FragRefs=%d\n", e.fragID, e.Tag, e.FragRefs)
+	fmt.Printf("Writing MaterialDef: fragID=%d, Tag=%s, FragRefs=%d\n", e.fragID, e.Tag, e.FragRefs)
 
 	w, err := token.Writer()
 	if err != nil {
@@ -2113,7 +2113,7 @@ func (e *BlitSpriteDef) Definition() string {
 
 func (e *BlitSpriteDef) Write(token *AsciiWriteToken) error {
 	// Debug log for fragID and associated Tag
-	// fmt.Printf("Writing BlitSpriteDef: fragID=%d, Tag=%s, FragRefs=%d\n", e.fragID, e.Tag, e.FragRefs)
+	fmt.Printf("Writing BlitSpriteDef: fragID=%d, Tag=%s, FragRefs=%d\n", e.fragID, e.Tag, e.FragRefs)
 
 	w, err := token.Writer()
 	if err != nil {
@@ -2280,7 +2280,7 @@ func (e *SimpleSpriteDef) Definition() string {
 
 func (e *SimpleSpriteDef) Write(token *AsciiWriteToken) error {
 	// Debug log for fragID and associated Tag
-	// fmt.Printf("Writing SimpleSpriteDef: fragID=%d, Tag=%s, FragRefs=%v\n", e.fragID, e.Tag, e.FragRefs)
+	fmt.Printf("Writing SimpleSpriteDef: fragID=%d, Tag=%s, FragRefs=%v\n", e.fragID, e.Tag, e.FragRefs)
 
 	w, err := token.Writer()
 	if err != nil {
@@ -2519,7 +2519,7 @@ func (e *ActorDef) Definition() string {
 
 func (e *ActorDef) Write(token *AsciiWriteToken) error {
 	// Debug log for fragID and associated Tag
-	// fmt.Printf("Writing ActorDef: fragID=%d, Tag=%s, FragRefs=%v\n", e.fragID, e.Tag, e.FragRefs)
+	fmt.Printf("Writing ActorDef: fragID=%d, Tag=%s, FragRefs=%v\n", e.fragID, e.Tag, e.FragRefs)
 
 	w, err := token.Writer()
 	if err != nil {
@@ -3104,7 +3104,7 @@ func (e *ActorInst) Definition() string {
 
 func (e *ActorInst) Write(token *AsciiWriteToken) error {
 	// Debug log for fragID and associated Tag
-	// fmt.Printf("Writing ActorInst: fragID=%d, Tag=%s, FragRefs=%v\n", e.fragID, e.Tag, e.FragRefs)
+	fmt.Printf("Writing ActorInst: fragID=%d, Tag=%s, FragRefs=%v\n", e.fragID, e.Tag, e.FragRefs)
 
 	w, err := token.Writer()
 	if err != nil {
@@ -3500,8 +3500,8 @@ func (e *LightDef) Definition() string {
 
 func (e *LightDef) Write(token *AsciiWriteToken) error {
 	// Debug log for fragID and associated Tag
-	// fmt.Printf("Writing LightDef: fragID=%d, Tag=%s\n",
-	//	e.fragID, e.Tag)
+	fmt.Printf("Writing LightDef: fragID=%d, Tag=%s\n", e.fragID, e.Tag)
+
 	w, err := token.Writer()
 	if err != nil {
 		return err
@@ -3693,7 +3693,7 @@ func (e *PointLight) Definition() string {
 
 func (e *PointLight) Write(token *AsciiWriteToken) error {
 	// Debug log for fragID and associated Tag
-	// fmt.Printf("Writing PointLight: fragID=%d, Tag=%s, FragRefs=%d\n", e.fragID, e.Tag, e.FragRefs)
+	fmt.Printf("Writing PointLight: fragID=%d, Tag=%s, FragRefs=%d\n", e.fragID, e.Tag, e.FragRefs)
 
 	w, err := token.Writer()
 	if err != nil {
@@ -3911,7 +3911,7 @@ func (e *Sprite3DDef) Definition() string {
 
 func (e *Sprite3DDef) Write(token *AsciiWriteToken) error {
 	// Debug log for fragID and associated Tag
-	// fmt.Printf("Writing Sprite3DDef: fragID=%d, Tag=%s, FragRefs=%v\n", e.fragID, e.Tag, e.FragRefs)
+	fmt.Printf("Writing Sprite3DDef: fragID=%d, Tag=%s, FragRefs=%v\n", e.fragID, e.Tag, e.FragRefs)
 
 	w, err := token.Writer()
 	if err != nil {
@@ -4417,8 +4417,8 @@ func (e *PolyhedronDefinition) Definition() string {
 
 func (e *PolyhedronDefinition) Write(token *AsciiWriteToken) error {
 	// Debug log for fragID and associated Tag
-	// fmt.Printf("Writing PolyhedronDefinition: fragID=%d, Tag=%s\n",
-	//	e.fragID, e.Tag)
+	fmt.Printf("Writing PolyhedronDefinition: fragID=%d, Tag=%s\n", e.fragID, e.Tag)
+
 	w, err := token.Writer()
 	if err != nil {
 		return err
@@ -4593,7 +4593,7 @@ func (e *TrackInstance) Definition() string {
 
 func (e *TrackInstance) Write(token *AsciiWriteToken) error {
 	// Debug log for fragID and associated Tag
-	// fmt.Printf("Writing TrackInstance: fragID=%d, Tag=%s, FragRefs=%d\n", e.fragID, e.Tag, e.FragRefs)
+	fmt.Printf("Writing TrackInstance: fragID=%d, Tag=%s, FragRefs=%d\n", e.fragID, e.Tag, e.FragRefs)
 
 	w, err := token.Writer()
 	if err != nil {
@@ -4812,8 +4812,8 @@ func (e *TrackDef) Definition() string {
 
 func (e *TrackDef) Write(token *AsciiWriteToken) error {
 	// Debug log for fragID and associated Tag
-	// fmt.Printf("Writing TrackDef: fragID=%d, Tag=%s\n",
-	//	e.fragID, e.Tag)
+	fmt.Printf("Writing TrackDef: fragID=%d, Tag=%s\n", e.fragID, e.Tag)
+
 	w, err := token.Writer()
 	if err != nil {
 		return err
@@ -5106,7 +5106,7 @@ func (e *HierarchicalSpriteDef) Definition() string {
 
 func (e *HierarchicalSpriteDef) Write(token *AsciiWriteToken) error {
 	// Debug log for fragID and associated Tag
-	// fmt.Printf("Writing HierarchicalSpriteDef: fragID=%d, Tag=%s, FragRefs=%v\n", e.fragID, e.Tag, e.FragRefs)
+	fmt.Printf("Writing HierarchicalSpriteDef: fragID=%d, Tag=%s, FragRefs=%v\n", e.fragID, e.Tag, e.FragRefs)
 
 	w, err := token.Writer()
 	if err != nil {
@@ -5839,8 +5839,8 @@ func (e *WorldTree) Definition() string {
 
 func (e *WorldTree) Write(token *AsciiWriteToken) error {
 	// Debug log for fragID and associated Tag
-	// fmt.Printf("Writing WorldTree: fragID=%d, Tag=%s\n",
-	//	e.fragID, e.Tag)
+	fmt.Printf("Writing WorldTree: fragID=%d, Tag=%s\n", e.fragID, e.Tag)
+
 	w, err := token.Writer()
 	if err != nil {
 		return err
@@ -6040,7 +6040,7 @@ func (e *Region) Definition() string {
 func (e *Region) Write(token *AsciiWriteToken) error {
 	var err error
 	// Debug log for fragID and associated Tag
-	// fmt.Printf("Writing Region: fragID=%d, Tag=%s, FragRefs=%v\n", e.fragID, e.Tag, e.FragRefs)
+	fmt.Printf("Writing Region: fragID=%d, Tag=%s, FragRefs=%v\n", e.fragID, e.Tag, e.FragRefs)
 
 	if e.SpriteTag != "" {
 		sprite := token.wce.ByTag(e.SpriteTag)
@@ -6921,7 +6921,7 @@ func (e *AmbientLight) Definition() string {
 
 func (e *AmbientLight) Write(token *AsciiWriteToken) error {
 	// Debug log for fragID and associated Tag
-	// fmt.Printf("Writing AmbientLight: fragID=%d, Tag=%s, FragRefs=%d\n", e.fragID, e.Tag, e.FragRefs)
+	fmt.Printf("Writing AmbientLight: fragID=%d, Tag=%s, FragRefs=%d\n", e.fragID, e.Tag, e.FragRefs)
 
 	w, err := token.Writer()
 	if err != nil {
@@ -7064,8 +7064,8 @@ func (e *Zone) Definition() string {
 
 func (e *Zone) Write(token *AsciiWriteToken) error {
 	// Debug log for fragID and associated Tag
-	// fmt.Printf("Writing Zone: fragID=%d, Tag=%s\n",
-	//	e.fragID, e.Tag)
+	fmt.Printf("Writing Zone: fragID=%d, Tag=%s\n", e.fragID, e.Tag)
+
 	w, err := token.Writer()
 	if err != nil {
 		return err
@@ -7160,8 +7160,8 @@ func (e *RGBTrackDef) Definition() string {
 
 func (e *RGBTrackDef) Write(token *AsciiWriteToken) error {
 	// Debug log for fragID and associated Tag
-	// fmt.Printf("Writing RGBTrackDef: fragID=%d, Tag=%s\n",
-	//	e.fragID, e.Tag)
+	fmt.Printf("Writing RGBTrackDef: fragID=%d, Tag=%s\n", e.fragID, e.Tag)
+
 	w, err := token.Writer()
 	if err != nil {
 		return err
@@ -7322,7 +7322,7 @@ func (e *ParticleCloudDef) Definition() string {
 
 func (e *ParticleCloudDef) Write(token *AsciiWriteToken) error {
 	// Debug log for fragID and associated Tag
-	// fmt.Printf("Writing ParticleCloudDef: fragID=%d, Tag=%s, FragRefs=%d\n", e.fragID, e.Tag, e.FragRefs)
+	fmt.Printf("Writing ParticleCloudDef: fragID=%d, Tag=%s, FragRefs=%d\n", e.fragID, e.Tag, e.FragRefs)
 
 	w, err := token.Writer()
 	if err != nil {
@@ -7856,7 +7856,7 @@ func (e *Sprite2DDef) Definition() string {
 
 func (e *Sprite2DDef) Write(token *AsciiWriteToken) error {
 	// Debug log for fragID and associated Tag
-	// fmt.Printf("Writing Sprite2DDef: fragID=%d, Tag=%s, FragRefs=%v\n", e.fragID, e.Tag, e.FragRefs)
+	fmt.Printf("Writing Sprite2DDef: fragID=%d, Tag=%s, FragRefs=%v\n", e.fragID, e.Tag, e.FragRefs)
 
 	w, err := token.Writer()
 	if err != nil {
@@ -8489,8 +8489,7 @@ func (e *DMTrackDef2) Definition() string {
 
 func (e *DMTrackDef2) Write(token *AsciiWriteToken) error {
 	// Debug log for fragID and associated Tag
-	// fmt.Printf("Writing DMTrackDef2: fragID=%d, Tag=%s\n",
-	//	e.fragID, e.Tag)
+	fmt.Printf("Writing DMTrackDef2: fragID=%d, Tag=%s\n", e.fragID, e.Tag)
 
 	w, err := token.UseTempWriter(e.model + "_ani")
 	if err != nil {
