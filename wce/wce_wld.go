@@ -2519,7 +2519,7 @@ func (e *ActorDef) Definition() string {
 
 func (e *ActorDef) Write(token *AsciiWriteToken) error {
 	// Debug log for fragID and associated Tag
-	// fmt.Printf("Writing ActorDef: fragID=%d, Tag=%s, FragRefs=%v\n", e.fragID, e.Tag, e.FragRefs)
+	fmt.Printf("Writing ActorDef: fragID=%d, Tag=%s, FragRefs=%v\n", e.fragID, e.Tag, e.FragRefs)
 
 	w, err := token.Writer()
 	if err != nil {
