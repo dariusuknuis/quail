@@ -44,9 +44,9 @@ func (wce *Wce) ReadWldRaw(src *raw.Wld) error {
 	}
 	for i := 1; i < len(src.Fragments); i++ {
 		fragment := src.Fragments[i]
-		if modelChunks[i] != "" {
-			wce.lastReadModelTag = modelChunks[i]
-		}
+		// if modelChunks[i] != "" {
+		// 	wce.lastReadModelTag = modelChunks[i]
+		// }
 
 		err := readRawFrag(wce, src, fragment, i)
 		if err != nil {
