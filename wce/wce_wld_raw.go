@@ -26,27 +26,27 @@ func (wce *Wce) ReadWldRaw(src *raw.Wld) error {
 		wce.WorldDef.Zone = 1
 	}
 
-	// modelChunks := make(map[int]string)
-	// lastModelIndex := 0
-	// for i := 1; i < len(src.Fragments); i++ {
-	// 	fragment := src.Fragments[i]
-	// 	actorDef, ok := fragment.(*rawfrag.WldFragActorDef)
-	// 	if !ok {
-	// 		continue
-	// 	}
-	// 	modelChunks[lastModelIndex] = strings.TrimSuffix(src.Name(actorDef.NameRef), "_ACTORDEF")
-	// 	wce.modelTags = append(wce.modelTags, modelChunks[lastModelIndex])
-	// 	lastModelIndex = i
-	// }
-
-	// if modelChunks[0] != "" {
-	// 	wce.lastReadModelTag = modelChunks[0]
-	// }
+	modelChunks := make(map[int]string)
+	lastModelIndex := 0
 	for i := 1; i < len(src.Fragments); i++ {
 		fragment := src.Fragments[i]
-		// if modelChunks[i] != "" {
-		// 	wce.lastReadModelTag = modelChunks[i]
-		// }
+		actorDef, ok := fragment.(*rawfrag.WldFragActorDef)
+		if !ok {
+			continue
+		}
+		modelChunks[lastModelIndex] = strings.TrimSuffix(src.Name(actorDef.NameRef), "_ACTORDEF")
+		wce.modelTags = append(wce.modelTags, modelChunks[lastModelIndex])
+		lastModelIndex = i
+	}
+
+	if modelChunks[0] != "" {
+		wce.lastReadModelTag = modelChunks[0]
+	}
+	for i := 1; i < len(src.Fragments); i++ {
+		fragment := src.Fragments[i]
+		if modelChunks[i] != "" {
+			wce.lastReadModelTag = modelChunks[i]
+		}
 
 		err := readRawFrag(wce, src, fragment, i)
 		if err != nil {
