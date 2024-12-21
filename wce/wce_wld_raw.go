@@ -3,6 +3,7 @@ package wce
 import (
 	"fmt"
 	"io"
+	"reflect"
 	"regexp"
 	"sort"
 	"strconv"
@@ -47,22 +48,28 @@ func (wce *Wce) ReadWldRaw(src *raw.Wld) error {
 			wce.lastReadModelTag = modelChunks[i]
 		}
 
-		err := readRawFrag(wce, src, fragment)
+		err := readRawFrag(wce, src, fragment, i)
 		if err != nil {
 			return fmt.Errorf("fragment %d (%s): %w", i, raw.FragName(fragment.FragCode()), err)
 		}
 	}
 
+	// Build the FragReferenceTrees after processing all fragments
+	wce.BuildFragReferenceTrees()
+
+	// fmt.Println("FragReferenceTrees:")
+	// PrintTopLevelTrees(wce.FragReferenceTrees)
+
 	return nil
 }
 
-func readRawFrag(e *Wce, rawWld *raw.Wld, fragment model.FragmentReadWriter) error {
+func readRawFrag(e *Wce, rawWld *raw.Wld, fragment model.FragmentReadWriter, fragIndex int) error {
 
 	switch fragment.FragCode() {
 	case rawfrag.FragCodeGlobalAmbientLightDef:
 
 		def := &GlobalAmbientLightDef{}
-		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragGlobalAmbientLightDef))
+		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragGlobalAmbientLightDef), fragIndex)
 		if err != nil {
 			return fmt.Errorf("globalambientlightdef: %w", err)
 		}
@@ -71,7 +78,7 @@ func readRawFrag(e *Wce, rawWld *raw.Wld, fragment model.FragmentReadWriter) err
 		return nil
 	case rawfrag.FragCodeSimpleSpriteDef:
 		def := &SimpleSpriteDef{}
-		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragSimpleSpriteDef))
+		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragSimpleSpriteDef), fragIndex)
 		if err != nil {
 			return fmt.Errorf("simplespritedef: %w", err)
 		}
@@ -81,7 +88,7 @@ func readRawFrag(e *Wce, rawWld *raw.Wld, fragment model.FragmentReadWriter) err
 		//return fmt.Errorf("simplesprite fragment found, but not expected")
 	case rawfrag.FragCodeBlitSpriteDef:
 		def := &BlitSpriteDef{}
-		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragBlitSpriteDef))
+		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragBlitSpriteDef), fragIndex)
 		if err != nil {
 			return fmt.Errorf("blitspritedef: %w", err)
 		}
@@ -89,29 +96,29 @@ func readRawFrag(e *Wce, rawWld *raw.Wld, fragment model.FragmentReadWriter) err
 	case rawfrag.FragCodeBlitSprite:
 	case rawfrag.FragCodeParticleCloudDef:
 		def := &ParticleCloudDef{}
-		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragParticleCloudDef))
+		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragParticleCloudDef), fragIndex)
 		if err != nil {
 			return fmt.Errorf("particleclouddef: %w", err)
 		}
 		e.ParticleCloudDefs = append(e.ParticleCloudDefs, def)
 	case rawfrag.FragCodeMaterialDef:
 		def := &MaterialDef{}
-		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragMaterialDef))
+		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragMaterialDef), fragIndex)
 		if err != nil {
 			return fmt.Errorf("materialdef: %w", err)
 		}
 		e.MaterialDefs = append(e.MaterialDefs, def)
 	case rawfrag.FragCodeMaterialPalette:
 		def := &MaterialPalette{}
-		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragMaterialPalette))
+		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragMaterialPalette), fragIndex)
 		if err != nil {
 			return fmt.Errorf("materialpalette: %w", err)
 		}
 		e.MaterialPalettes = append(e.MaterialPalettes, def)
-		e.isVariationMaterial = true
+		// e.isVariationMaterial = true
 	case rawfrag.FragCodeDmSpriteDef2:
 		def := &DMSpriteDef2{}
-		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragDmSpriteDef2))
+		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragDmSpriteDef2), fragIndex)
 		if err != nil {
 			return fmt.Errorf("dmspritedef2: %w", err)
 		}
@@ -130,14 +137,14 @@ func readRawFrag(e *Wce, rawWld *raw.Wld, fragment model.FragmentReadWriter) err
 		e.DMSpriteDef2s = append(e.DMSpriteDef2s, def)
 	case rawfrag.FragCodeTrack:
 		def := &TrackInstance{}
-		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragTrack))
+		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragTrack), fragIndex)
 		if err != nil {
 			return fmt.Errorf("track: %w", err)
 		}
 		e.TrackInstances = append(e.TrackInstances, def)
 	case rawfrag.FragCodeTrackDef:
 		def := &TrackDef{}
-		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragTrackDef))
+		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragTrackDef), fragIndex)
 		if err != nil {
 			return fmt.Errorf("trackdef: %w", err)
 		}
@@ -150,7 +157,7 @@ func readRawFrag(e *Wce, rawWld *raw.Wld, fragment model.FragmentReadWriter) err
 		}
 	case rawfrag.FragCodeDmTrackDef2:
 		def := &DMTrackDef2{}
-		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragDmTrackDef2))
+		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragDmTrackDef2), fragIndex)
 		if err != nil {
 			return fmt.Errorf("dmtrackdef2: %w", err)
 		}
@@ -158,7 +165,7 @@ func readRawFrag(e *Wce, rawWld *raw.Wld, fragment model.FragmentReadWriter) err
 
 	case rawfrag.FragCodeDMSpriteDef:
 		def := &DMSpriteDef{}
-		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragDMSpriteDef))
+		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragDMSpriteDef), fragIndex)
 		if err != nil {
 			return fmt.Errorf("dmspritedef: %w", err)
 		}
@@ -166,16 +173,16 @@ func readRawFrag(e *Wce, rawWld *raw.Wld, fragment model.FragmentReadWriter) err
 	case rawfrag.FragCodeDMSprite:
 	case rawfrag.FragCodeActorDef:
 		def := &ActorDef{}
-		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragActorDef))
+		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragActorDef), fragIndex)
 		if err != nil {
 			return fmt.Errorf("actordef: %w", err)
 		}
 
 		e.ActorDefs = append(e.ActorDefs, def)
-		e.isVariationMaterial = false
+		// e.isVariationMaterial = false
 	case rawfrag.FragCodeActor:
 		def := &ActorInst{}
-		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragActor))
+		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragActor), fragIndex)
 		if err != nil {
 			return fmt.Errorf("actor: %w", err)
 		}
@@ -183,7 +190,7 @@ func readRawFrag(e *Wce, rawWld *raw.Wld, fragment model.FragmentReadWriter) err
 		e.ActorInsts = append(e.ActorInsts, def)
 	case rawfrag.FragCodeHierarchicalSpriteDef:
 		def := &HierarchicalSpriteDef{}
-		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragHierarchicalSpriteDef))
+		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragHierarchicalSpriteDef), fragIndex)
 		if err != nil {
 			return fmt.Errorf("hierarchicalspritedef: %w", err)
 		}
@@ -192,7 +199,7 @@ func readRawFrag(e *Wce, rawWld *raw.Wld, fragment model.FragmentReadWriter) err
 		return nil
 	case rawfrag.FragCodeLightDef:
 		def := &LightDef{}
-		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragLightDef))
+		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragLightDef), fragIndex)
 		if err != nil {
 			return fmt.Errorf("lightdef: %w", err)
 		}
@@ -201,7 +208,7 @@ func readRawFrag(e *Wce, rawWld *raw.Wld, fragment model.FragmentReadWriter) err
 		return nil // light instances are ignored, since they're derived from other definitions
 	case rawfrag.FragCodeSprite3DDef:
 		def := &Sprite3DDef{}
-		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragSprite3DDef))
+		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragSprite3DDef), fragIndex)
 		if err != nil {
 			return fmt.Errorf("sprite3ddef: %w", err)
 		}
@@ -211,7 +218,7 @@ func readRawFrag(e *Wce, rawWld *raw.Wld, fragment model.FragmentReadWriter) err
 		return nil
 	case rawfrag.FragCodeZone:
 		def := &Zone{}
-		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragZone))
+		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragZone), fragIndex)
 		if err != nil {
 			return fmt.Errorf("zone: %w", err)
 		}
@@ -219,7 +226,7 @@ func readRawFrag(e *Wce, rawWld *raw.Wld, fragment model.FragmentReadWriter) err
 
 	case rawfrag.FragCodeWorldTree:
 		def := &WorldTree{}
-		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragWorldTree))
+		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragWorldTree), fragIndex)
 		if err != nil {
 			return fmt.Errorf("worldtree: %w", err)
 		}
@@ -227,28 +234,28 @@ func readRawFrag(e *Wce, rawWld *raw.Wld, fragment model.FragmentReadWriter) err
 
 	case rawfrag.FragCodeRegion:
 		def := &Region{}
-		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragRegion))
+		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragRegion), fragIndex)
 		if err != nil {
 			return fmt.Errorf("region: %w", err)
 		}
 		e.Regions = append(e.Regions, def)
 	case rawfrag.FragCodeAmbientLight:
 		def := &AmbientLight{}
-		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragAmbientLight))
+		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragAmbientLight), fragIndex)
 		if err != nil {
 			return fmt.Errorf("ambientlight: %w", err)
 		}
 		e.AmbientLights = append(e.AmbientLights, def)
 	case rawfrag.FragCodePointLight:
 		def := &PointLight{}
-		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragPointLight))
+		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragPointLight), fragIndex)
 		if err != nil {
 			return fmt.Errorf("pointlight: %w", err)
 		}
 		e.PointLights = append(e.PointLights, def)
 	case rawfrag.FragCodePolyhedronDef:
 		def := &PolyhedronDefinition{}
-		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragPolyhedronDef))
+		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragPolyhedronDef), fragIndex)
 		if err != nil {
 			return fmt.Errorf("polyhedrondefinition: %w", err)
 		}
@@ -261,7 +268,7 @@ func readRawFrag(e *Wce, rawWld *raw.Wld, fragment model.FragmentReadWriter) err
 		return nil
 	case rawfrag.FragCodeDmRGBTrackDef:
 		def := &RGBTrackDef{}
-		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragDmRGBTrackDef))
+		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragDmRGBTrackDef), fragIndex)
 		if err != nil {
 			return fmt.Errorf("dmrgbtrackdef: %w", err)
 		}
@@ -269,7 +276,7 @@ func readRawFrag(e *Wce, rawWld *raw.Wld, fragment model.FragmentReadWriter) err
 	case rawfrag.FragCodeDmRGBTrack:
 	case rawfrag.FragCodeSprite2DDef:
 		def := &Sprite2DDef{}
-		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragSprite2DDef))
+		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragSprite2DDef), fragIndex)
 		if err != nil {
 			return fmt.Errorf("sprite2ddef: %w", err)
 		}
@@ -669,4 +676,146 @@ func baseTagTrim(isObj bool, tag string) string {
 		tag = strings.TrimSuffix(tag, "BOD")
 	}
 	return tag
+}
+
+func (wce *Wce) BuildFragReferenceTrees() {
+	// Helper to find or create a node
+	findOrCreateNode := func(trees map[int32]*Node, fragID int32) *Node {
+		if node, exists := trees[fragID]; exists {
+			return node
+		}
+		node := &Node{
+			FragID:   fragID,
+			Children: make(map[int32]*Node),
+		}
+		trees[fragID] = node
+		return node
+	}
+
+	// Create the root map to hold all trees
+	trees := make(map[int32]*Node)
+
+	// Process each definition to build trees
+	processDefinitions := func(definitions interface{}) {
+		slice := reflect.ValueOf(definitions)
+		if slice.Kind() != reflect.Slice {
+			return
+		}
+
+		for i := 0; i < slice.Len(); i++ {
+			def := slice.Index(i).Interface()
+			fragID := extractFragID(def)
+			fragRefs := extractFragRefs(def)
+
+			// Find or create the node for fragID
+			node := findOrCreateNode(trees, fragID)
+
+			// Add references as children of the current node
+			for _, refID := range fragRefs {
+				child := findOrCreateNode(trees, refID)
+				node.Children[refID] = child
+			}
+		}
+	}
+
+	// Process each slice of definitions in the Wce struct
+	processDefinitions(wce.ActorDefs)
+	processDefinitions(wce.ActorInsts)
+	processDefinitions(wce.AmbientLights)
+	processDefinitions(wce.BlitSpriteDefs)
+	processDefinitions(wce.DMSpriteDef2s)
+	processDefinitions(wce.DMSpriteDefs)
+	processDefinitions(wce.DMTrackDef2s)
+	processDefinitions(wce.HierarchicalSpriteDefs)
+	processDefinitions(wce.LightDefs)
+	processDefinitions(wce.MaterialDefs)
+	processDefinitions(wce.MaterialPalettes)
+	processDefinitions(wce.ParticleCloudDefs)
+	processDefinitions(wce.PointLights)
+	processDefinitions(wce.PolyhedronDefs)
+	processDefinitions(wce.Regions)
+	processDefinitions(wce.RGBTrackDefs)
+	processDefinitions(wce.SimpleSpriteDefs)
+	processDefinitions(wce.Sprite2DDefs)
+	processDefinitions(wce.Sprite3DDefs)
+	processDefinitions(wce.TrackDefs)
+	processDefinitions(wce.TrackInstances)
+	processDefinitions(wce.WorldTrees)
+	processDefinitions(wce.Zones)
+	processDefinitions(wce.MdsDefs)
+	processDefinitions(wce.ModDefs)
+	processDefinitions(wce.TerDefs)
+	processDefinitions(wce.EQMaterialDefs)
+
+	// Assign the tree map to the FragReferenceTrees
+	wce.FragReferenceTrees = trees
+}
+
+// Extract the fragID from a definition
+func extractFragID(def interface{}) int32 {
+	v := reflect.ValueOf(def)
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+	field := v.FieldByName("fragID")
+	if field.IsValid() && field.Kind() == reflect.Int32 {
+		return int32(field.Int())
+	}
+	return -1 // Return -1 if FragID is not found
+}
+
+// Handles both int32 and []int32 FragRefs
+func extractFragRefs(def interface{}) []int32 {
+	v := reflect.ValueOf(def)
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+	field := v.FieldByName("FragRefs")
+	if field.IsValid() {
+		switch field.Kind() {
+		case reflect.Int32:
+			return []int32{int32(field.Int())}
+		case reflect.Slice:
+			refs := make([]int32, field.Len())
+			for i := 0; i < field.Len(); i++ {
+				refs[i] = int32(field.Index(i).Int())
+			}
+			return refs
+		}
+	}
+	return nil
+}
+
+func PrintTopLevelTrees(trees map[int32]*Node) {
+	// Helper function to recursively print a tree
+	var printTree func(node *Node, indent string)
+	printTree = func(node *Node, indent string) {
+		fmt.Printf("%sNode: %d\n", indent, node.FragID)
+		for _, child := range node.Children {
+			printTree(child, indent+"  ")
+		}
+	}
+
+	// Determine all nodes that have a parent
+	hasParent := make(map[int32]bool)
+	for _, node := range trees {
+		for _, child := range node.Children {
+			hasParent[child.FragID] = true
+		}
+	}
+
+	// Print only true root nodes
+	fmt.Println("Top-Level FragReferenceTrees:")
+	for fragID, node := range trees {
+		if !hasParent[fragID] { // Only print if the node does not have a parent
+			printTree(node, "")
+		}
+	}
+}
+
+func PrintTree(node *Node, indent string) {
+	fmt.Printf("%sNode: %d\n", indent, node.FragID)
+	for _, child := range node.Children {
+		PrintTree(child, indent+"  ")
+	}
 }

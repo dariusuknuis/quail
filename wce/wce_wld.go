@@ -71,7 +71,7 @@ func (e *WorldDef) Read(token *AsciiReadToken) error {
 
 // GlobalAmbientLightDef is a declaration of GLOBALAMBIENTLIGHTDEF
 type GlobalAmbientLightDef struct {
-	fragID int16
+	fragID int32
 	Color  [4]uint8
 }
 
@@ -80,6 +80,7 @@ func (e *GlobalAmbientLightDef) Definition() string {
 }
 
 func (e *GlobalAmbientLightDef) Write(token *AsciiWriteToken) error {
+
 	w, err := token.Writer()
 	if err != nil {
 		return err
@@ -103,7 +104,7 @@ func (e *GlobalAmbientLightDef) Read(token *AsciiReadToken) error {
 	return nil
 }
 
-func (e *GlobalAmbientLightDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
+func (e *GlobalAmbientLightDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 	if e.fragID != 0 {
 		return e.fragID, nil
 	}
@@ -112,14 +113,18 @@ func (e *GlobalAmbientLightDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) 
 	}
 
 	rawWld.Fragments = append(rawWld.Fragments, wfGlobalAmbientLightDef)
-	e.fragID = int16(len(rawWld.Fragments))
-	return int16(len(rawWld.Fragments)), nil
+	e.fragID = int32(len(rawWld.Fragments))
+	return int32(len(rawWld.Fragments)), nil
 }
 
-func (e *GlobalAmbientLightDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragGlobalAmbientLightDef) error {
+func (e *GlobalAmbientLightDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragGlobalAmbientLightDef, fragIndex int) error {
 	if wce.GlobalAmbientLightDef != nil {
 		return fmt.Errorf("duplicate globalambientlightdef found")
 	}
+
+	// Save the fragment ID
+	e.fragID = int32(fragIndex)
+
 	e.Color = frag.Color
 	wce.GlobalAmbientLightDef = e
 
@@ -128,7 +133,7 @@ func (e *GlobalAmbientLightDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag
 
 // DMSpriteDef2 is a declaration of DMSpriteDef2
 type DMSpriteDef2 struct {
-	fragID                int16
+	fragID                int32
 	Tag                   string
 	DmTrackTag            string
 	Params2               [3]uint32
@@ -154,6 +159,7 @@ type DMSpriteDef2 struct {
 	HexEightThousandFlag  uint16
 	HexTenThousandFlag    uint16
 	HexTwentyThousandFlag uint16
+	FragRefs              []int32 // Store fragment references for mapping
 }
 
 type Face struct {
@@ -174,6 +180,7 @@ func (e *DMSpriteDef2) Definition() string {
 }
 
 func (e *DMSpriteDef2) Write(token *AsciiWriteToken) error {
+
 	w, err := token.Writer()
 	if err != nil {
 		return err
@@ -672,14 +679,14 @@ func (e *DMSpriteDef2) Read(token *AsciiReadToken) error {
 	return nil
 }
 
-func (e *DMSpriteDef2) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
+func (e *DMSpriteDef2) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 	var err error
 
 	if e.fragID != 0 {
 		return e.fragID, nil
 	}
 
-	materialPaletteRef := int16(0)
+	materialPaletteRef := int32(0)
 	if e.MaterialPaletteTag != "" {
 		palette := wce.ByTag(e.MaterialPaletteTag)
 		if palette == nil {
@@ -693,7 +700,7 @@ func (e *DMSpriteDef2) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
 	}
 
 	dmSpriteDef := &rawfrag.WldFragDmSpriteDef2{
-		MaterialPaletteRef:   uint32(materialPaletteRef),
+		MaterialPaletteRef:   int32(materialPaletteRef),
 		CenterOffset:         e.CenterOffset,
 		Params2:              e.Params2,
 		BoundingRadius:       e.BoundingRadius,
@@ -862,17 +869,21 @@ func (e *DMSpriteDef2) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
 	}
 
 	rawWld.Fragments = append(rawWld.Fragments, dmSpriteDef)
-	e.fragID = int16(len(rawWld.Fragments))
-	return int16(len(rawWld.Fragments)), nil
+	e.fragID = int32(len(rawWld.Fragments))
+	return int32(len(rawWld.Fragments)), nil
 }
 
-func (e *DMSpriteDef2) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragDmSpriteDef2) error {
+func (e *DMSpriteDef2) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragDmSpriteDef2, fragIndex int) error {
 	if frag == nil {
 		return fmt.Errorf("frag is not dmspritedef2 (wrong fragcode?)")
 	}
 
+	// Save the fragment ID
+	e.fragID = int32(fragIndex)
+
 	e.Tag = rawWld.Name(frag.NameRef)
 	if frag.MaterialPaletteRef > 0 {
+		e.FragRefs = append(e.FragRefs, frag.MaterialPaletteRef) // Save the reference value
 		if len(rawWld.Fragments) < int(frag.MaterialPaletteRef) {
 			return fmt.Errorf("materialpalette ref %d out of bounds", frag.MaterialPaletteRef)
 		}
@@ -891,6 +902,7 @@ func (e *DMSpriteDef2) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragD
 		if !ok {
 			return fmt.Errorf("dmtrack ref %d not valid", frag.DMTrackRef)
 		}
+		e.FragRefs = append(e.FragRefs, dmTrack.TrackRef) // Save the reference value
 		if len(rawWld.Fragments) < int(dmTrack.TrackRef) {
 			return fmt.Errorf("dmtrack name ref %d out of bounds", dmTrack.TrackRef)
 		}
@@ -916,6 +928,7 @@ func (e *DMSpriteDef2) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragD
 				}
 
 				frag4 = rawWld.Fragments[frag4Def.FragmentRef]
+				e.FragRefs = append(e.FragRefs, frag4Def.FragmentRef) // Save the reference value
 				switch frag4Def := frag4.(type) {
 				case *rawfrag.WldFragPolyhedronDef:
 					e.PolyhedronTag = rawWld.Name(frag4Def.NameRef)
@@ -1014,7 +1027,7 @@ func (e *DMSpriteDef2) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragD
 
 // DMSpriteDef is a declaration of DMSPRITEDEF
 type DMSpriteDef struct {
-	fragID               int16
+	fragID               int32
 	Tag                  string
 	Fragment1            int16
 	MaterialPaletteTag   string
@@ -1036,6 +1049,7 @@ type DMSpriteDef struct {
 	HexTwoHundredFlag    int16
 	HexEightHundredFlag  int16
 	HexOneThousandFlag   int16
+	FragRefs             int32 // Store fragment references for mapping
 }
 
 type DMSpriteDefFace struct {
@@ -1057,6 +1071,7 @@ func (e *DMSpriteDef) Definition() string {
 }
 
 func (e *DMSpriteDef) Write(token *AsciiWriteToken) error {
+
 	w, err := token.Writer()
 	if err != nil {
 		return err
@@ -1531,13 +1546,13 @@ func (e *DMSpriteDef) Read(token *AsciiReadToken) error {
 	return nil
 }
 
-func (e *DMSpriteDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
+func (e *DMSpriteDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 	var err error
 	if e.fragID != 0 {
 		return e.fragID, nil
 	}
 
-	materialPaletteRef := int16(0)
+	materialPaletteRef := int32(0)
 	if e.MaterialPaletteTag != "" {
 		palette := wce.ByTag(e.MaterialPaletteTag)
 		if palette == nil {
@@ -1551,7 +1566,7 @@ func (e *DMSpriteDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
 	}
 
 	wfDMSpriteDef := &rawfrag.WldFragDMSpriteDef{
-		MaterialPaletteRef: uint32(materialPaletteRef),
+		MaterialPaletteRef: int32(materialPaletteRef),
 		CenterOffset:       [3]float32{e.Center.Float32Slice3[0], e.Center.Float32Slice3[1], e.Center.Float32Slice3[2]},
 	}
 	wfDMSpriteDef.NameRef = rawWld.NameAdd(e.Tag)
@@ -1608,18 +1623,23 @@ func (e *DMSpriteDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
 	}
 
 	rawWld.Fragments = append(rawWld.Fragments, wfDMSpriteDef)
-	e.fragID = int16(len(rawWld.Fragments))
+	e.fragID = int32(len(rawWld.Fragments))
 
-	return int16(len(rawWld.Fragments)), nil
+	return int32(len(rawWld.Fragments)), nil
 }
 
-func (e *DMSpriteDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragDMSpriteDef) error {
+func (e *DMSpriteDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragDMSpriteDef, fragIndex int) error {
 	if frag == nil {
 		return fmt.Errorf("frag is not dmspritedef (wrong fragcode?)")
 	}
+
+	// Save the fragment ID
+	e.fragID = int32(fragIndex)
+
 	e.Tag = rawWld.Name(frag.NameRef)
 	e.Fragment1 = frag.Fragment1
 	if frag.MaterialPaletteRef > 0 {
+		e.FragRefs = frag.MaterialPaletteRef // Save the reference value
 		if len(rawWld.Fragments) < int(frag.MaterialPaletteRef) {
 			return fmt.Errorf("materialpalette ref %d out of bounds", frag.MaterialPaletteRef)
 		}
@@ -1679,10 +1699,11 @@ func (e *DMSpriteDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragDM
 
 // MaterialPalette is a declaration of MATERIALPALETTE
 type MaterialPalette struct {
-	fragID    int16
+	fragID    int32
 	Tag       string
 	flags     uint32
 	Materials []string
+	FragRefs  []int32 // Store fragment references for mapping
 }
 
 func (e *MaterialPalette) Definition() string {
@@ -1690,6 +1711,7 @@ func (e *MaterialPalette) Definition() string {
 }
 
 func (e *MaterialPalette) Write(token *AsciiWriteToken) error {
+
 	w, err := token.Writer()
 	if err != nil {
 		return err
@@ -1742,7 +1764,7 @@ func (e *MaterialPalette) Read(token *AsciiReadToken) error {
 	return nil
 }
 
-func (e *MaterialPalette) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
+func (e *MaterialPalette) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 	if e.fragID != 0 {
 		return e.fragID, nil
 	}
@@ -1761,24 +1783,28 @@ func (e *MaterialPalette) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
 			return -1, fmt.Errorf("material %s to raw: %w", mat, err)
 		}
 
-		wfPalette.MaterialRefs = append(wfPalette.MaterialRefs, uint32(matRef))
+		wfPalette.MaterialRefs = append(wfPalette.MaterialRefs, int32(matRef))
 	}
 
 	wfPalette.NameRef = rawWld.NameAdd(e.Tag)
 	rawWld.Fragments = append(rawWld.Fragments, wfPalette)
-	e.fragID = int16(len(rawWld.Fragments))
+	e.fragID = int32(len(rawWld.Fragments))
 
-	return int16(len(rawWld.Fragments)), nil
+	return int32(len(rawWld.Fragments)), nil
 }
 
-func (e *MaterialPalette) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragMaterialPalette) error {
+func (e *MaterialPalette) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragMaterialPalette, fragIndex int) error {
 	if frag == nil {
 		return fmt.Errorf("frag is not materialpalette (wrong fragcode?)")
 	}
 
+	// Save the fragment ID
+	e.fragID = int32(fragIndex)
+
 	e.Tag = rawWld.Name(frag.NameRef)
 	e.flags = frag.Flags
 	for _, materialRef := range frag.MaterialRefs {
+		e.FragRefs = append(e.FragRefs, materialRef) // Save the reference value
 		if len(rawWld.Fragments) < int(materialRef) {
 			return fmt.Errorf("material ref %d not found", materialRef)
 		}
@@ -1794,10 +1820,11 @@ func (e *MaterialPalette) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFr
 
 // MaterialDef is an entry MATERIALDEFINITION
 type MaterialDef struct {
-	fragID             int16
+	fragID             int32
 	model              string
 	Tag                string
 	Variation          int
+	VariationParent    int32
 	SpriteHexFiftyFlag int
 	RenderMethod       string
 	RGBPen             [4]uint8
@@ -1807,6 +1834,7 @@ type MaterialDef struct {
 	Pair1              NullUint32
 	Pair2              NullFloat32
 	DoubleSided        int
+	FragRefs           int32 // Store fragment references for mapping
 }
 
 func (e *MaterialDef) Definition() string {
@@ -1814,6 +1842,7 @@ func (e *MaterialDef) Definition() string {
 }
 
 func (e *MaterialDef) Write(token *AsciiWriteToken) error {
+
 	w, err := token.Writer()
 	if err != nil {
 		return err
@@ -1947,7 +1976,7 @@ func (e *MaterialDef) Read(token *AsciiReadToken) error {
 	return nil
 }
 
-func (e *MaterialDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
+func (e *MaterialDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 	if !wce.isVariationMaterial && e.fragID != 0 {
 		return e.fragID, nil
 	}
@@ -1985,7 +2014,7 @@ func (e *MaterialDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
 
 		wfSprite := &rawfrag.WldFragSimpleSprite{
 			//NameRef:   rawWld.NameAdd(m.SimpleSpriteTag),
-			SpriteRef: uint32(spriteDefRef),
+			SpriteRef: int32(spriteDefRef),
 		}
 
 		if e.SpriteHexFiftyFlag > 0 {
@@ -1993,22 +2022,25 @@ func (e *MaterialDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
 		}
 		rawWld.Fragments = append(rawWld.Fragments, wfSprite)
 
-		spriteRef := int16(len(rawWld.Fragments))
+		spriteRef := int32(len(rawWld.Fragments))
 
-		wfMaterialDef.SimpleSpriteRef = uint32(spriteRef)
+		wfMaterialDef.SimpleSpriteRef = int32(spriteRef)
 	}
 
 	wfMaterialDef.NameRef = rawWld.NameAdd(e.Tag)
 
 	rawWld.Fragments = append(rawWld.Fragments, wfMaterialDef)
-	e.fragID = int16(len(rawWld.Fragments))
-	return int16(len(rawWld.Fragments)), nil
+	e.fragID = int32(len(rawWld.Fragments))
+	return int32(len(rawWld.Fragments)), nil
 }
 
-func (e *MaterialDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragMaterialDef) error {
+func (e *MaterialDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragMaterialDef, fragIndex int) error {
 	if frag == nil {
 		return fmt.Errorf("frag is not materialdef (wrong fragcode?)")
 	}
+
+	// Save the fragment ID
+	e.fragID = int32(fragIndex)
 
 	e.model = wce.lastReadModelTag
 
@@ -2023,6 +2055,7 @@ func (e *MaterialDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragMa
 		if len(rawWld.Fragments) < int(simpleSprite.SpriteRef) {
 			return fmt.Errorf("sprite ref %d out of bounds", simpleSprite.SpriteRef)
 		}
+		e.FragRefs = simpleSprite.SpriteRef // Save the reference value
 		spriteDef, ok := rawWld.Fragments[simpleSprite.SpriteRef].(*rawfrag.WldFragSimpleSpriteDef)
 		if !ok {
 			return fmt.Errorf("material's simple sprite ref %d not found", simpleSprite.SpriteRef)
@@ -2038,8 +2071,70 @@ func (e *MaterialDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragMa
 	e.RGBPen = frag.RGBPen
 	e.Brightness = frag.Brightness
 	e.ScaledAmbient = frag.ScaledAmbient
-	if wce.isVariationMaterial {
-		e.Variation = 1
+	// Updated logic for Variation
+	if wce.isChr {
+		name := rawWld.Name(frag.NameRef)
+		if strings.HasPrefix(name, "CLK") {
+			if len(name) >= 5 { // Ensure there are at least 5 characters
+				firstAfterCLK := int(name[3] - '0')  // First character after "CLK"
+				secondAfterCLK := int(name[4] - '0') // Second character after "CLK"
+
+				if firstAfterCLK > 0 || secondAfterCLK > 4 {
+					e.Variation = 1
+
+					// Construct modified name with replaced characters
+					modifiedName := "CLK0" + fmt.Sprintf("%d", 4) + name[5:]
+
+					// Search for the parent material by matching the modified name
+					for _, otherMaterial := range wce.MaterialDefs {
+						if otherMaterial.Tag == modifiedName {
+							e.VariationParent = otherMaterial.fragID
+							break
+						}
+					}
+				} else {
+					e.Variation = 0
+				}
+			} else {
+				e.Variation = 0
+			}
+		} else if len(name) == 13 { // Check name length
+			// Extract 6th, 7th, and 8th characters
+			sixth := int(name[5] - '0')
+			seventh := int(name[6] - '0')
+			eighth := int(name[7] - '0')
+
+			// Check if any of these characters are greater than 0
+			if sixth > 0 || seventh > 0 || eighth > 0 {
+				e.Variation = 1
+
+				// Construct modified name with replaced characters
+				modifiedName := name[:5] + "000" + name[8:]
+
+				// Search for the parent material by matching the modified name
+				for _, otherMaterial := range wce.MaterialDefs {
+					if otherMaterial.Tag == modifiedName {
+						e.VariationParent = otherMaterial.fragID
+						break
+					}
+				}
+			} else {
+				e.Variation = 0
+			}
+		} else {
+			e.Variation = 0
+		}
+	} else {
+		e.Variation = 0
+	}
+	// Propagate Variation to SimpleSpriteDef if applicable
+	if e.Variation == 1 && e.FragRefs > 0 {
+		for _, sprite := range wce.SimpleSpriteDefs {
+			if sprite.fragID == e.FragRefs {
+				sprite.Variation = 1
+				break
+			}
+		}
 	}
 	if frag.Flags&0x01 != 0 {
 		e.DoubleSided = 1
@@ -2057,11 +2152,12 @@ func (e *MaterialDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragMa
 
 // BlitSpriteDef is a declaration of BLITSPRITEDEF
 type BlitSpriteDef struct {
-	fragID      int16
+	fragID      int32
 	Tag         string
 	SpriteTag   string
 	Unknown     int32
 	Transparent int16
+	FragRefs    int32 // Store fragment reference for mapping
 }
 
 func (e *BlitSpriteDef) Definition() string {
@@ -2069,6 +2165,7 @@ func (e *BlitSpriteDef) Definition() string {
 }
 
 func (e *BlitSpriteDef) Write(token *AsciiWriteToken) error {
+
 	w, err := token.Writer()
 	if err != nil {
 		return err
@@ -2130,7 +2227,7 @@ func (e *BlitSpriteDef) Read(token *AsciiReadToken) error {
 	return nil
 }
 
-func (e *BlitSpriteDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
+func (e *BlitSpriteDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 	if e.fragID != 0 {
 		return e.fragID, nil
 	}
@@ -2151,7 +2248,7 @@ func (e *BlitSpriteDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
 
 	wfBlitSpriteDef := &rawfrag.WldFragBlitSpriteDef{
 		Unknown:           e.Unknown,
-		SpriteInstanceRef: uint32(spriteDefRef),
+		SpriteInstanceRef: int32(spriteDefRef),
 	}
 
 	if e.Transparent > 0 {
@@ -2161,7 +2258,7 @@ func (e *BlitSpriteDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
 	wfBlitSpriteDef.NameRef = rawWld.NameAdd(e.Tag)
 
 	rawWld.Fragments = append(rawWld.Fragments, wfBlitSpriteDef)
-	e.fragID = int16(len(rawWld.Fragments))
+	e.fragID = int32(len(rawWld.Fragments))
 
 	wfBlitSprite := &rawfrag.WldFragBlitSprite{
 		BlitSpriteRef: int32(len(rawWld.Fragments)),
@@ -2172,10 +2269,13 @@ func (e *BlitSpriteDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
 	return e.fragID, nil
 }
 
-func (e *BlitSpriteDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragBlitSpriteDef) error {
+func (e *BlitSpriteDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragBlitSpriteDef, fragIndex int) error {
 	if frag == nil {
 		return fmt.Errorf("frag is not blitspritedef (wrong fragcode?)")
 	}
+
+	// Save the fragment ID
+	e.fragID = int32(fragIndex)
 
 	e.Tag = rawWld.Name(frag.NameRef)
 	if frag.SpriteInstanceRef > 0 {
@@ -2187,6 +2287,8 @@ func (e *BlitSpriteDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFrag
 		if !ok {
 			return fmt.Errorf("sprite ref %d not found", frag.SpriteInstanceRef)
 		}
+
+		e.FragRefs = spriteInst.SpriteRef // Save the reference value
 
 		if len(rawWld.Fragments) < int(spriteInst.SpriteRef) {
 			return fmt.Errorf("sprite ref %d out of bounds", spriteInst.SpriteRef)
@@ -2207,7 +2309,7 @@ func (e *BlitSpriteDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFrag
 
 // SimpleSpriteDef is a declaration of SIMPLESPRITEDEF
 type SimpleSpriteDef struct {
-	fragID             int16
+	fragID             int32
 	Tag                string
 	Variation          int
 	SkipFrames         NullUint32
@@ -2215,6 +2317,7 @@ type SimpleSpriteDef struct {
 	CurrentFrame       NullInt32
 	Animated           NullUint32
 	SimpleSpriteFrames []SimpleSpriteFrame
+	FragRefs           []int32 // Store fragment references for mapping
 }
 
 type SimpleSpriteFrame struct {
@@ -2227,6 +2330,7 @@ func (e *SimpleSpriteDef) Definition() string {
 }
 
 func (e *SimpleSpriteDef) Write(token *AsciiWriteToken) error {
+
 	w, err := token.Writer()
 	if err != nil {
 		return err
@@ -2321,7 +2425,7 @@ func (e *SimpleSpriteDef) Read(token *AsciiReadToken) error {
 	return nil
 }
 
-func (e *SimpleSpriteDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
+func (e *SimpleSpriteDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 
 	/* if !wce.isVariationMaterial && e.fragID != 0 {
 		return e.fragID, nil
@@ -2359,7 +2463,7 @@ func (e *SimpleSpriteDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
 			nameRef := rawWld.NameAdd(frame.TextureTag)
 			if wfBMInfo.NameRef != 0 && nameRef != wfBMInfo.NameRef {
 				rawWld.Fragments = append(rawWld.Fragments, wfBMInfo)
-				wfSimpleSpriteDef.BitmapRefs = append(wfSimpleSpriteDef.BitmapRefs, uint32(len(rawWld.Fragments)))
+				wfSimpleSpriteDef.BitmapRefs = append(wfSimpleSpriteDef.BitmapRefs, int32(len(rawWld.Fragments)))
 				wfBMInfo = &rawfrag.WldFragBMInfo{}
 			}
 			wfBMInfo.NameRef = nameRef
@@ -2367,20 +2471,24 @@ func (e *SimpleSpriteDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
 		}
 
 		rawWld.Fragments = append(rawWld.Fragments, wfBMInfo)
-		wfSimpleSpriteDef.BitmapRefs = append(wfSimpleSpriteDef.BitmapRefs, uint32(len(rawWld.Fragments)))
+		wfSimpleSpriteDef.BitmapRefs = append(wfSimpleSpriteDef.BitmapRefs, int32(len(rawWld.Fragments)))
 	}
 
 	wfSimpleSpriteDef.NameRef = rawWld.NameAdd(e.Tag)
 
 	rawWld.Fragments = append(rawWld.Fragments, wfSimpleSpriteDef)
-	e.fragID = int16(len(rawWld.Fragments))
-	return int16(len(rawWld.Fragments)), nil
+	e.fragID = int32(len(rawWld.Fragments))
+	return int32(len(rawWld.Fragments)), nil
 }
 
-func (e *SimpleSpriteDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragSimpleSpriteDef) error {
+func (e *SimpleSpriteDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragSimpleSpriteDef, fragIndex int) error {
 	if frag == nil {
 		return fmt.Errorf("frag is not simplespritedef (wrong fragcode?)")
 	}
+
+	// Save the fragment ID
+	e.fragID = int32(fragIndex)
+
 	e.Tag = rawWld.Name(frag.NameRef)
 	if frag.Flags&0x02 == 0x02 {
 		e.SkipFrames.Valid = true
@@ -2397,11 +2505,15 @@ func (e *SimpleSpriteDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFr
 		e.CurrentFrame.Int32 = frag.CurrentFrame
 	}
 
-	if wce.isVariationMaterial {
-		e.Variation = 1
-	}
+	// Initialize Variation to 0
+	e.Variation = 0
+
+	// if wce.isVariationMaterial {
+	// 	e.Variation = 1
+	// }
 
 	for _, bitmapRef := range frag.BitmapRefs {
+		e.FragRefs = append(e.FragRefs, bitmapRef) // Save the reference value
 		if bitmapRef == 0 {
 			return nil
 		}
@@ -2425,7 +2537,7 @@ func (e *SimpleSpriteDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFr
 
 // ActorDef is a declaration of ACTORDEF
 type ActorDef struct {
-	fragID         int16
+	fragID         int32
 	Tag            string
 	Callback       string
 	BoundsRef      int32
@@ -2436,6 +2548,7 @@ type ActorDef struct {
 	Actions        []ActorAction
 	Unk2           uint32
 	HasEightyFlag  int
+	FragRefs       []int32 // Store fragment references for mapping
 }
 
 // ActorAction is a declaration of ACTION
@@ -2457,6 +2570,7 @@ func (e *ActorDef) Definition() string {
 }
 
 func (e *ActorDef) Write(token *AsciiWriteToken) error {
+
 	w, err := token.Writer()
 	if err != nil {
 		return err
@@ -2736,7 +2850,7 @@ func (e *ActorDef) Read(token *AsciiReadToken) error {
 	return nil
 }
 
-func (e *ActorDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
+func (e *ActorDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 	var err error
 	if e.fragID != 0 {
 		return e.fragID, nil
@@ -2778,7 +2892,7 @@ func (e *ActorDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
 				continue
 			}
 
-			var spriteRef int16
+			var spriteRef int32
 			spriteVar := wce.ByTag(lod.SpriteTag)
 			if spriteVar == nil {
 				return -1, fmt.Errorf("lod sprite %s not found", lod.SpriteTag)
@@ -2794,7 +2908,7 @@ func (e *ActorDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
 				}
 
 				rawWld.Fragments = append(rawWld.Fragments, sprite)
-				spriteRef = int16(len(rawWld.Fragments))
+				spriteRef = int32(len(rawWld.Fragments))
 			case *DMSpriteDef2:
 				spriteRef, err = spriteDef.ToRaw(wce, rawWld)
 				if err != nil {
@@ -2805,7 +2919,7 @@ func (e *ActorDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
 				}
 
 				rawWld.Fragments = append(rawWld.Fragments, sprite)
-				spriteRef = int16(len(rawWld.Fragments))
+				spriteRef = int32(len(rawWld.Fragments))
 			case *Sprite3DDef:
 				spriteRef, err = spriteDef.ToRaw(wce, rawWld)
 				if err != nil {
@@ -2817,7 +2931,7 @@ func (e *ActorDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
 				}
 
 				rawWld.Fragments = append(rawWld.Fragments, sprite)
-				spriteRef = int16(len(rawWld.Fragments))
+				spriteRef = int32(len(rawWld.Fragments))
 			case *HierarchicalSpriteDef:
 				spriteRef, err = spriteDef.ToRaw(wce, rawWld)
 				if err != nil {
@@ -2838,12 +2952,12 @@ func (e *ActorDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
 
 				sprite := &rawfrag.WldFragHierarchicalSprite{
 					//NameRef
-					HierarchicalSpriteRef: uint32(spriteRef),
+					HierarchicalSpriteRef: int32(spriteRef),
 					Param:                 0,
 				}
 
 				rawWld.Fragments = append(rawWld.Fragments, sprite)
-				spriteRef = int16(len(rawWld.Fragments))
+				spriteRef = int32(len(rawWld.Fragments))
 
 			case *Sprite2DDef:
 				spriteRef, err = spriteDef.ToRaw(wce, rawWld)
@@ -2852,11 +2966,11 @@ func (e *ActorDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
 				}
 
 				sprite := &rawfrag.WldFragSprite2D{
-					TwoDSpriteRef: uint32(spriteRef),
+					TwoDSpriteRef: int32(spriteRef),
 				}
 
 				rawWld.Fragments = append(rawWld.Fragments, sprite)
-				spriteRef = int16(len(rawWld.Fragments))
+				spriteRef = int32(len(rawWld.Fragments))
 			case *BlitSpriteDef:
 				spriteRef, err = spriteDef.ToRaw(wce, rawWld)
 				if err != nil {
@@ -2868,7 +2982,7 @@ func (e *ActorDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
 				}
 
 				rawWld.Fragments = append(rawWld.Fragments, sprite)
-				spriteRef = int16(len(rawWld.Fragments))
+				spriteRef = int32(len(rawWld.Fragments))
 			default:
 				return -1, fmt.Errorf("actordef %s lod %s unknown sprite type %T", e.Tag, lod.SpriteTag, spriteDef)
 			}
@@ -2877,7 +2991,7 @@ func (e *ActorDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
 			}
 
 			actorAction.Lods = append(actorAction.Lods, lod.MinDistance)
-			actorDef.FragmentRefs = append(actorDef.FragmentRefs, uint32(spriteRef))
+			actorDef.FragmentRefs = append(actorDef.FragmentRefs, int32(spriteRef))
 		}
 
 		actorDef.Actions = append(actorDef.Actions, actorAction)
@@ -2887,18 +3001,24 @@ func (e *ActorDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
 	actorDef.NameRef = rawWld.NameAdd(e.Tag)
 
 	rawWld.Fragments = append(rawWld.Fragments, actorDef)
-	e.fragID = int16(len(rawWld.Fragments))
-	return int16(len(rawWld.Fragments)), err
+	e.fragID = int32(len(rawWld.Fragments))
+	return int32(len(rawWld.Fragments)), err
 }
 
-func (e *ActorDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragActorDef) error {
+func (e *ActorDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragActorDef, fragIndex int) error {
 	if frag == nil {
 		return fmt.Errorf("frag is not actordef (wrong fragcode?)")
 	}
 
+	// Save the fragment ID
+	e.fragID = int32(fragIndex)
+
 	e.Tag = rawWld.Name(frag.NameRef)
 	e.Callback = rawWld.Name(frag.CallbackNameRef)
 	e.BoundsRef = frag.BoundsRef
+	if frag.BoundsRef != 0 {
+		e.FragRefs = append(e.FragRefs, frag.BoundsRef)
+	}
 	e.Unk1 = frag.Unk1
 
 	if frag.Flags&0x01 == 0x01 {
@@ -2940,6 +3060,7 @@ func (e *ActorDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragActor
 					if !ok {
 						return fmt.Errorf("sprite3ddef ref %d not found", sprite.Sprite3DDefRef)
 					}
+					e.FragRefs = append(e.FragRefs, sprite.Sprite3DDefRef)
 					spriteTag = rawWld.Name(spriteDef.NameRef)
 				case *rawfrag.WldFragDMSprite:
 					if len(rawWld.Fragments) < int(sprite.DMSpriteRef) {
@@ -2947,8 +3068,10 @@ func (e *ActorDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragActor
 					}
 					switch spriteDef := rawWld.Fragments[sprite.DMSpriteRef].(type) {
 					case *rawfrag.WldFragDMSpriteDef:
+						e.FragRefs = append(e.FragRefs, sprite.DMSpriteRef)
 						spriteTag = rawWld.Name(spriteDef.NameRef)
 					case *rawfrag.WldFragDmSpriteDef2:
+						e.FragRefs = append(e.FragRefs, sprite.DMSpriteRef)
 						spriteTag = rawWld.Name(spriteDef.NameRef)
 					default:
 						return fmt.Errorf("unhandled dmsprite instance def fragment type %d (%s)", sprite.FragCode(), raw.FragName(sprite.FragCode()))
@@ -2961,6 +3084,7 @@ func (e *ActorDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragActor
 					if !ok {
 						return fmt.Errorf("hierarchicalsprite def ref %d not found", sprite.HierarchicalSpriteRef)
 					}
+					e.FragRefs = append(e.FragRefs, sprite.HierarchicalSpriteRef)
 					spriteTag = rawWld.Name(spriteDef.NameRef)
 				case *rawfrag.WldFragBlitSprite:
 					if len(rawWld.Fragments) < int(sprite.BlitSpriteRef) {
@@ -2970,8 +3094,8 @@ func (e *ActorDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragActor
 					if !ok {
 						return fmt.Errorf("blitsprite def ref %d not found", sprite.BlitSpriteRef)
 					}
+					e.FragRefs = append(e.FragRefs, sprite.BlitSpriteRef)
 					spriteTag = rawWld.Name(spriteDef.NameRef)
-
 				case *rawfrag.WldFragSprite2D:
 					if len(rawWld.Fragments) < int(sprite.TwoDSpriteRef) {
 						return fmt.Errorf("sprite2d def ref %d not found", sprite.TwoDSpriteRef)
@@ -2980,6 +3104,7 @@ func (e *ActorDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragActor
 					if !ok {
 						return fmt.Errorf("sprite2d def ref %d not found", sprite.TwoDSpriteRef)
 					}
+					e.FragRefs = append(e.FragRefs, sprite.TwoDSpriteRef)
 					spriteTag = rawWld.Name(spriteDef.NameRef)
 				default:
 					return fmt.Errorf("unhandled sprite instance fragment type %d (%s)", sprite.FragCode(), raw.FragName(sprite.FragCode()))
@@ -3005,7 +3130,7 @@ func (e *ActorDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragActor
 
 // ActorInst is a declaration of ACTORINST
 type ActorInst struct {
-	fragID            int16
+	fragID            int32
 	Tag               string
 	DefinitionTag     string
 	CurrentAction     NullUint32
@@ -3020,6 +3145,7 @@ type ActorInst struct {
 	SphereRadius      float32
 	HexTwoHundredFlag int
 	UserData          string
+	FragRefs          []int32 // Store fragment references for mapping
 }
 
 func (e *ActorInst) Definition() string {
@@ -3027,6 +3153,7 @@ func (e *ActorInst) Definition() string {
 }
 
 func (e *ActorInst) Write(token *AsciiWriteToken) error {
+
 	w, err := token.Writer()
 	if err != nil {
 		return err
@@ -3188,7 +3315,7 @@ func (e *ActorInst) Read(token *AsciiReadToken) error {
 	return nil
 }
 
-func (e *ActorInst) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
+func (e *ActorInst) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 	var err error
 	if e.fragID != 0 {
 		return e.fragID, nil
@@ -3263,7 +3390,7 @@ func (e *ActorInst) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
 			wfActorInst.ActorDefRef = rawWld.NameAdd(e.DefinitionTag)
 		}
 		rawWld.Fragments = append(rawWld.Fragments, wfRGBTrack)
-		dmRGBTrackRef := int16(len(rawWld.Fragments))
+		dmRGBTrackRef := int32(len(rawWld.Fragments))
 		wfActorInst.DMRGBTrackRef = int32(dmRGBTrackRef)
 	}
 
@@ -3278,24 +3405,28 @@ func (e *ActorInst) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
 		}
 
 		rawWld.Fragments = append(rawWld.Fragments, sphere)
-		wfActorInst.SphereRef = uint32(len(rawWld.Fragments))
+		wfActorInst.SphereRef = int32(len(rawWld.Fragments))
 	}
 
 	wfActorInst.UserData = e.UserData
 
 	rawWld.Fragments = append(rawWld.Fragments, wfActorInst)
-	e.fragID = int16(len(rawWld.Fragments))
-	return int16(len(rawWld.Fragments)), err
+	e.fragID = int32(len(rawWld.Fragments))
+	return int32(len(rawWld.Fragments)), err
 }
 
-func (e *ActorInst) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragActor) error {
+func (e *ActorInst) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragActor, fragIndex int) error {
 	if frag == nil {
 		return fmt.Errorf("frag is not actorinst (wrong fragcode?)")
 	}
 
+	// Save the fragment ID
+	e.fragID = int32(fragIndex)
+
 	actorDefTag := ""
 	if frag.ActorDefRef != 0 {
-		actorDefTag = rawWld.Name(frag.ActorDefRef) // some times it's just a string ref
+		actorDefTag = rawWld.Name(frag.ActorDefRef)       // some times it's just a string ref
+		e.FragRefs = append(e.FragRefs, frag.ActorDefRef) // Save the reference value
 		if !strings.HasSuffix(actorDefTag, "_ACTORDEF") {
 			if len(rawWld.Fragments) < int(frag.ActorDefRef) {
 				return fmt.Errorf("actordef ref %d out of bounds", frag.ActorDefRef)
@@ -3316,6 +3447,7 @@ func (e *ActorInst) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragActo
 
 	sphereRadius := float32(0)
 	if frag.SphereRef > 0 {
+		e.FragRefs = append(e.FragRefs, frag.SphereRef)
 		sphereDef, ok := rawWld.Fragments[frag.SphereRef].(*rawfrag.WldFragSphere)
 		if !ok {
 			return fmt.Errorf("sphere ref %d not found", frag.SphereRef)
@@ -3382,6 +3514,7 @@ func (e *ActorInst) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragActo
 		}
 
 		trackDef, ok := rawWld.Fragments[track.TrackRef].(*rawfrag.WldFragDmRGBTrackDef)
+		e.FragRefs = append(e.FragRefs, track.TrackRef) // Save the reference value
 		if !ok {
 			return fmt.Errorf("dmrgbtrackdef ref %d not found", track.TrackRef)
 		}
@@ -3400,7 +3533,7 @@ func (e *ActorInst) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragActo
 
 // LightDef is a declaration of LIGHTDEF
 type LightDef struct {
-	fragID       int16
+	fragID       int32
 	Tag          string
 	CurrentFrame NullUint32
 	Sleep        NullUint32
@@ -3414,6 +3547,7 @@ func (e *LightDef) Definition() string {
 }
 
 func (e *LightDef) Write(token *AsciiWriteToken) error {
+
 	w, err := token.Writer()
 	if err != nil {
 		return err
@@ -3511,7 +3645,7 @@ func (e *LightDef) Read(token *AsciiReadToken) error {
 	return nil
 }
 
-func (e *LightDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
+func (e *LightDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 	if e.fragID != 0 {
 		return e.fragID, nil
 	}
@@ -3546,14 +3680,17 @@ func (e *LightDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
 	}
 
 	rawWld.Fragments = append(rawWld.Fragments, wfLightDef)
-	e.fragID = int16(len(rawWld.Fragments))
-	return int16(len(rawWld.Fragments)), err
+	e.fragID = int32(len(rawWld.Fragments))
+	return int32(len(rawWld.Fragments)), err
 }
 
-func (e *LightDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragLightDef) error {
+func (e *LightDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragLightDef, fragIndex int) error {
 	if frag == nil {
 		return fmt.Errorf("frag is not lightdef (wrong fragcode?)")
 	}
+
+	// Save the fragment ID
+	e.fragID = int32(fragIndex)
 
 	e.Tag = rawWld.Name(frag.NameRef)
 	e.LightLevels = frag.LightLevels
@@ -3583,7 +3720,7 @@ func (e *LightDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragLight
 
 // PointLight is a declaration of POINTLIGHT
 type PointLight struct {
-	fragID          int16
+	fragID          int32
 	Tag             string
 	LightDefTag     string
 	Static          int
@@ -3593,6 +3730,7 @@ type PointLight struct {
 	Flags           uint32
 	Location        [3]float32
 	Radius          float32
+	FragRefs        int32 // Store fragment references for mapping
 }
 
 func (e *PointLight) Definition() string {
@@ -3600,6 +3738,7 @@ func (e *PointLight) Definition() string {
 }
 
 func (e *PointLight) Write(token *AsciiWriteToken) error {
+
 	w, err := token.Writer()
 	if err != nil {
 		return err
@@ -3680,7 +3819,7 @@ func (e *PointLight) Read(token *AsciiReadToken) error {
 	return nil
 }
 
-func (e *PointLight) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
+func (e *PointLight) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 	if e.fragID != 0 {
 		return e.fragID, nil
 	}
@@ -3729,14 +3868,17 @@ func (e *PointLight) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
 	}
 
 	rawWld.Fragments = append(rawWld.Fragments, light)
-	e.fragID = int16(len(rawWld.Fragments))
-	return int16(len(rawWld.Fragments)), nil
+	e.fragID = int32(len(rawWld.Fragments))
+	return int32(len(rawWld.Fragments)), nil
 }
 
-func (e *PointLight) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragPointLight) error {
+func (e *PointLight) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragPointLight, fragIndex int) error {
 	if frag == nil {
 		return fmt.Errorf("frag is not pointlight (wrong fragcode?)")
 	}
+
+	// Save the fragment ID
+	e.fragID = int32(fragIndex)
 
 	e.Tag = rawWld.Name(frag.NameRef)
 	if frag.LightRef > 0 {
@@ -3757,7 +3899,7 @@ func (e *PointLight) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragPoi
 		if !ok {
 			return fmt.Errorf("lightdef ref %d not found", light.LightDefRef)
 		}
-
+		e.FragRefs = light.LightDefRef // Save the reference value
 		e.LightDefTag = rawWld.Name(lightDef.NameRef)
 	}
 	e.Location = frag.Location
@@ -3780,13 +3922,14 @@ func (e *PointLight) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragPoi
 
 // Sprite3DDef is a declaration of SPRITE3DDEF
 type Sprite3DDef struct {
-	fragID         int16
+	fragID         int32
 	Tag            string
 	CenterOffset   NullFloat32Slice3
 	BoundingRadius NullFloat32
 	SphereListTag  string
 	Vertices       [][3]float32
 	BSPNodes       []*BSPNode
+	FragRefs       []int32 // Store fragment references for mapping
 }
 
 // BSPNode is a declaration of BSPNODE
@@ -3811,6 +3954,7 @@ func (e *Sprite3DDef) Definition() string {
 }
 
 func (e *Sprite3DDef) Write(token *AsciiWriteToken) error {
+
 	w, err := token.Writer()
 	if err != nil {
 		return err
@@ -4075,7 +4219,7 @@ func (s *Sprite3DDef) Read(token *AsciiReadToken) error {
 	return nil
 }
 
-func (e *Sprite3DDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
+func (e *Sprite3DDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 	if e.fragID != 0 {
 		return e.fragID, nil
 	}
@@ -4121,7 +4265,7 @@ func (e *Sprite3DDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
 
 			if node.SpriteTag.Valid {
 				bnode.RenderFlags |= 0x08
-				bnode.RenderSimpleSpriteReference = uint32(rawWld.NameAdd(node.SpriteTag.String))
+				bnode.RenderSimpleSpriteReference = int32(rawWld.NameAdd(node.SpriteTag.String))
 			}
 
 			if node.UvOrigin.Valid {
@@ -4143,25 +4287,39 @@ func (e *Sprite3DDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
 	wfSprite3DDef.NameRef = rawWld.NameAdd(e.Tag)
 
 	rawWld.Fragments = append(rawWld.Fragments, wfSprite3DDef)
-	e.fragID = int16(len(rawWld.Fragments))
-	return int16(len(rawWld.Fragments)), nil
+	e.fragID = int32(len(rawWld.Fragments))
+	return int32(len(rawWld.Fragments)), nil
 }
 
-func (e *Sprite3DDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragSprite3DDef) error {
+func (e *Sprite3DDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragSprite3DDef, fragIndex int) error {
 	if frag == nil {
 		return fmt.Errorf("frag is not sprite3ddef (wrong fragcode?)")
 	}
+
+	// Save the fragment ID
+	e.fragID = int32(fragIndex)
 
 	if len(rawWld.Fragments) < int(frag.SphereListRef) {
 		return fmt.Errorf("spherelist ref %d out of bounds", frag.SphereListRef)
 	}
 
 	if frag.SphereListRef > 0 {
+		if len(rawWld.Fragments) < int(frag.SphereListRef) {
+			return fmt.Errorf("spherelist ref %d out of bounds", frag.SphereListRef)
+		}
 		sphereList, ok := rawWld.Fragments[frag.SphereListRef].(*rawfrag.WldFragSphereList)
 		if !ok {
 			return fmt.Errorf("spherelist ref %d not found", frag.SphereListRef)
 		}
-		e.SphereListTag = rawWld.Name(sphereList.NameRef)
+		if len(rawWld.Fragments) < int(sphereList.SphereListDefRef) {
+			return fmt.Errorf("spherelistdef ref %d out of bounds", sphereList.SphereListDefRef)
+		}
+		sphereDef, ok := rawWld.Fragments[sphereList.SphereListDefRef].(*rawfrag.WldFragSphereListDef)
+		if !ok {
+			return fmt.Errorf("spherelist ref %d not valid", frag.SphereListRef)
+		}
+		e.FragRefs = append(e.FragRefs, sphereList.SphereListDefRef) // Save the reference value
+		e.SphereListTag = rawWld.Name(sphereDef.NameRef)
 	}
 
 	e.Tag = rawWld.Name(frag.NameRef)
@@ -4202,19 +4360,56 @@ func (e *Sprite3DDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragSp
 
 		if bspNode.RenderFlags&0x08 == 0x08 {
 			node.SpriteTag.Valid = true
+			e.FragRefs = append(e.FragRefs, bspNode.RenderSimpleSpriteReference) // Save the reference value
 			if len(rawWld.Fragments) < int(bspNode.RenderSimpleSpriteReference) {
 				return fmt.Errorf("sprite ref %d not found", bspNode.RenderSimpleSpriteReference)
 			}
 			spriteDef := rawWld.Fragments[bspNode.RenderSimpleSpriteReference]
 			switch simpleSprite := spriteDef.(type) {
-			case *rawfrag.WldFragSimpleSpriteDef:
-				node.SpriteTag.String = rawWld.Name(simpleSprite.NameRef)
-			case *rawfrag.WldFragDMSpriteDef:
-				node.SpriteTag.String = rawWld.Name(simpleSprite.NameRef)
-			case *rawfrag.WldFragHierarchicalSpriteDef:
-				node.SpriteTag.String = rawWld.Name(simpleSprite.NameRef)
+			case *rawfrag.WldFragSimpleSprite:
+				if len(rawWld.Fragments) < int(simpleSprite.SpriteRef) {
+					return fmt.Errorf("simplesprite def ref %d not found", simpleSprite.SpriteRef)
+				}
+				spriteDef, ok := rawWld.Fragments[simpleSprite.SpriteRef].(*rawfrag.WldFragSimpleSpriteDef)
+				if !ok {
+					return fmt.Errorf("simplesprite def ref %d not found", simpleSprite.SpriteRef)
+				}
+				e.FragRefs = append(e.FragRefs, simpleSprite.SpriteRef)
+				node.SpriteTag.String = rawWld.Name(spriteDef.NameRef)
+			case *rawfrag.WldFragDMSprite:
+				if len(rawWld.Fragments) < int(simpleSprite.DMSpriteRef) {
+					return fmt.Errorf("dmsprite ref %d out of range", simpleSprite.DMSpriteRef)
+				}
+				switch spriteDef := rawWld.Fragments[simpleSprite.DMSpriteRef].(type) {
+				case *rawfrag.WldFragDMSpriteDef:
+					e.FragRefs = append(e.FragRefs, simpleSprite.DMSpriteRef)
+					node.SpriteTag.String = rawWld.Name(spriteDef.NameRef)
+				case *rawfrag.WldFragDmSpriteDef2:
+					e.FragRefs = append(e.FragRefs, simpleSprite.DMSpriteRef)
+					node.SpriteTag.String = rawWld.Name(spriteDef.NameRef)
+				default:
+					return fmt.Errorf("unhandled dmsprite instance def fragment type %d (%s)", simpleSprite.FragCode(), raw.FragName(simpleSprite.FragCode()))
+				}
+			case *rawfrag.WldFragHierarchicalSprite:
+				if len(rawWld.Fragments) < int(simpleSprite.HierarchicalSpriteRef) {
+					return fmt.Errorf("hierarchicalsprite def ref %d not found", simpleSprite.HierarchicalSpriteRef)
+				}
+				spriteDef, ok := rawWld.Fragments[simpleSprite.HierarchicalSpriteRef].(*rawfrag.WldFragHierarchicalSpriteDef)
+				if !ok {
+					return fmt.Errorf("hierarchicalsprite def ref %d not found", simpleSprite.HierarchicalSpriteRef)
+				}
+				e.FragRefs = append(e.FragRefs, simpleSprite.HierarchicalSpriteRef)
+				node.SpriteTag.String = rawWld.Name(spriteDef.NameRef)
 			case *rawfrag.WldFragSprite2D:
-				node.SpriteTag.String = rawWld.Name(simpleSprite.NameRef)
+				if len(rawWld.Fragments) < int(simpleSprite.TwoDSpriteRef) {
+					return fmt.Errorf("sprite2d def ref %d not found", simpleSprite.TwoDSpriteRef)
+				}
+				spriteDef, ok := rawWld.Fragments[simpleSprite.TwoDSpriteRef].(*rawfrag.WldFragSprite2DDef)
+				if !ok {
+					return fmt.Errorf("sprite2d def ref %d not found", simpleSprite.TwoDSpriteRef)
+				}
+				e.FragRefs = append(e.FragRefs, simpleSprite.TwoDSpriteRef)
+				node.SpriteTag.String = rawWld.Name(spriteDef.NameRef)
 			default:
 				return fmt.Errorf("unhandled render sprite reference fragment type %d", spriteDef.FragCode())
 			}
@@ -4245,7 +4440,7 @@ func (e *Sprite3DDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragSp
 }
 
 type PolyhedronDefinition struct {
-	fragID         int16
+	fragID         int32
 	Tag            string
 	BoundingRadius float32
 	ScaleFactor    float32
@@ -4263,6 +4458,7 @@ func (e *PolyhedronDefinition) Definition() string {
 }
 
 func (e *PolyhedronDefinition) Write(token *AsciiWriteToken) error {
+
 	w, err := token.Writer()
 	if err != nil {
 		return err
@@ -4378,7 +4574,7 @@ func (e *PolyhedronDefinition) Read(token *AsciiReadToken) error {
 	return nil
 }
 
-func (e *PolyhedronDefinition) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
+func (e *PolyhedronDefinition) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 	if e.fragID != 0 {
 		return e.fragID, nil
 	}
@@ -4396,11 +4592,15 @@ func (e *PolyhedronDefinition) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
 	}
 
 	rawWld.Fragments = append(rawWld.Fragments, wfPolyhedronDef)
-	e.fragID = int16(len(rawWld.Fragments))
-	return int16(len(rawWld.Fragments)), nil
+	e.fragID = int32(len(rawWld.Fragments))
+	return int32(len(rawWld.Fragments)), nil
 }
 
-func (e *PolyhedronDefinition) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragPolyhedronDef) error {
+func (e *PolyhedronDefinition) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragPolyhedronDef, fragIndex int) error {
+
+	// Save the fragment ID
+	e.fragID = int32(fragIndex)
+
 	e.Tag = rawWld.Name(frag.NameRef)
 	e.BoundingRadius = frag.BoundingRadius
 	e.ScaleFactor = frag.ScaleFactor
@@ -4414,7 +4614,7 @@ func (e *PolyhedronDefinition) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.
 }
 
 type TrackInstance struct {
-	fragID             int16
+	fragID             int32
 	model              string
 	Tag                string
 	TagIndex           int
@@ -4424,6 +4624,7 @@ type TrackInstance struct {
 	Interpolate        int
 	Reverse            int
 	Sleep              NullUint32
+	FragRefs           int32 // Store fragment references for mapping
 }
 
 func (e *TrackInstance) Definition() string {
@@ -4431,6 +4632,7 @@ func (e *TrackInstance) Definition() string {
 }
 
 func (e *TrackInstance) Write(token *AsciiWriteToken) error {
+
 	w, err := token.Writer()
 	if err != nil {
 		return err
@@ -4530,7 +4732,7 @@ func (e *TrackInstance) Read(token *AsciiReadToken) error {
 	return nil
 }
 
-func (e *TrackInstance) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
+func (e *TrackInstance) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 	if e.fragID != 0 {
 		return e.fragID, nil
 	}
@@ -4570,14 +4772,19 @@ func (e *TrackInstance) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
 	}
 
 	rawWld.Fragments = append(rawWld.Fragments, wfTrack)
-	e.fragID = int16(len(rawWld.Fragments))
-	return int16(len(rawWld.Fragments)), nil
+	e.fragID = int32(len(rawWld.Fragments))
+	return int32(len(rawWld.Fragments)), nil
 }
 
-func (e *TrackInstance) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragTrack) error {
+func (e *TrackInstance) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragTrack, fragIndex int) error {
 	if frag == nil {
 		return fmt.Errorf("frag is not track instance (wrong fragcode?)")
 	}
+
+	// Save the fragment ID
+	e.fragID = int32(fragIndex)
+
+	e.FragRefs = frag.TrackRef // Save the reference value
 
 	if len(rawWld.Fragments) < int(frag.TrackRef) {
 		return fmt.Errorf("trackdef ref %d out of bounds", frag.TrackRef)
@@ -4615,7 +4822,7 @@ func (e *TrackInstance) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFrag
 }
 
 type TrackDef struct {
-	fragID       int16
+	fragID       int32
 	model        string
 	Tag          string
 	TagIndex     int
@@ -4642,6 +4849,7 @@ func (e *TrackDef) Definition() string {
 }
 
 func (e *TrackDef) Write(token *AsciiWriteToken) error {
+
 	w, err := token.Writer()
 	if err != nil {
 		return err
@@ -4790,7 +4998,7 @@ func (e *TrackDef) Read(token *AsciiReadToken) error {
 	return nil
 }
 
-func (e *TrackDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
+func (e *TrackDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 	//if e.fragID != 0 {
 	//	return e.fragID, nil
 	//}
@@ -4837,14 +5045,17 @@ func (e *TrackDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
 
 	wfTrack.NameRef = rawWld.NameAdd(e.Tag)
 	rawWld.Fragments = append(rawWld.Fragments, wfTrack)
-	e.fragID = int16(len(rawWld.Fragments))
-	return int16(len(rawWld.Fragments)), nil
+	e.fragID = int32(len(rawWld.Fragments))
+	return int32(len(rawWld.Fragments)), nil
 }
 
-func (e *TrackDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragTrackDef) error {
+func (e *TrackDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragTrackDef, fragIndex int) error {
 	if frag == nil {
 		return fmt.Errorf("frag is not trackdef (wrong fragcode?)")
 	}
+
+	// Save the fragment ID
+	e.fragID = int32(fragIndex)
 
 	e.Tag = rawWld.Name(frag.NameRef)
 	e.TagIndex = wce.NextTagIndex(e.Tag)
@@ -4900,7 +5111,7 @@ func (e *TrackDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragTrack
 }
 
 type HierarchicalSpriteDef struct {
-	fragID                int16
+	fragID                int32
 	Tag                   string
 	Dags                  []Dag
 	AttachedSkins         []AttachedSkin
@@ -4909,6 +5120,7 @@ type HierarchicalSpriteDef struct {
 	HexTwoHundredFlag     int               // 0x200
 	HexTwentyThousandFlag int               // 0x20000
 	PolyhedronTag         string
+	FragRefs              []int32 // Store fragment references for mapping
 }
 
 type Dag struct {
@@ -4929,6 +5141,7 @@ func (e *HierarchicalSpriteDef) Definition() string {
 }
 
 func (e *HierarchicalSpriteDef) Write(token *AsciiWriteToken) error {
+
 	w, err := token.Writer()
 	if err != nil {
 		return err
@@ -5188,7 +5401,7 @@ func (e *HierarchicalSpriteDef) Read(token *AsciiReadToken) error {
 	return nil
 }
 
-func (e *HierarchicalSpriteDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
+func (e *HierarchicalSpriteDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 	if e.fragID != 0 {
 		return e.fragID, nil
 	}
@@ -5196,7 +5409,7 @@ func (e *HierarchicalSpriteDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) 
 	wfHierarchicalSpriteDef := &rawfrag.WldFragHierarchicalSpriteDef{}
 
 	if e.PolyhedronTag == "SPECIAL_COLLISION" {
-		wfHierarchicalSpriteDef.CollisionVolumeRef = 4294967293
+		wfHierarchicalSpriteDef.CollisionVolumeRef = -3
 	}
 	if e.PolyhedronTag != "" &&
 		e.PolyhedronTag != "SPECIAL_COLLISION" {
@@ -5220,14 +5433,14 @@ func (e *HierarchicalSpriteDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) 
 
 			rawWld.Fragments = append(rawWld.Fragments, wfPoly)
 
-			wfHierarchicalSpriteDef.CollisionVolumeRef = uint32(len(rawWld.Fragments))
+			wfHierarchicalSpriteDef.CollisionVolumeRef = int32(len(rawWld.Fragments))
 
 		case *DMSpriteDef2: // chequip has this on EYE_HS_DEF
 			collisionTag = sprite.Tag
-			wfHierarchicalSpriteDef.CollisionVolumeRef = uint32(rawWld.NameAdd(collisionTag))
+			wfHierarchicalSpriteDef.CollisionVolumeRef = int32(rawWld.NameAdd(collisionTag))
 		case *DMSpriteDef:
 			collisionTag = sprite.Tag
-			wfHierarchicalSpriteDef.CollisionVolumeRef = uint32(rawWld.NameAdd(collisionTag))
+			wfHierarchicalSpriteDef.CollisionVolumeRef = int32(rawWld.NameAdd(collisionTag))
 		case nil:
 		default:
 			return -1, fmt.Errorf("unsupported collision volume type: %T", collusionDef)
@@ -5276,7 +5489,7 @@ func (e *HierarchicalSpriteDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) 
 				}
 
 				rawWld.Fragments = append(rawWld.Fragments, wfSprite)
-				wfDag.MeshOrSpriteOrParticleRef = uint32(len(rawWld.Fragments))
+				wfDag.MeshOrSpriteOrParticleRef = int32(len(rawWld.Fragments))
 			case *DMSpriteDef:
 				spriteDefRef, err := spriteDef.ToRaw(wce, rawWld)
 				if err != nil {
@@ -5290,7 +5503,7 @@ func (e *HierarchicalSpriteDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) 
 				}
 
 				rawWld.Fragments = append(rawWld.Fragments, wfSprite)
-				wfDag.MeshOrSpriteOrParticleRef = uint32(len(rawWld.Fragments))
+				wfDag.MeshOrSpriteOrParticleRef = int32(len(rawWld.Fragments))
 			case *HierarchicalSpriteDef:
 				spriteDefRef, err := spriteDef.ToRaw(wce, rawWld)
 				if err != nil {
@@ -5304,7 +5517,7 @@ func (e *HierarchicalSpriteDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) 
 				}
 
 				rawWld.Fragments = append(rawWld.Fragments, wfSprite)
-				wfDag.MeshOrSpriteOrParticleRef = uint32(len(rawWld.Fragments))
+				wfDag.MeshOrSpriteOrParticleRef = int32(len(rawWld.Fragments))
 			case *Sprite3DDef:
 
 				spriteDefRef, err := spriteDef.ToRaw(wce, rawWld)
@@ -5319,7 +5532,7 @@ func (e *HierarchicalSpriteDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) 
 				}
 
 				rawWld.Fragments = append(rawWld.Fragments, wfSprite)
-				wfDag.MeshOrSpriteOrParticleRef = uint32(len(rawWld.Fragments))
+				wfDag.MeshOrSpriteOrParticleRef = int32(len(rawWld.Fragments))
 			case *DMSpriteDef2:
 				spriteDefRef, err := spriteDef.ToRaw(wce, rawWld)
 				if err != nil {
@@ -5333,7 +5546,7 @@ func (e *HierarchicalSpriteDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) 
 				}
 
 				rawWld.Fragments = append(rawWld.Fragments, wfSprite)
-				wfDag.MeshOrSpriteOrParticleRef = uint32(len(rawWld.Fragments))
+				wfDag.MeshOrSpriteOrParticleRef = int32(len(rawWld.Fragments))
 			case *ParticleCloudDef:
 				/*
 					spriteDefRef, err := spriteDef.ToRaw(wce, rawWld)
@@ -5348,7 +5561,7 @@ func (e *HierarchicalSpriteDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) 
 
 						rawWld.Fragments = append(rawWld.Fragments, wfSprite) */
 
-				wfDag.MeshOrSpriteOrParticleRef = uint32(spriteDef.fragID)
+				wfDag.MeshOrSpriteOrParticleRef = int32(spriteDef.fragID)
 			default:
 				return -1, fmt.Errorf("unsupported toraw dag spritetag instance type: %T", spriteDefFrag)
 			}
@@ -5428,7 +5641,7 @@ func (e *HierarchicalSpriteDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) 
 
 		//wfDag.NameRef = rawWld.NameAdd(dag.Tag)
 
-		wfDag.TrackRef = uint32(trackRef)
+		wfDag.TrackRef = int32(trackRef)
 		wfDag.SubDags = dag.SubDags
 
 	}
@@ -5441,20 +5654,23 @@ func (e *HierarchicalSpriteDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) 
 
 	for _, wfDMSprite := range dmSpriteInstances {
 		rawWld.Fragments = append(rawWld.Fragments, wfDMSprite)
-		wfHierarchicalSpriteDef.DMSprites = append(wfHierarchicalSpriteDef.DMSprites, uint32(len(rawWld.Fragments)))
+		wfHierarchicalSpriteDef.DMSprites = append(wfHierarchicalSpriteDef.DMSprites, int32(len(rawWld.Fragments)))
 	}
 
 	rawWld.Fragments = append(rawWld.Fragments, wfHierarchicalSpriteDef)
-	e.fragID = int16(len(rawWld.Fragments))
-	return int16(len(rawWld.Fragments)), nil
+	e.fragID = int32(len(rawWld.Fragments))
+	return int32(len(rawWld.Fragments)), nil
 }
 
-func (e *HierarchicalSpriteDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragHierarchicalSpriteDef) error {
+func (e *HierarchicalSpriteDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragHierarchicalSpriteDef, fragIndex int) error {
 	if frag == nil {
 		return fmt.Errorf("frag is not hierarchical sprite def (wrong fragcode?)")
 	}
 
-	if frag.CollisionVolumeRef != 0 && frag.CollisionVolumeRef != 4294967293 {
+	// Save the fragment ID
+	e.fragID = int32(fragIndex)
+
+	if frag.CollisionVolumeRef != 0 && frag.CollisionVolumeRef != -3 {
 		if len(rawWld.Fragments) < int(frag.CollisionVolumeRef) {
 			return fmt.Errorf("collision volume ref %d out of bounds", frag.CollisionVolumeRef)
 		}
@@ -5473,12 +5689,13 @@ func (e *HierarchicalSpriteDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag
 			if !ok {
 				return fmt.Errorf("collision def ref type incorrect: %T", collisionFragDef)
 			}
+			e.FragRefs = append(e.FragRefs, collision.FragmentRef) // Save the reference value
 			e.PolyhedronTag = rawWld.Name(collisionDef.NameRef)
 		default:
 			return fmt.Errorf("unknown collision volume ref %d (%s)", frag.CollisionVolumeRef, raw.FragName(collision.FragCode()))
 		}
 	}
-	if frag.CollisionVolumeRef == 4294967293 {
+	if frag.CollisionVolumeRef == -3 {
 		e.PolyhedronTag = "SPECIAL_COLLISION"
 	}
 	e.Tag = rawWld.Name(frag.NameRef)
@@ -5498,6 +5715,7 @@ func (e *HierarchicalSpriteDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag
 	}
 
 	for i, dag := range frag.Dags {
+		e.FragRefs = append(e.FragRefs, dag.TrackRef) // Save the reference value
 		if len(rawWld.Fragments) < int(dag.TrackRef) {
 			return fmt.Errorf("dag %d track ref %d not found", i, dag.TrackRef)
 		}
@@ -5517,45 +5735,67 @@ func (e *HierarchicalSpriteDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag
 				return fmt.Errorf("dag %d mesh or sprite or particle ref %d not found", i, dag.MeshOrSpriteOrParticleRef)
 			}
 
-			spriteRef := int32(0)
-
 			switch sprite := spriteFrag.(type) {
 			case *rawfrag.WldFragDMSprite:
-				spriteRef = sprite.DMSpriteRef
+				if len(rawWld.Fragments) < int(sprite.DMSpriteRef) {
+					return fmt.Errorf("dmsprite ref %d out of range", sprite.DMSpriteRef)
+				}
+				switch spriteDef := rawWld.Fragments[sprite.DMSpriteRef].(type) {
+				case *rawfrag.WldFragDMSpriteDef:
+					e.FragRefs = append(e.FragRefs, sprite.DMSpriteRef)
+					spriteTag = rawWld.Name(spriteDef.NameRef)
+				case *rawfrag.WldFragDmSpriteDef2:
+					e.FragRefs = append(e.FragRefs, sprite.DMSpriteRef)
+					spriteTag = rawWld.Name(spriteDef.NameRef)
+				default:
+					return fmt.Errorf("unhandled dmsprite instance def fragment type %d (%s)", sprite.FragCode(), raw.FragName(sprite.FragCode()))
+				}
 			case *rawfrag.WldFragParticleCloudDef:
+				e.FragRefs = append(e.FragRefs, dag.MeshOrSpriteOrParticleRef) // Save the reference value
 				spriteTag = rawWld.Name(sprite.NameRef)
+			case *rawfrag.WldFragSimpleSprite:
+				if len(rawWld.Fragments) < int(sprite.SpriteRef) {
+					return fmt.Errorf("spritedef ref %d out of bounds", sprite.SpriteRef)
+				}
+				e.FragRefs = append(e.FragRefs, sprite.SpriteRef) // Save the reference value
+				spriteDef, ok := rawWld.Fragments[sprite.SpriteRef].(*rawfrag.WldFragSimpleSpriteDef)
+				if !ok {
+					return fmt.Errorf("spritedef ref %d not found", sprite.SpriteRef)
+				}
+				spriteTag = rawWld.Name(spriteDef.NameRef)
+			case *rawfrag.WldFragHierarchicalSprite:
+				if len(rawWld.Fragments) < int(sprite.HierarchicalSpriteRef) {
+					return fmt.Errorf("hierarchicalsprite def ref %d not found", sprite.HierarchicalSpriteRef)
+				}
+				spriteDef, ok := rawWld.Fragments[sprite.HierarchicalSpriteRef].(*rawfrag.WldFragHierarchicalSpriteDef)
+				if !ok {
+					return fmt.Errorf("hierarchicalsprite def ref %d not found", sprite.HierarchicalSpriteRef)
+				}
+				e.FragRefs = append(e.FragRefs, sprite.HierarchicalSpriteRef)
+				spriteTag = rawWld.Name(spriteDef.NameRef)
+			case *rawfrag.WldFragBlitSprite:
+				if len(rawWld.Fragments) < int(sprite.BlitSpriteRef) {
+					return fmt.Errorf("blitsprite def ref %d not found", sprite.BlitSpriteRef)
+				}
+				spriteDef, ok := rawWld.Fragments[sprite.BlitSpriteRef].(*rawfrag.WldFragBlitSpriteDef)
+				if !ok {
+					return fmt.Errorf("blitsprite def ref %d not found", sprite.BlitSpriteRef)
+				}
+				e.FragRefs = append(e.FragRefs, sprite.BlitSpriteRef)
+				spriteTag = rawWld.Name(spriteDef.NameRef)
+			case *rawfrag.WldFragSprite2D:
+				if len(rawWld.Fragments) < int(sprite.TwoDSpriteRef) {
+					return fmt.Errorf("sprite2d def ref %d not found", sprite.TwoDSpriteRef)
+				}
+				spriteDef, ok := rawWld.Fragments[sprite.TwoDSpriteRef].(*rawfrag.WldFragSprite2DDef)
+				if !ok {
+					return fmt.Errorf("sprite2d def ref %d not found", sprite.TwoDSpriteRef)
+				}
+				e.FragRefs = append(e.FragRefs, sprite.TwoDSpriteRef)
+				spriteTag = rawWld.Name(spriteDef.NameRef)
 				//				spriteRef = int16(sprite.BlitSpriteRef)
 			default:
 				return fmt.Errorf("dag %d unhandled sprite instance or particle reference fragment type %d (%s)", i, spriteFrag.FragCode(), raw.FragName(spriteFrag.FragCode()))
-			}
-			if spriteTag == "" {
-				if spriteRef < 0 {
-					spriteRef = -spriteRef
-				}
-
-				if len(rawWld.Fragments) < int(spriteRef) {
-					return fmt.Errorf("dag %d sprite instance/particle ref %d out of range", i, spriteRef)
-				}
-
-				spriteDef := rawWld.Fragments[spriteRef]
-				switch simpleSprite := spriteDef.(type) {
-				case *rawfrag.WldFragSimpleSpriteDef:
-					spriteTag = rawWld.Name(simpleSprite.NameRef)
-				case *rawfrag.WldFragDMSpriteDef:
-					spriteTag = rawWld.Name(simpleSprite.NameRef)
-				case *rawfrag.WldFragHierarchicalSpriteDef:
-					spriteTag = rawWld.Name(simpleSprite.NameRef)
-				case *rawfrag.WldFragSprite2D:
-					spriteTag = rawWld.Name(simpleSprite.NameRef)
-				case *rawfrag.WldFragDmSpriteDef2:
-					spriteTag = rawWld.Name(simpleSprite.NameRef)
-				case *rawfrag.WldFragBlitSpriteDef:
-					spriteTag = rawWld.Name(simpleSprite.NameRef)
-				case *rawfrag.WldFragBMInfo:
-					spriteTag = rawWld.Name(simpleSprite.NameRef)
-				default:
-					return fmt.Errorf("dag %d unhandled mesh or sprite or particle reference fragment type %d (%s)", i, spriteDef.FragCode(), raw.FragName(spriteDef.FragCode()))
-				}
 			}
 		}
 		/* if spriteTag != "" && e.PolyhedronTag == "" {
@@ -5583,6 +5823,7 @@ func (e *HierarchicalSpriteDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag
 		if !ok {
 			return fmt.Errorf("dmsprite ref %d not found", frag.DMSprites[i])
 		}
+		e.FragRefs = append(e.FragRefs, dmSprite.DMSpriteRef)
 		if len(rawWld.Fragments) < int(dmSprite.DMSpriteRef) {
 			return fmt.Errorf("dmsprite ref %d not found", dmSprite.DMSpriteRef)
 		}
@@ -5613,7 +5854,7 @@ func (e *HierarchicalSpriteDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag
 }
 
 type WorldTree struct {
-	fragID     int16
+	fragID     int32
 	Tag        string
 	WorldNodes []*WorldNode
 }
@@ -5631,6 +5872,7 @@ func (e *WorldTree) Definition() string {
 }
 
 func (e *WorldTree) Write(token *AsciiWriteToken) error {
+
 	w, err := token.Writer()
 	if err != nil {
 		return err
@@ -5707,7 +5949,7 @@ func (e *WorldTree) Read(token *AsciiReadToken) error {
 	return nil
 }
 
-func (e *WorldTree) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
+func (e *WorldTree) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 	if e.fragID != 0 {
 		return e.fragID, nil
 	}
@@ -5747,14 +5989,17 @@ func (e *WorldTree) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
 	wfWorldTree.NameRef = rawWld.NameAdd(e.Tag)
 
 	rawWld.Fragments = append(rawWld.Fragments, wfWorldTree)
-	e.fragID = int16(len(rawWld.Fragments))
-	return int16(len(rawWld.Fragments)), nil
+	e.fragID = int32(len(rawWld.Fragments))
+	return int32(len(rawWld.Fragments)), nil
 }
 
-func (e *WorldTree) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragWorldTree) error {
+func (e *WorldTree) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragWorldTree, fragIndex int) error {
 	if frag == nil {
 		return fmt.Errorf("frag is not world tree (wrong fragcode?)")
 	}
+
+	// Save the fragment ID
+	e.fragID = int32(fragIndex)
 
 	for _, srcNode := range frag.Nodes {
 		regionTag := ""
@@ -5773,7 +6018,7 @@ func (e *WorldTree) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragWorl
 }
 
 type Region struct {
-	fragID            int16
+	fragID            int32
 	Tag               string
 	RegionFog         int
 	Gouraud2          int
@@ -5791,6 +6036,7 @@ type Region struct {
 	ReverbOffset      int32
 	UserData          string
 	SpriteTag         string
+	FragRefs          []int32 // Store fragment references for mapping
 }
 
 type Wall struct {
@@ -6511,7 +6757,7 @@ func (e *Region) Read(token *AsciiReadToken) error {
 	return nil
 }
 
-func (e *Region) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
+func (e *Region) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 	if e.fragID != 0 {
 		return e.fragID, nil
 	}
@@ -6601,14 +6847,17 @@ func (e *Region) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
 	wfRegion.NameRef = rawWld.NameAdd(e.Tag)
 
 	rawWld.Fragments = append(rawWld.Fragments, wfRegion)
-	e.fragID = int16(len(rawWld.Fragments))
-	return int16(len(rawWld.Fragments)), nil
+	e.fragID = int32(len(rawWld.Fragments))
+	return int32(len(rawWld.Fragments)), nil
 }
 
-func (e *Region) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragRegion) error {
+func (e *Region) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragRegion, fragIndex int) error {
 	if frag == nil {
 		return fmt.Errorf("frag is not region (wrong fragcode?)")
 	}
+
+	// Save the fragment ID
+	e.fragID = int32(fragIndex)
 
 	e.VisTree = &VisTree{}
 	e.Tag = rawWld.Name(frag.NameRef)
@@ -6638,6 +6887,7 @@ func (e *Region) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragRegion)
 	}
 
 	if frag.AmbientLightRef > 0 {
+		e.FragRefs = append(e.FragRefs, frag.AmbientLightRef) // Save the reference value
 		if len(rawWld.Fragments) < int(frag.AmbientLightRef) {
 			return fmt.Errorf("ambient light ref %d not found", frag.AmbientLightRef)
 		}
@@ -6675,25 +6925,24 @@ func (e *Region) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragRegion)
 		if len(rawWld.Fragments) < int(frag.MeshReference) {
 			return fmt.Errorf("mesh ref %d not found", frag.MeshReference)
 		}
-
-		rawMesh := rawWld.Fragments[frag.MeshReference]
-		switch mesh := rawMesh.(type) {
-		case *rawfrag.WldFragDmSpriteDef2:
-			e.SpriteTag = rawWld.Name(mesh.NameRef)
-		default:
-			return fmt.Errorf("unhandled mesh reference fragment type %d (%s)", rawMesh.FragCode(), raw.FragName(rawMesh.FragCode()))
+		rawMesh, ok := rawWld.Fragments[frag.MeshReference].(*rawfrag.WldFragDmSpriteDef2)
+		if !ok {
+			return fmt.Errorf("mesh ref %d not valid", frag.MeshReference)
 		}
+		e.FragRefs = append(e.FragRefs, frag.MeshReference)
+		e.SpriteTag = rawWld.Name(rawMesh.NameRef)
 	}
 
 	return nil
 }
 
 type AmbientLight struct {
-	fragID     int16
+	fragID     int32
 	Tag        string
 	LightTag   string
 	LightFlags uint32
 	Regions    []uint32
+	FragRefs   int32 // Store fragment references for mapping
 }
 
 func (e *AmbientLight) Definition() string {
@@ -6701,6 +6950,7 @@ func (e *AmbientLight) Definition() string {
 }
 
 func (e *AmbientLight) Write(token *AsciiWriteToken) error {
+
 	w, err := token.Writer()
 	if err != nil {
 		return err
@@ -6750,7 +7000,7 @@ func (e *AmbientLight) Read(token *AsciiReadToken) error {
 	return nil
 }
 
-func (e *AmbientLight) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
+func (e *AmbientLight) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 	if e.fragID != 0 {
 		return e.fragID, nil
 	}
@@ -6785,14 +7035,17 @@ func (e *AmbientLight) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
 	wfAmbientLight.NameRef = rawWld.NameAdd(e.Tag)
 
 	rawWld.Fragments = append(rawWld.Fragments, wfAmbientLight)
-	e.fragID = int16(len(rawWld.Fragments))
-	return int16(len(rawWld.Fragments)), nil
+	e.fragID = int32(len(rawWld.Fragments))
+	return int32(len(rawWld.Fragments)), nil
 }
 
-func (e *AmbientLight) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragAmbientLight) error {
+func (e *AmbientLight) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragAmbientLight, fragIndex int) error {
 	if frag == nil {
 		return fmt.Errorf("frag is not ambient light (wrong fragcode?)")
 	}
+
+	// Save the fragment ID
+	e.fragID = int32(fragIndex)
 
 	lightTag := ""
 	lightFlags := uint32(0)
@@ -6809,6 +7062,7 @@ func (e *AmbientLight) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragA
 		lightFlags = light.Flags
 
 		lightDef, ok := rawWld.Fragments[light.LightDefRef].(*rawfrag.WldFragLightDef)
+		e.FragRefs = light.LightDefRef // Save the reference value
 		if !ok {
 			return fmt.Errorf("lightdef ref %d not found", light.LightDefRef)
 		}
@@ -6826,7 +7080,7 @@ func (e *AmbientLight) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragA
 }
 
 type Zone struct {
-	fragID   int16
+	fragID   int32
 	Tag      string
 	Regions  []uint32
 	UserData string
@@ -6837,6 +7091,7 @@ func (e *Zone) Definition() string {
 }
 
 func (e *Zone) Write(token *AsciiWriteToken) error {
+
 	w, err := token.Writer()
 	if err != nil {
 		return err
@@ -6884,7 +7139,7 @@ func (e *Zone) Read(token *AsciiReadToken) error {
 	return nil
 }
 
-func (e *Zone) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
+func (e *Zone) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 	if e.fragID != 0 {
 		return e.fragID, nil
 	}
@@ -6897,14 +7152,17 @@ func (e *Zone) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
 	}
 
 	rawWld.Fragments = append(rawWld.Fragments, wfZone)
-	e.fragID = int16(len(rawWld.Fragments))
-	return int16(len(rawWld.Fragments)), nil
+	e.fragID = int32(len(rawWld.Fragments))
+	return int32(len(rawWld.Fragments)), nil
 }
 
-func (e *Zone) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragZone) error {
+func (e *Zone) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragZone, fragIndex int) error {
 	if frag == nil {
 		return fmt.Errorf("frag is not zone (wrong fragcode?)")
 	}
+
+	// Save the fragment ID
+	e.fragID = int32(fragIndex)
 
 	e.Tag = rawWld.Name(frag.NameRef)
 	e.Regions = frag.Regions
@@ -6913,7 +7171,7 @@ func (e *Zone) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragZone) err
 }
 
 type RGBTrackDef struct {
-	fragID int16
+	fragID int32
 	Tag    string
 	Data1  uint32
 	Data2  uint32
@@ -6927,6 +7185,7 @@ func (e *RGBTrackDef) Definition() string {
 }
 
 func (e *RGBTrackDef) Write(token *AsciiWriteToken) error {
+
 	w, err := token.Writer()
 	if err != nil {
 		return err
@@ -7016,7 +7275,7 @@ func (e *RGBTrackDef) Read(token *AsciiReadToken) error {
 	return nil
 }
 
-func (e *RGBTrackDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
+func (e *RGBTrackDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 	if e.fragID != 0 {
 		return e.fragID, nil
 	}
@@ -7027,14 +7286,17 @@ func (e *RGBTrackDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
 	wfRGBTrack.NameRef = rawWld.NameAdd(e.Tag)
 
 	rawWld.Fragments = append(rawWld.Fragments, wfRGBTrack)
-	e.fragID = int16(len(rawWld.Fragments))
-	return int16(len(rawWld.Fragments)), nil
+	e.fragID = int32(len(rawWld.Fragments))
+	return int32(len(rawWld.Fragments)), nil
 }
 
-func (e *RGBTrackDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragDmRGBTrackDef) error {
+func (e *RGBTrackDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragDmRGBTrackDef, fragIndex int) error {
 	if frag == nil {
 		return fmt.Errorf("frag is not rgb track def (wrong fragcode?)")
 	}
+
+	// Save the fragment ID
+	e.fragID = int32(fragIndex)
 
 	e.Tag = rawWld.Name(frag.NameRef)
 	e.Data1 = frag.Data1
@@ -7046,7 +7308,7 @@ func (e *RGBTrackDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragDm
 }
 
 type ParticleCloudDef struct {
-	fragID                int16
+	fragID                int32
 	Tag                   string
 	BlitSpriteDefTag      string
 	SettingOne            uint32
@@ -7075,6 +7337,7 @@ type ParticleCloudDef struct {
 	HexEightThousandFlag  int
 	HexTenThousandFlag    int
 	HexTwentyThousandFlag int
+	FragRefs              int32 // Store fragment references for mapping
 }
 
 func (e *ParticleCloudDef) Definition() string {
@@ -7082,6 +7345,7 @@ func (e *ParticleCloudDef) Definition() string {
 }
 
 func (e *ParticleCloudDef) Write(token *AsciiWriteToken) error {
+
 	w, err := token.Writer()
 	if err != nil {
 		return err
@@ -7378,7 +7642,7 @@ func (e *ParticleCloudDef) Read(token *AsciiReadToken) error {
 	return nil
 }
 
-func (e *ParticleCloudDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
+func (e *ParticleCloudDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 	if e.fragID != 0 {
 		return e.fragID, nil
 	}
@@ -7464,25 +7728,28 @@ func (e *ParticleCloudDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
 	}
 
 	wfSSprite := &rawfrag.WldFragSimpleSprite{
-		SpriteRef: uint32(blitFragID),
+		SpriteRef: int32(blitFragID),
 	}
 
 	rawWld.Fragments = append(rawWld.Fragments, wfSSprite)
-	sSpriteRef := uint32(len(rawWld.Fragments))
+	sSpriteRef := int32(len(rawWld.Fragments))
 
 	wfParticleCloud.BlitSpriteRef = sSpriteRef
 
 	wfParticleCloud.NameRef = rawWld.NameAdd(e.Tag)
 
 	rawWld.Fragments = append(rawWld.Fragments, wfParticleCloud)
-	e.fragID = int16(len(rawWld.Fragments))
-	return int16(len(rawWld.Fragments)), nil
+	e.fragID = int32(len(rawWld.Fragments))
+	return int32(len(rawWld.Fragments)), nil
 }
 
-func (e *ParticleCloudDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragParticleCloudDef) error {
+func (e *ParticleCloudDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragParticleCloudDef, fragIndex int) error {
 	if frag == nil {
 		return fmt.Errorf("frag is not particle cloud def (wrong fragcode?)")
 	}
+
+	// Save the fragment ID
+	e.fragID = int32(fragIndex)
 
 	e.Tag = rawWld.Name(frag.NameRef)
 	if len(rawWld.Fragments) < int(frag.BlitSpriteRef) {
@@ -7499,6 +7766,7 @@ func (e *ParticleCloudDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldF
 		return fmt.Errorf("sprite instance ref %d out of bounds", bSprite.SpriteInstanceRef)
 	}
 	sSprite, ok := rawWld.Fragments[bSprite.SpriteInstanceRef].(*rawfrag.WldFragSimpleSprite)
+	e.FragRefs = sSprite.SpriteRef // Save the reference value
 	if !ok {
 		return fmt.Errorf("sprite instance ref %d not found", bSprite.SpriteInstanceRef)
 	}
@@ -7564,7 +7832,7 @@ func (e *ParticleCloudDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldF
 }
 
 type Sprite2DDef struct {
-	fragID          int16
+	fragID          int32
 	Tag             string
 	Scale           [2]float32
 	SphereListTag   string
@@ -7573,7 +7841,7 @@ type Sprite2DDef struct {
 	BoundingRadius  float32
 	CurrentFrameRef int32
 	Sleep           uint32
-	Headings        []uint32
+	Pitches         []Pitch
 	RenderMethod    string
 	Pen             NullUint32
 	Brightness      NullFloat32
@@ -7584,6 +7852,24 @@ type Sprite2DDef struct {
 	VAxis           NullFloat32Slice3
 	Uvs             [][2]float32
 	TwoSided        int
+	FragRefs        []int32 // Store fragment references for mapping
+}
+
+type Pitch struct {
+	PitchCap        int32
+	TopOrBottomView bool
+	HeadingCount    uint32
+	Headings        []Heading
+}
+
+type Heading struct {
+	HeadingCap     int32
+	Sprite2DFrames []Sprite2DFrame
+}
+
+type Sprite2DFrame struct {
+	TextureFile string
+	TextureTag  string
 }
 
 func (e *Sprite2DDef) Definition() string {
@@ -7591,6 +7877,7 @@ func (e *Sprite2DDef) Definition() string {
 }
 
 func (e *Sprite2DDef) Write(token *AsciiWriteToken) error {
+
 	w, err := token.Writer()
 	if err != nil {
 		return err
@@ -7603,26 +7890,35 @@ func (e *Sprite2DDef) Write(token *AsciiWriteToken) error {
 	fmt.Fprintf(w, "\tBOUNDINGRADIUS %0.8e\n", e.BoundingRadius)
 	fmt.Fprintf(w, "\tCURRENTFRAMEREF %d\n", e.CurrentFrameRef)
 	fmt.Fprintf(w, "\tSLEEP %d\n", e.Sleep)
-	fmt.Fprintf(w, "\tHEADINGS %d", len(e.Headings))
-	for _, heading := range e.Headings {
-		fmt.Fprintf(w, " %d", heading)
+	fmt.Fprintf(w, "\tNUMPITCHES %d\n", len(e.Pitches))
+	for i, pitch := range e.Pitches {
+		fmt.Fprintf(w, "\t\tPITCH // %d\n", i)
+		fmt.Fprintf(w, "\t\t\tPITCHCAP %d\n", pitch.PitchCap)
+		fmt.Fprintf(w, "\t\t\tTOPORBOTTOMVIEW %d\n", map[bool]int{true: 1, false: 0}[pitch.TopOrBottomView])
+		fmt.Fprintf(w, "\t\t\tNUMHEADINGS %d\n", len(pitch.Headings))
+		for i, heading := range pitch.Headings {
+			fmt.Fprintf(w, "\t\t\t\tHEADING // %d\n", i)
+			fmt.Fprintf(w, "\t\t\t\t\tHEADINGCAP %d\n", heading.HeadingCap)
+			fmt.Fprintf(w, "\t\t\t\t\tNUMFRAMES %d\n", len(heading.Sprite2DFrames))
+			for _, frame := range heading.Sprite2DFrames {
+				fmt.Fprintf(w, "\t\t\t\t\t\tFRAME \"%s\" \"%s\"\n", frame.TextureFile, frame.TextureTag)
+			}
+		}
 	}
-	fmt.Fprintf(w, "\n")
-	fmt.Fprintf(w, "\n")
-	fmt.Fprintf(w, "\t\tRENDERMETHOD \"%s\"\n", e.RenderMethod)
-	fmt.Fprintf(w, "\t\tRENDERINFO\n")
-	fmt.Fprintf(w, "\t\t\tPEN? %s\n", wcVal(e.Pen))
-	fmt.Fprintf(w, "\t\t\tBRIGHTNESS? %s\n", wcVal(e.Brightness))
-	fmt.Fprintf(w, "\t\t\tSCALEDAMBIENT? %s\n", wcVal(e.ScaledAmbient))
-	fmt.Fprintf(w, "\t\t\tSPRITE? \"%s\"\n", wcVal(e.SpriteTag))
-	fmt.Fprintf(w, "\t\t\tUVORIGIN? %s\n", wcVal(e.UvOrigin))
-	fmt.Fprintf(w, "\t\t\tUAXIS? %s\n", wcVal(e.UAxis))
-	fmt.Fprintf(w, "\t\t\tVAXIS? %s\n", wcVal(e.VAxis))
-	fmt.Fprintf(w, "\t\t\tUVCOUNT %d\n", len(e.Uvs))
+	fmt.Fprintf(w, "\tRENDERMETHOD \"%s\"\n", e.RenderMethod)
+	fmt.Fprintf(w, "\tRENDERINFO\n")
+	fmt.Fprintf(w, "\t\tPEN? %s\n", wcVal(e.Pen))
+	fmt.Fprintf(w, "\t\tBRIGHTNESS? %s\n", wcVal(e.Brightness))
+	fmt.Fprintf(w, "\t\tSCALEDAMBIENT? %s\n", wcVal(e.ScaledAmbient))
+	fmt.Fprintf(w, "\t\tSPRITE? \"%s\"\n", wcVal(e.SpriteTag))
+	fmt.Fprintf(w, "\t\tUVORIGIN? %s\n", wcVal(e.UvOrigin))
+	fmt.Fprintf(w, "\t\tUAXIS? %s\n", wcVal(e.UAxis))
+	fmt.Fprintf(w, "\t\tVAXIS? %s\n", wcVal(e.VAxis))
+	fmt.Fprintf(w, "\t\tUVCOUNT %d\n", len(e.Uvs))
 	for _, uv := range e.Uvs {
-		fmt.Fprintf(w, "\t\t\tUV %s\n", wcVal(uv))
+		fmt.Fprintf(w, "\t\tUV %s\n", wcVal(uv))
 	}
-	fmt.Fprintf(w, "\t\t\tTWOSIDED %d\n", e.TwoSided)
+	fmt.Fprintf(w, "\t\tTWOSIDED %d\n", e.TwoSided)
 	fmt.Fprintf(w, "\n")
 	return nil
 }
@@ -7688,25 +7984,95 @@ func (e *Sprite2DDef) Read(token *AsciiReadToken) error {
 		return fmt.Errorf("sleep: %w", err)
 	}
 
-	records, err = token.ReadProperty("HEADINGS", -1)
+	records, err = token.ReadProperty("NUMPITCHES", 1)
 	if err != nil {
 		return err
 	}
-
-	numHeadings := int(0)
-	err = parse(&numHeadings, records[1])
+	numPitches := 0
+	err = parse(&numPitches, records[1])
 	if err != nil {
-		return fmt.Errorf("num headings: %w", err)
+		return fmt.Errorf("num pitches: %w", err)
 	}
 
-	for i := 0; i < numHeadings; i++ {
-		val := uint32(0)
-		err = parse(&val, records[i+2])
+	e.Pitches = make([]Pitch, numPitches)
+	for i := 0; i < numPitches; i++ {
+		pitch := Pitch{}
+		_, err = token.ReadProperty("PITCH", 0)
 		if err != nil {
-			return fmt.Errorf("heading %d: %w", i, err)
+			return err
 		}
 
-		e.Headings = append(e.Headings, val)
+		records, err = token.ReadProperty("PITCHCAP", 1)
+		if err != nil {
+			return err
+		}
+		err = parse(&pitch.PitchCap, records[1])
+		if err != nil {
+			return fmt.Errorf("pitch cap: %w", err)
+		}
+
+		records, err = token.ReadProperty("TOPORBOTTOMVIEW", 1)
+		if err != nil {
+			return err
+		}
+		topOrBottom := 0
+		err = parse(&topOrBottom, records[1])
+		if err != nil {
+			return fmt.Errorf("top or bottom view: %w", err)
+		}
+		pitch.TopOrBottomView = (topOrBottom == 1)
+
+		records, err = token.ReadProperty("NUMHEADINGS", 1)
+		if err != nil {
+			return err
+		}
+		numHeadings := 0
+		err = parse(&numHeadings, records[1])
+		if err != nil {
+			return fmt.Errorf("num headings: %w", err)
+		}
+
+		pitch.Headings = make([]Heading, numHeadings)
+		for j := 0; j < numHeadings; j++ {
+			heading := Heading{}
+			_, err = token.ReadProperty("HEADING", 0)
+			if err != nil {
+				return err
+			}
+
+			records, err = token.ReadProperty("HEADINGCAP", 1)
+			if err != nil {
+				return err
+			}
+			err = parse(&heading.HeadingCap, records[1])
+			if err != nil {
+				return fmt.Errorf("heading cap: %w", err)
+			}
+
+			records, err = token.ReadProperty("NUMFRAMES", 1)
+			if err != nil {
+				return err
+			}
+			numFrames := 0
+			err = parse(&numFrames, records[1])
+			if err != nil {
+				return fmt.Errorf("num frames: %w", err)
+			}
+
+			heading.Sprite2DFrames = make([]Sprite2DFrame, numFrames)
+			for k := 0; k < numFrames; k++ {
+				frame := Sprite2DFrame{}
+				records, err = token.ReadProperty("FRAME", 2)
+				if err != nil {
+					return fmt.Errorf("FRAME: %w", err)
+				}
+				frame.TextureFile = records[1]
+				frame.TextureTag = records[2]
+				heading.Sprite2DFrames[k] = frame
+			}
+			pitch.Headings[j] = heading
+		}
+		e.Pitches[i] = pitch
 	}
 
 	records, err = token.ReadProperty("RENDERMETHOD", 1)
@@ -7819,7 +8185,7 @@ func (e *Sprite2DDef) Read(token *AsciiReadToken) error {
 	return nil
 }
 
-func (e *Sprite2DDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
+func (e *Sprite2DDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 	if e.fragID != 0 {
 		return e.fragID, nil
 	}
@@ -7830,8 +8196,29 @@ func (e *Sprite2DDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
 		BoundingRadius:  e.BoundingRadius,
 		CurrentFrameRef: e.CurrentFrameRef,
 		Sleep:           e.Sleep,
-		Headings:        e.Headings,
-		RenderMethod:    model.RenderMethodInt(e.RenderMethod),
+	}
+
+	wfSprite2D.Pitches = make([]rawfrag.Pitch, len(e.Pitches))
+	for i, pitch := range e.Pitches {
+		rawPitch := rawfrag.Pitch{
+			PitchCap:     pitch.PitchCap,
+			Flag:         pitch.TopOrBottomView,
+			HeadingCount: uint32(len(pitch.Headings)),
+			Headings:     make([]rawfrag.Heading, len(pitch.Headings)),
+		}
+
+		for j, heading := range pitch.Headings {
+			rawHeading := rawfrag.Heading{
+				HeadingCap: heading.HeadingCap,
+				Frames:     make([]int32, len(heading.Sprite2DFrames)),
+			}
+			for k, frame := range heading.Sprite2DFrames {
+				frameRef := rawWld.NameAdd(frame.TextureTag)
+				rawHeading.Frames[k] = frameRef
+			}
+			rawPitch.Headings[j] = rawHeading
+		}
+		wfSprite2D.Pitches[i] = rawPitch
 	}
 
 	if e.Pen.Valid {
@@ -7851,7 +8238,7 @@ func (e *Sprite2DDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
 
 	if e.SpriteTag.Valid {
 		wfSprite2D.RenderFlags |= 0x08
-		wfSprite2D.RenderSimpleSpriteReference = uint32(rawWld.NameAdd(e.SpriteTag.String))
+		wfSprite2D.RenderSimpleSpriteReference = int32(rawWld.NameAdd(e.SpriteTag.String))
 	}
 
 	if e.UvOrigin.Valid {
@@ -7876,29 +8263,34 @@ func (e *Sprite2DDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
 		if err != nil {
 			return 0, fmt.Errorf("sphere list to raw: %w", err)
 		}
-		wfSprite2D.SphereListRef = uint32(sphereListRef)
+		wfSprite2D.SphereListRef = int32(sphereListRef)
 	}
 	wfSprite2D.NameRef = rawWld.NameAdd(e.Tag)
 
 	rawWld.Fragments = append(rawWld.Fragments, wfSprite2D)
-	e.fragID = int16(len(rawWld.Fragments))
-	return int16(len(rawWld.Fragments)), nil
+	e.fragID = int32(len(rawWld.Fragments))
+	return int32(len(rawWld.Fragments)), nil
 }
 
-func (e *Sprite2DDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragSprite2DDef) error {
+func (e *Sprite2DDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragSprite2DDef, fragIndex int) error {
 	if frag == nil {
 		return fmt.Errorf("frag is not sprite 2d def (wrong fragcode?)")
 	}
 
+	// Save the fragment ID
+	e.fragID = int32(fragIndex)
+
 	e.Tag = rawWld.Name(frag.NameRef)
 
 	if frag.SphereListRef > 0 {
+
 		if len(rawWld.Fragments) < int(frag.SphereListRef) {
 			return fmt.Errorf("sphere list ref %d out of bounds", frag.SphereListRef)
 		}
 		sphereListRef := rawWld.Fragments[frag.SphereListRef]
 
 		sphereList, ok := sphereListRef.(*rawfrag.WldFragSphereList)
+		e.FragRefs = append(e.FragRefs, sphereList.SphereListDefRef) // Save the reference value
 		if !ok {
 			return fmt.Errorf("sphere list ref %d not found", frag.SphereListRef)
 		}
@@ -7911,7 +8303,43 @@ func (e *Sprite2DDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragSp
 	e.BoundingRadius = frag.BoundingRadius
 	e.CurrentFrameRef = frag.CurrentFrameRef
 	e.Sleep = frag.Sleep
-	e.Headings = frag.Headings
+	e.Pitches = make([]Pitch, len(frag.Pitches))
+	for i, rawPitch := range frag.Pitches {
+		pitch := Pitch{
+			PitchCap:        rawPitch.PitchCap,
+			TopOrBottomView: rawPitch.Flag,
+			HeadingCount:    rawPitch.HeadingCount,
+			Headings:        make([]Heading, len(rawPitch.Headings)),
+		}
+
+		for j, rawHeading := range rawPitch.Headings {
+			heading := Heading{
+				HeadingCap:     rawHeading.HeadingCap,
+				Sprite2DFrames: make([]Sprite2DFrame, len(rawHeading.Frames)),
+			}
+			for k, frameRef := range rawHeading.Frames {
+				if frameRef == 0 {
+					return nil
+				}
+				if len(rawWld.Fragments) <= int(frameRef) {
+					return fmt.Errorf("frame reference %d out of range", frameRef)
+				}
+				frame := rawWld.Fragments[frameRef]
+				bmInfo, ok := frame.(*rawfrag.WldFragBMInfo)
+				if !ok {
+					return fmt.Errorf("invalid frame ref %d", frameRef)
+				}
+				for _, textureName := range bmInfo.TextureNames {
+					heading.Sprite2DFrames[k] = Sprite2DFrame{
+						TextureTag:  rawWld.Name(bmInfo.NameRef),
+						TextureFile: textureName,
+					}
+				}
+			}
+			pitch.Headings[j] = heading
+		}
+		e.Pitches[i] = pitch
+	}
 
 	e.RenderMethod = model.RenderMethodStr(frag.RenderMethod)
 	if frag.RenderFlags&0x01 == 0x01 {
@@ -7936,14 +8364,49 @@ func (e *Sprite2DDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragSp
 		}
 		spriteDef := rawWld.Fragments[frag.RenderSimpleSpriteReference]
 		switch simpleSprite := spriteDef.(type) {
-		case *rawfrag.WldFragSimpleSpriteDef:
-			e.SpriteTag.String = rawWld.Name(simpleSprite.NameRef)
-		case *rawfrag.WldFragDMSpriteDef:
-			e.SpriteTag.String = rawWld.Name(simpleSprite.NameRef)
-		case *rawfrag.WldFragHierarchicalSpriteDef:
-			e.SpriteTag.String = rawWld.Name(simpleSprite.NameRef)
+		case *rawfrag.WldFragSimpleSprite:
+			if len(rawWld.Fragments) < int(simpleSprite.SpriteRef) {
+				return fmt.Errorf("simplesprite ref %d out of range", simpleSprite.SpriteRef)
+			}
+			spriteDef, ok := rawWld.Fragments[simpleSprite.SpriteRef].(*rawfrag.WldFragHierarchicalSpriteDef)
+			if !ok {
+				return fmt.Errorf("simplesprite def ref %d not found", simpleSprite.SpriteRef)
+			}
+			e.SpriteTag.String = rawWld.Name(spriteDef.NameRef)
+			e.FragRefs = append(e.FragRefs, simpleSprite.SpriteRef) // Save the reference value
+		case *rawfrag.WldFragDMSprite:
+			if len(rawWld.Fragments) < int(simpleSprite.DMSpriteRef) {
+				return fmt.Errorf("dmsprite ref %d out of range", simpleSprite.DMSpriteRef)
+			}
+			switch spriteDef := rawWld.Fragments[simpleSprite.DMSpriteRef].(type) {
+			case *rawfrag.WldFragDMSpriteDef:
+				e.SpriteTag.String = rawWld.Name(spriteDef.NameRef)
+			case *rawfrag.WldFragDmSpriteDef2:
+				e.SpriteTag.String = rawWld.Name(spriteDef.NameRef)
+			default:
+				return fmt.Errorf("unhandled dmsprite instance def fragment type %d (%s)", simpleSprite.FragCode(), raw.FragName(simpleSprite.FragCode()))
+			}
+			e.FragRefs = append(e.FragRefs, simpleSprite.DMSpriteRef)
+		case *rawfrag.WldFragHierarchicalSprite:
+			if len(rawWld.Fragments) < int(simpleSprite.HierarchicalSpriteRef) {
+				return fmt.Errorf("hierarchicalsprite def ref %d not found", simpleSprite.HierarchicalSpriteRef)
+			}
+			spriteDef, ok := rawWld.Fragments[simpleSprite.HierarchicalSpriteRef].(*rawfrag.WldFragHierarchicalSpriteDef)
+			if !ok {
+				return fmt.Errorf("hierarchicalsprite def ref %d not found", simpleSprite.HierarchicalSpriteRef)
+			}
+			e.SpriteTag.String = rawWld.Name(spriteDef.NameRef)
+			e.FragRefs = append(e.FragRefs, simpleSprite.HierarchicalSpriteRef)
 		case *rawfrag.WldFragSprite2D:
-			e.SpriteTag.String = rawWld.Name(simpleSprite.NameRef)
+			if len(rawWld.Fragments) < int(simpleSprite.TwoDSpriteRef) {
+				return fmt.Errorf("hierarchicalsprite def ref %d not found", simpleSprite.TwoDSpriteRef)
+			}
+			spriteDef, ok := rawWld.Fragments[simpleSprite.TwoDSpriteRef].(*rawfrag.WldFragHierarchicalSpriteDef)
+			if !ok {
+				return fmt.Errorf("hierarchicalsprite def ref %d not found", simpleSprite.TwoDSpriteRef)
+			}
+			e.SpriteTag.String = rawWld.Name(spriteDef.NameRef)
+			e.FragRefs = append(e.FragRefs, simpleSprite.TwoDSpriteRef)
 		default:
 			return fmt.Errorf("unhandled render sprite reference fragment type %d", spriteDef.FragCode())
 		}
@@ -8030,7 +8493,7 @@ func spriteVariationToRaw(wce *Wce, rawWld *raw.Wld, e WldDefinitioner) error {
 }
 
 type DMTrackDef2 struct {
-	fragID  int16
+	fragID  int32
 	model   string
 	Tag     string
 	Sleep   uint16
@@ -8163,7 +8626,7 @@ func (e *DMTrackDef2) Read(token *AsciiReadToken) error {
 	return nil
 }
 
-func (e *DMTrackDef2) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
+func (e *DMTrackDef2) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 	//if e.fragID != 0 {
 	//	return e.fragID, nil
 	//}
@@ -8192,20 +8655,23 @@ func (e *DMTrackDef2) ToRaw(wce *Wce, rawWld *raw.Wld) (int16, error) {
 	wfTrack2.NameRef = rawWld.NameAdd(e.Tag)
 	// flags?
 	rawWld.Fragments = append(rawWld.Fragments, wfTrack2)
-	e.fragID = int16(len(rawWld.Fragments))
+	e.fragID = int32(len(rawWld.Fragments))
 
 	wfTrack := &rawfrag.WldFragDMTrack{
 		TrackRef: int32(e.fragID),
 		Flags:    0,
 	}
 	rawWld.Fragments = append(rawWld.Fragments, wfTrack)
-	return int16(e.fragID), nil
+	return int32(e.fragID), nil
 }
 
-func (e *DMTrackDef2) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragDmTrackDef2) error {
+func (e *DMTrackDef2) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragDmTrackDef2, fragIndex int) error {
 	if frag == nil {
 		return fmt.Errorf("frag is not trackdef (wrong fragcode?)")
 	}
+
+	// Save the fragment ID
+	e.fragID = int32(fragIndex)
 
 	e.Tag = rawWld.Name(frag.NameRef)
 	e.Sleep = frag.Sleep

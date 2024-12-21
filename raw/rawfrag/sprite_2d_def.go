@@ -15,23 +15,35 @@ type WldFragSprite2DDef struct {
 	TextureCount                uint32
 	PitchCount                  uint32
 	Scale                       [2]float32
-	SphereListRef               uint32
+	SphereListRef               int32
 	DepthScale                  float32
 	CenterOffset                [3]float32
 	BoundingRadius              float32
 	CurrentFrameRef             int32
 	Sleep                       uint32
-	Headings                    []uint32
+	Pitches                     []Pitch
 	RenderMethod                uint32
 	RenderFlags                 uint8
 	RenderPen                   uint32
 	RenderBrightness            float32
 	RenderScaledAmbient         float32
-	RenderSimpleSpriteReference uint32
+	RenderSimpleSpriteReference int32
 	RenderUVInfoOrigin          [3]float32
 	RenderUVInfoUAxis           [3]float32
 	RenderUVInfoVAxis           [3]float32
 	Uvs                         [][2]float32
+}
+
+type Pitch struct {
+	PitchCap     int32
+	Flag         bool
+	HeadingCount uint32
+	Headings     []Heading
+}
+
+type Heading struct {
+	HeadingCap int32
+	Frames     []int32
 }
 
 func (e *WldFragSprite2DDef) FragCode() int {
@@ -47,7 +59,7 @@ func (e *WldFragSprite2DDef) Write(w io.Writer, isNewWorld bool) error {
 
 	enc.Float32(e.Scale[0])
 	enc.Float32(e.Scale[1])
-	enc.Uint32(e.SphereListRef)
+	enc.Int32(e.SphereListRef)
 	if e.Flags&0x80 == 0x80 {
 		enc.Float32(e.DepthScale)
 	}
@@ -65,8 +77,23 @@ func (e *WldFragSprite2DDef) Write(w io.Writer, isNewWorld bool) error {
 	if e.Flags&0x08 == 0x08 {
 		enc.Uint32(e.Sleep)
 	}
-	for _, heading := range e.Headings {
-		enc.Uint32(heading)
+	for _, pitch := range e.Pitches {
+		enc.Int32(pitch.PitchCap)
+
+		// Combine Flag and HeadingCount into one DWORD
+		rawFlag := uint32(0)
+		if pitch.Flag {
+			rawFlag |= 0x80000000 // Set MSB if Flag is true
+		}
+		rawFlag |= uint32(pitch.HeadingCount)
+		enc.Uint32(rawFlag)
+
+		for _, heading := range pitch.Headings {
+			enc.Int32(heading.HeadingCap)
+			for _, frame := range heading.Frames {
+				enc.Int32(frame)
+			}
+		}
 	}
 	if e.Flags&0x10 == 0x10 {
 		enc.Uint32(e.RenderMethod)
@@ -82,7 +109,7 @@ func (e *WldFragSprite2DDef) Write(w io.Writer, isNewWorld bool) error {
 			enc.Float32(e.RenderScaledAmbient)
 		}
 		if e.RenderFlags&0x08 == 0x08 {
-			enc.Uint32(e.RenderSimpleSpriteReference)
+			enc.Int32(e.RenderSimpleSpriteReference)
 		}
 		if e.RenderFlags&0x10 == 0x10 {
 			enc.Float32(e.RenderUVInfoOrigin[0])
@@ -119,7 +146,7 @@ func (e *WldFragSprite2DDef) Read(r io.ReadSeeker, isNewWorld bool) error {
 	e.PitchCount = dec.Uint32()
 	e.Scale[0] = dec.Float32()
 	e.Scale[1] = dec.Float32()
-	e.SphereListRef = dec.Uint32()
+	e.SphereListRef = dec.Int32()
 	if e.Flags&0x80 == 0x80 {
 		e.DepthScale = dec.Float32()
 	}
@@ -137,9 +164,28 @@ func (e *WldFragSprite2DDef) Read(r io.ReadSeeker, isNewWorld bool) error {
 	if e.Flags&0x08 == 0x08 {
 		e.Sleep = dec.Uint32()
 	}
-	e.Headings = make([]uint32, e.PitchCount)
+	e.Pitches = make([]Pitch, e.PitchCount)
 	for i := uint32(0); i < e.PitchCount; i++ {
-		e.Headings[i] = dec.Uint32()
+		var pitch Pitch
+		pitch.PitchCap = dec.Int32()
+
+		// Extract the most significant bit as Flag and the rest as HeadingCount
+		rawFlag := dec.Uint32()
+		pitch.Flag = (rawFlag & 0x80000000) != 0 // MSB
+		pitch.HeadingCount = uint32(rawFlag & 0x7FFFFFFF)
+
+		// Read Headings
+		pitch.Headings = make([]Heading, pitch.HeadingCount)
+		for j := uint32(0); j < pitch.HeadingCount; j++ {
+			var heading Heading
+			heading.HeadingCap = dec.Int32()
+			heading.Frames = make([]int32, e.TextureCount)
+			for k := uint32(0); k < e.TextureCount; k++ {
+				heading.Frames[k] = dec.Int32()
+			}
+			pitch.Headings[j] = heading
+		}
+		e.Pitches[i] = pitch
 	}
 	if e.Flags&0x10 == 0x10 {
 		e.RenderMethod = dec.Uint32()
@@ -155,7 +201,7 @@ func (e *WldFragSprite2DDef) Read(r io.ReadSeeker, isNewWorld bool) error {
 			e.RenderScaledAmbient = dec.Float32()
 		}
 		if e.RenderFlags&0x08 == 0x08 {
-			e.RenderSimpleSpriteReference = dec.Uint32()
+			e.RenderSimpleSpriteReference = dec.Int32()
 		}
 		if e.RenderFlags&0x10 == 0x10 {
 			e.RenderUVInfoOrigin[0] = dec.Float32()

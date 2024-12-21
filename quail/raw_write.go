@@ -86,7 +86,7 @@ func (e *Quail) wldWrite(wld *raw.Wld) error {
 		for _, srcMat := range mod.Materials {
 			matRef, ok := materials[srcMat.Name]
 			if ok {
-				materialList.MaterialRefs = append(materialList.MaterialRefs, uint32(matRef))
+				materialList.MaterialRefs = append(materialList.MaterialRefs, int32(matRef))
 				continue
 			}
 
@@ -112,7 +112,7 @@ func (e *Quail) wldWrite(wld *raw.Wld) error {
 						Flags:        0x00000000,
 						CurrentFrame: 0,
 						Sleep:        0,
-						BitmapRefs:   []uint32{uint32(fragIndex - 1)},
+						BitmapRefs:   []int32{int32(fragIndex - 1)},
 					}
 
 					wld.Fragments[fragIndex] = texture
@@ -120,7 +120,7 @@ func (e *Quail) wldWrite(wld *raw.Wld) error {
 
 					textureRefInst := &rawfrag.WldFragSimpleSprite{ // aka SimpleSprite
 						NameRef:   wld.NameAdd(srcProp.Value),
-						SpriteRef: uint32(fragIndex - 1),
+						SpriteRef: int32(fragIndex - 1),
 						Flags:     0x00000000,
 					}
 
@@ -131,7 +131,7 @@ func (e *Quail) wldWrite(wld *raw.Wld) error {
 					textureRef = fragIndex - 1
 				}
 
-				dstMat.SimpleSpriteRef = uint32(textureRef)
+				dstMat.SimpleSpriteRef = int32(textureRef)
 				dstMat.NameRef = wld.NameAdd(srcMat.Name)
 				dstMat.Flags = 2
 				dstMat.RenderMethod = 0x00000001
@@ -142,7 +142,7 @@ func (e *Quail) wldWrite(wld *raw.Wld) error {
 
 				wld.Fragments[fragIndex] = dstMat
 				fragIndex++
-				materialList.MaterialRefs = append(materialList.MaterialRefs, uint32(fragIndex-1))
+				materialList.MaterialRefs = append(materialList.MaterialRefs, int32(fragIndex-1))
 			}
 
 			materialList.NameRef = wld.NameAdd(srcMat.Name)
@@ -152,7 +152,7 @@ func (e *Quail) wldWrite(wld *raw.Wld) error {
 			}
 			wld.Fragments[fragIndex] = materialList
 			fragIndex++
-			mesh.MaterialPaletteRef = uint32(fragIndex - 1)
+			mesh.MaterialPaletteRef = int32(fragIndex - 1)
 		}
 		mesh.NameRef = wld.NameAdd(mod.Header.Name)
 		mesh.Flags = 0x00014003

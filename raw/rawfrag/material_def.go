@@ -16,7 +16,7 @@ type WldFragMaterialDef struct {
 	RGBPen          [4]uint8 `yaml:"rgb_pen"`
 	Brightness      float32  `yaml:"brightness"`
 	ScaledAmbient   float32  `yaml:"scaled_ambient"`
-	SimpleSpriteRef uint32   `yaml:"sprite_instance_ref"`
+	SimpleSpriteRef int32    `yaml:"sprite_instance_ref"`
 	Pair1           uint32
 	Pair2           float32
 }
@@ -36,7 +36,7 @@ func (e *WldFragMaterialDef) Write(w io.Writer, isNewWorld bool) error {
 	enc.Uint8(e.RGBPen[3])
 	enc.Float32(e.Brightness)
 	enc.Float32(e.ScaledAmbient)
-	enc.Uint32(e.SimpleSpriteRef)
+	enc.Int32(e.SimpleSpriteRef)
 	if e.Flags&0x2 != 0 {
 		enc.Uint32(e.Pair1)
 		enc.Float32(e.Pair2)
@@ -56,7 +56,7 @@ func (e *WldFragMaterialDef) Read(r io.ReadSeeker, isNewWorld bool) error {
 	e.RGBPen = [4]uint8{dec.Uint8(), dec.Uint8(), dec.Uint8(), dec.Uint8()}
 	e.Brightness = dec.Float32()
 	e.ScaledAmbient = dec.Float32()
-	e.SimpleSpriteRef = dec.Uint32()
+	e.SimpleSpriteRef = dec.Int32()
 	if e.Flags&0x2 != 0 {
 		e.Pair1 = dec.Uint32()
 		e.Pair2 = dec.Float32()

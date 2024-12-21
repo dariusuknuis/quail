@@ -13,7 +13,7 @@ import (
 type WldFragDmSpriteDef2 struct {
 	NameRef              int32
 	Flags                uint32
-	MaterialPaletteRef   uint32
+	MaterialPaletteRef   int32
 	DMTrackRef           int32 // only used for flags/trees
 	Fragment3Ref         int32
 	Fragment4Ref         int32 // unknown, usually ref to first texture
@@ -69,7 +69,7 @@ func (e *WldFragDmSpriteDef2) Write(w io.Writer, isNewWorld bool) error {
 
 	enc.Uint32(e.Flags)
 
-	enc.Uint32(e.MaterialPaletteRef)
+	enc.Int32(e.MaterialPaletteRef)
 	enc.Int32(e.DMTrackRef)
 
 	enc.Int32(e.Fragment3Ref)
@@ -181,7 +181,7 @@ func (e *WldFragDmSpriteDef2) Read(r io.ReadSeeker, isNewWorld bool) error {
 	e.NameRef = dec.Int32()
 	e.Flags = dec.Uint32() // flags, currently unknown, zone meshes are 0x00018003, placeable objects are 0x00014003
 
-	e.MaterialPaletteRef = dec.Uint32()
+	e.MaterialPaletteRef = dec.Int32()
 	e.DMTrackRef = dec.Int32() //used by flags/trees only
 
 	e.Fragment3Ref = dec.Int32() // has polyhedron ref

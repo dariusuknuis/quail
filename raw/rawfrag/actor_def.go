@@ -18,7 +18,7 @@ type WldFragActorDef struct {
 	Location        [6]float32
 	Unk1            uint32               `yaml:"unk1"`
 	Actions         []WldFragModelAction `yaml:"actions"`
-	FragmentRefs    []uint32             `yaml:"fragment_refs"`
+	FragmentRefs    []int32              `yaml:"fragment_refs"`
 	Unk2            uint32               `yaml:"unk2"`
 }
 
@@ -60,7 +60,7 @@ func (e *WldFragActorDef) Write(w io.Writer, isNewWorld bool) error {
 		}
 	}
 	for _, fragmentRef := range e.FragmentRefs {
-		enc.Uint32(fragmentRef)
+		enc.Int32(fragmentRef)
 	}
 	enc.Uint32(e.Unk2)
 	err := enc.Error()
@@ -100,7 +100,7 @@ func (e *WldFragActorDef) Read(r io.ReadSeeker, isNewWorld bool) error {
 		e.Actions = append(e.Actions, action)
 	}
 	for i := uint32(0); i < fragmentRefCount; i++ {
-		e.FragmentRefs = append(e.FragmentRefs, dec.Uint32())
+		e.FragmentRefs = append(e.FragmentRefs, dec.Int32())
 	}
 	e.Unk2 = dec.Uint32()
 

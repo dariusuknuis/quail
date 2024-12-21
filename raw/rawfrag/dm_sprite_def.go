@@ -13,7 +13,7 @@ type WldFragDMSpriteDef struct {
 	NameRef              int32
 	Flags                uint32
 	Fragment1            int16
-	MaterialPaletteRef   uint32
+	MaterialPaletteRef   int32
 	Fragment3            uint32
 	CenterOffset         [3]float32
 	Params1              [3]float32
@@ -61,7 +61,7 @@ func (e *WldFragDMSpriteDef) Write(w io.Writer, isNewWorld bool) error {
 	enc.Uint16(uint16(len(e.Meshops)))
 	enc.Int16(e.Fragment1)
 	enc.Uint32(uint32(len(e.SkinAssignmentGroups)))
-	enc.Uint32(e.MaterialPaletteRef)
+	enc.Int32(e.MaterialPaletteRef)
 	enc.Uint32(e.Fragment3)
 	enc.Float32(e.CenterOffset[0])
 	enc.Float32(e.CenterOffset[1])
@@ -179,7 +179,7 @@ func (e *WldFragDMSpriteDef) Read(r io.ReadSeeker, isNewWorld bool) error {
 	meshopCount := dec.Uint16()
 	e.Fragment1 = dec.Int16()
 	skinAssignmentGroupCount := dec.Uint32()
-	e.MaterialPaletteRef = dec.Uint32()
+	e.MaterialPaletteRef = dec.Int32()
 	e.Fragment3 = dec.Uint32()
 	e.CenterOffset[0] = dec.Float32()
 	e.CenterOffset[1] = dec.Float32()

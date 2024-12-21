@@ -14,10 +14,12 @@ type Wce struct {
 	isVariationMaterial    bool   // set true while writing or reading variations
 	lastReadModelTag       string // last model tag read
 	isObj                  bool   // true when a _obj suffix is found in path
+	isChr                  bool   // true when a _chr suffix is found in path
 	modelTags              []string
 	maxMaterialHeads       map[string]int
 	maxMaterialTextures    map[string]int
-	tagIndexes             map[string]int // used when parsing to keep track of indexes
+	tagIndexes             map[string]int  // used when parsing to keep track of indexes
+	FragReferenceTrees     map[int32]*Node // Map to hold the nested tree structure
 	FileName               string
 	WorldDef               *WorldDef
 	GlobalAmbientLightDef  *GlobalAmbientLightDef
@@ -52,18 +54,25 @@ type Wce struct {
 	EQMaterialDefs         []*EQMaterialDef
 }
 
+type Node struct {
+	FragID   int32
+	Children map[int32]*Node
+}
+
 type WldDefinitioner interface {
 	Definition() string
-	ToRaw(src *Wce, dst *raw.Wld) (int16, error)
+	ToRaw(src *Wce, dst *raw.Wld) (int32, error)
 	Write(token *AsciiWriteToken) error
 }
 
 func New(filename string) *Wce {
 
 	isObj := strings.Contains(filename, "_obj")
+	isChr := strings.Contains(filename, "_chr")
 	return &Wce{
 		FileName:              filename,
 		isObj:                 isObj,
+		isChr:                 isChr,
 		maxMaterialHeads:      make(map[string]int),
 		maxMaterialTextures:   make(map[string]int),
 		variationMaterialDefs: make(map[string][]*MaterialDef),

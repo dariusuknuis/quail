@@ -13,7 +13,7 @@ type WldFragActor struct {
 	NameRef        int32
 	ActorDefRef    int32
 	Flags          uint32
-	SphereRef      uint32
+	SphereRef      int32
 	CurrentAction  uint32
 	Location       [6]float32
 	Unk1           uint32
@@ -33,7 +33,7 @@ func (e *WldFragActor) Write(w io.Writer, isNewWorld bool) error {
 	enc.Int32(e.NameRef)
 	enc.Int32(e.ActorDefRef)
 	enc.Uint32(e.Flags)
-	enc.Uint32(e.SphereRef)
+	enc.Int32(e.SphereRef)
 	if e.Flags&0x1 == 0x1 {
 		enc.Uint32(e.CurrentAction)
 	}
@@ -72,7 +72,7 @@ func (e *WldFragActor) Read(r io.ReadSeeker, isNewWorld bool) error {
 	e.NameRef = dec.Int32()
 	e.ActorDefRef = dec.Int32()
 	e.Flags = dec.Uint32()
-	e.SphereRef = dec.Uint32()
+	e.SphereRef = dec.Int32()
 	if e.Flags&0x1 == 0x1 {
 		e.CurrentAction = dec.Uint32()
 	}
