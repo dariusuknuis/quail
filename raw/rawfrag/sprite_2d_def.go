@@ -12,38 +12,35 @@ import (
 type WldFragSprite2DDef struct {
 	NameRef                     int32
 	Flags                       uint32
-	TextureCount                uint32
-	PitchCount                  uint32
 	Scale                       [2]float32
-	SphereListRef               int32
+	SphereListRef               uint32
 	DepthScale                  float32
 	CenterOffset                [3]float32
 	BoundingRadius              float32
 	CurrentFrameRef             int32
 	Sleep                       uint32
-	Pitches                     []Pitch
+	Pitches                     []*WldFragSprite2DPitch
 	RenderMethod                uint32
-	RenderFlags                 uint8
+	RenderFlags                 uint32
 	RenderPen                   uint32
 	RenderBrightness            float32
 	RenderScaledAmbient         float32
-	RenderSimpleSpriteReference int32
+	RenderSimpleSpriteReference uint32
 	RenderUVInfoOrigin          [3]float32
 	RenderUVInfoUAxis           [3]float32
 	RenderUVInfoVAxis           [3]float32
 	Uvs                         [][2]float32
 }
 
-type Pitch struct {
-	PitchCap     int32
-	Flag         bool
-	HeadingCount uint32
-	Headings     []Heading
+type WldFragSprite2DPitch struct {
+	PitchCap        int32
+	TopOrBottomView uint32
+	Headings        []*WldFragSprite2DHeading
 }
 
-type Heading struct {
+type WldFragSprite2DHeading struct {
 	HeadingCap int32
-	Frames     []int32
+	FrameRefs  []int32
 }
 
 func (e *WldFragSprite2DDef) FragCode() int {
@@ -54,12 +51,24 @@ func (e *WldFragSprite2DDef) Write(w io.Writer, isNewWorld bool) error {
 	enc := encdec.NewEncoder(w, binary.LittleEndian)
 	enc.Int32(e.NameRef)
 	enc.Uint32(e.Flags)
-	enc.Uint32(e.TextureCount)
-	enc.Uint32(e.PitchCount)
+
+	textureCount := uint32(0)
+	if len(e.Pitches) < 1 {
+		return fmt.Errorf("no pitches found")
+	}
+	if len(e.Pitches[0].Headings) < 1 {
+		return fmt.Errorf("no headings found")
+	}
+	if len(e.Pitches[0].Headings[0].FrameRefs) < 1 {
+		return fmt.Errorf("no frame refs found")
+	}
+	textureCount = uint32(len(e.Pitches[0].Headings[0].FrameRefs))
+	enc.Uint32(textureCount)
+	enc.Uint32(uint32(len(e.Pitches)))
 
 	enc.Float32(e.Scale[0])
 	enc.Float32(e.Scale[1])
-	enc.Int32(e.SphereListRef)
+	enc.Uint32(e.SphereListRef)
 	if e.Flags&0x80 == 0x80 {
 		enc.Float32(e.DepthScale)
 	}
@@ -77,27 +86,21 @@ func (e *WldFragSprite2DDef) Write(w io.Writer, isNewWorld bool) error {
 	if e.Flags&0x08 == 0x08 {
 		enc.Uint32(e.Sleep)
 	}
+
 	for _, pitch := range e.Pitches {
 		enc.Int32(pitch.PitchCap)
-
-		// Combine Flag and HeadingCount into one DWORD
-		rawFlag := uint32(0)
-		if pitch.Flag {
-			rawFlag |= 0x80000000 // Set MSB if Flag is true
-		}
-		rawFlag |= uint32(pitch.HeadingCount)
-		enc.Uint32(rawFlag)
-
+		enc.Uint32((uint32(pitch.TopOrBottomView) << 31) | (uint32(len(pitch.Headings)) & 0x7FFFFFFF))
 		for _, heading := range pitch.Headings {
 			enc.Int32(heading.HeadingCap)
-			for _, frame := range heading.Frames {
-				enc.Int32(frame)
+			for _, frameRef := range heading.FrameRefs {
+				enc.Int32(frameRef)
 			}
 		}
 	}
+
 	if e.Flags&0x10 == 0x10 {
 		enc.Uint32(e.RenderMethod)
-		enc.Uint8(e.RenderFlags)
+		enc.Uint32(e.RenderFlags)
 
 		if e.RenderFlags&0x01 == 0x01 {
 			enc.Uint32(e.RenderPen)
@@ -109,7 +112,7 @@ func (e *WldFragSprite2DDef) Write(w io.Writer, isNewWorld bool) error {
 			enc.Float32(e.RenderScaledAmbient)
 		}
 		if e.RenderFlags&0x08 == 0x08 {
-			enc.Int32(e.RenderSimpleSpriteReference)
+			enc.Uint32(e.RenderSimpleSpriteReference)
 		}
 		if e.RenderFlags&0x10 == 0x10 {
 			enc.Float32(e.RenderUVInfoOrigin[0])
@@ -142,11 +145,11 @@ func (e *WldFragSprite2DDef) Read(r io.ReadSeeker, isNewWorld bool) error {
 	dec := encdec.NewDecoder(r, binary.LittleEndian)
 	e.NameRef = dec.Int32()
 	e.Flags = dec.Uint32()
-	e.TextureCount = dec.Uint32()
-	e.PitchCount = dec.Uint32()
+	textureCount := dec.Uint32()
+	pitchCount := dec.Uint32()
 	e.Scale[0] = dec.Float32()
 	e.Scale[1] = dec.Float32()
-	e.SphereListRef = dec.Int32()
+	e.SphereListRef = dec.Uint32()
 	if e.Flags&0x80 == 0x80 {
 		e.DepthScale = dec.Float32()
 	}
@@ -164,32 +167,34 @@ func (e *WldFragSprite2DDef) Read(r io.ReadSeeker, isNewWorld bool) error {
 	if e.Flags&0x08 == 0x08 {
 		e.Sleep = dec.Uint32()
 	}
-	e.Pitches = make([]Pitch, e.PitchCount)
-	for i := uint32(0); i < e.PitchCount; i++ {
-		var pitch Pitch
-		pitch.PitchCap = dec.Int32()
-
-		// Extract the most significant bit as Flag and the rest as HeadingCount
-		rawFlag := dec.Uint32()
-		pitch.Flag = (rawFlag & 0x80000000) != 0 // MSB
-		pitch.HeadingCount = uint32(rawFlag & 0x7FFFFFFF)
-
-		// Read Headings
-		pitch.Headings = make([]Heading, pitch.HeadingCount)
-		for j := uint32(0); j < pitch.HeadingCount; j++ {
-			var heading Heading
-			heading.HeadingCap = dec.Int32()
-			heading.Frames = make([]int32, e.TextureCount)
-			for k := uint32(0); k < e.TextureCount; k++ {
-				heading.Frames[k] = dec.Int32()
-			}
-			pitch.Headings[j] = heading
+	e.Pitches = []*WldFragSprite2DPitch{}
+	for i := uint32(0); i < pitchCount; i++ {
+		pitch := &WldFragSprite2DPitch{
+			PitchCap: dec.Int32(),
 		}
-		e.Pitches[i] = pitch
+		weirdFlagCount := dec.Uint32()
+		pitch.TopOrBottomView = uint32((weirdFlagCount >> 31) & 0x1)
+		headingCount := uint32(weirdFlagCount & 0x7FFFFFFF)
+
+		pitch.Headings = []*WldFragSprite2DHeading{}
+		for j := uint32(0); j < headingCount; j++ {
+			heading := &WldFragSprite2DHeading{
+				HeadingCap: dec.Int32(),
+			}
+
+			heading.FrameRefs = make([]int32, textureCount)
+			for k := uint32(0); k < textureCount; k++ {
+				heading.FrameRefs[k] = dec.Int32()
+			}
+
+			pitch.Headings = append(pitch.Headings, heading)
+		}
+
+		e.Pitches = append(e.Pitches, pitch)
 	}
 	if e.Flags&0x10 == 0x10 {
 		e.RenderMethod = dec.Uint32()
-		e.RenderFlags = dec.Uint8()
+		e.RenderFlags = dec.Uint32()
 
 		if e.RenderFlags&0x01 == 0x01 {
 			e.RenderPen = dec.Uint32()
@@ -201,7 +206,7 @@ func (e *WldFragSprite2DDef) Read(r io.ReadSeeker, isNewWorld bool) error {
 			e.RenderScaledAmbient = dec.Float32()
 		}
 		if e.RenderFlags&0x08 == 0x08 {
-			e.RenderSimpleSpriteReference = dec.Int32()
+			e.RenderSimpleSpriteReference = dec.Uint32()
 		}
 		if e.RenderFlags&0x10 == 0x10 {
 			e.RenderUVInfoOrigin[0] = dec.Float32()
