@@ -17,8 +17,8 @@ type WldFragMaterialDef struct {
 	Brightness      float32
 	ScaledAmbient   float32
 	SimpleSpriteRef uint32
-	Pair1           uint32
-	Pair2           float32
+	UShiftPerMs     float32
+	VShiftPerMs     float32
 }
 
 func (e *WldFragMaterialDef) FragCode() int {
@@ -38,8 +38,8 @@ func (e *WldFragMaterialDef) Write(w io.Writer, isNewWorld bool) error {
 	enc.Float32(e.ScaledAmbient)
 	enc.Uint32(e.SimpleSpriteRef)
 	if e.Flags&0x2 != 0 {
-		enc.Uint32(e.Pair1)
-		enc.Float32(e.Pair2)
+		enc.Float32(e.UShiftPerMs)
+		enc.Float32(e.VShiftPerMs)
 	}
 	err := enc.Error()
 	if err != nil {
@@ -58,8 +58,8 @@ func (e *WldFragMaterialDef) Read(r io.ReadSeeker, isNewWorld bool) error {
 	e.ScaledAmbient = dec.Float32()
 	e.SimpleSpriteRef = dec.Uint32()
 	if e.Flags&0x2 != 0 {
-		e.Pair1 = dec.Uint32()
-		e.Pair2 = dec.Float32()
+		e.UShiftPerMs = dec.Float32()
+		e.VShiftPerMs = dec.Float32()
 	}
 	err := dec.Error()
 	if err != nil {

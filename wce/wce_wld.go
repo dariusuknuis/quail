@@ -1831,8 +1831,8 @@ type MaterialDef struct {
 	ScaledAmbient        float32
 	SimpleSpriteTag      string
 	SimpleSpriteTagIndex int
-	Pair1                NullUint32
-	Pair2                NullFloat32
+	UShiftPerMs          NullFloat32
+	VShiftPerMs          NullFloat32
 	DoubleSided          int
 }
 
@@ -1875,7 +1875,7 @@ func (e *MaterialDef) Write(token *AsciiWriteToken) error {
 		fmt.Fprintf(w, "\t\tSIMPLESPRITETAG \"%s\"\n", e.SimpleSpriteTag)
 		fmt.Fprintf(w, "\t\tSIMPLESPRITETAGINDEX %d\n", e.SimpleSpriteTagIndex)
 		fmt.Fprintf(w, "\t\tSIMPLESPRITEHEXFIFTYFLAG %d\n", e.SpriteHexFiftyFlag)
-		fmt.Fprintf(w, "\tPAIRS? %s %s\n", wcVal(e.Pair1), wcVal(e.Pair2))
+		fmt.Fprintf(w, "\tUVSHIFTPERMS? %s %s\n", wcVal(e.UShiftPerMs), wcVal(e.VShiftPerMs))
 		fmt.Fprintf(w, "\tDOUBLESIDED %d\n", e.DoubleSided)
 		fmt.Fprintf(w, "\n")
 
@@ -1967,19 +1967,19 @@ func (e *MaterialDef) Read(token *AsciiReadToken) error {
 		return fmt.Errorf("hex fifty flag: %w", err)
 	}
 
-	records, err = token.ReadProperty("PAIRS?", 2)
+	records, err = token.ReadProperty("UVSHIFTPERMS?", 2)
 	if err != nil {
 		return err
 	}
 
-	err = parse(&e.Pair1, records[1])
+	err = parse(&e.UShiftPerMs, records[1])
 	if err != nil {
-		return fmt.Errorf("has pairs: %w", err)
+		return fmt.Errorf("has uvshiftperms: %w", err)
 	}
 
-	err = parse(&e.Pair2, records[2])
+	err = parse(&e.VShiftPerMs, records[2])
 	if err != nil {
-		return fmt.Errorf("pair1: %w", err)
+		return fmt.Errorf("ushiftperms: %w", err)
 	}
 
 	records, err = token.ReadProperty("DOUBLESIDED", 1)
@@ -2011,13 +2011,13 @@ func (e *MaterialDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 		wfMaterialDef.Flags |= 0x01
 	}
 
-	if e.Pair1.Valid && e.Pair2.Valid {
-		wfMaterialDef.Pair1 = e.Pair1.Uint32
-		wfMaterialDef.Pair2 = e.Pair2.Float32
+	if e.UShiftPerMs.Valid && e.VShiftPerMs.Valid {
+		wfMaterialDef.UShiftPerMs = e.UShiftPerMs.Float32
+		wfMaterialDef.VShiftPerMs = e.VShiftPerMs.Float32
 		wfMaterialDef.Flags |= 0x02
 	} else {
-		wfMaterialDef.Pair1 = 0
-		wfMaterialDef.Pair2 = 0
+		wfMaterialDef.UShiftPerMs = 0
+		wfMaterialDef.VShiftPerMs = 0
 	}
 
 	if e.SimpleSpriteTag != "" {
@@ -2096,10 +2096,10 @@ func (e *MaterialDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragMa
 		e.DoubleSided = 1
 	}
 	if frag.Flags&0x02 != 0 {
-		e.Pair1.Valid = true
-		e.Pair1.Uint32 = frag.Pair1
-		e.Pair2.Valid = true
-		e.Pair2.Float32 = frag.Pair2
+		e.UShiftPerMs.Valid = true
+		e.UShiftPerMs.Float32 = frag.UShiftPerMs
+		e.VShiftPerMs.Valid = true
+		e.VShiftPerMs.Float32 = frag.VShiftPerMs
 	}
 
 	wce.variationMaterialDefs[wce.lastReadFolder] = append(wce.variationMaterialDefs[wce.lastReadFolder], e)
