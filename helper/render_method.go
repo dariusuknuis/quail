@@ -1,199 +1,324 @@
+// helper/rendermethod.go
 package helper
 
 import (
 	"fmt"
-	"sync"
+	"math"
+	"regexp"
+	"strconv"
+	"strings"
 )
 
-var (
-	mu sync.RWMutex
+/*
+Bit layout (LSB -> MSB)
+bits  0-1: Drawstyle
+bits  2-4: Lighting
+bits  5-6: Shading
+bit     7: Masked Transparency Toggle (TRANS)
+bits  8-15: Texture
+bits 16-19: Alpha Blend Opacity (0..15)  => shown as % = field/16 * 100
+bit    20: Additive Toggle
+bits 21-23: UnknownA
+bit    24: Alpha Blend Toggle (BLEND)
+bits 25-30: UnknownB
+bit    31: Userdefined Toggle
+*/
+
+const (
+	bfDrawstyleShift = 0
+	bfDrawstyleMask  = 0b11
+
+	bfLightingShift = 2
+	bfLightingMask  = 0b111
+
+	bfShadingShift = 5
+	bfShadingMask  = 0b11
+
+	bfMaskedShift = 7
+	bfMaskedMask  = 0b1
+
+	bfTextureShift = 8
+	bfTextureMask  = 0xFF
+
+	bfAlphaShift = 16
+	bfAlphaMask  = 0xF
+
+	bfAdditiveShift = 20
+	bfAdditiveMask  = 0x1
+
+	bfUnknownAShift = 21
+	bfUnknownAMask  = 0x7
+
+	bfAlphaToggleShift = 24
+	bfAlphaToggleMask  = 0x1
+
+	bfUnknownBShift = 25
+	bfUnknownBMask  = 0x3F
+
+	bfUserDefinedShift = 31
+	bfUserDefinedMask  = 0x1
 )
 
-func RenderMethodStr(in uint32) string {
-	mu.RLock()
-	defer mu.RUnlock()
-	if val, ok := methods[in]; ok {
-		return val
+// ——— Public API ————————————————————————————————————————————————————————
+
+func RenderMethodStr(v uint32) string {
+	// TRANSPARENT if completely zero.
+	if v == 0 {
+		return "TRANSPARENT"
 	}
-	return fmt.Sprintf("UNKNOWN_0x%x", in)
+	// USERDEFINED_ if bit 31 is set.
+	if (v>>bfUserDefinedShift)&bfUserDefinedMask == 1 {
+		// “the rest of the Bits written as one integer value +1”
+		rest := (v & 0x7FFFFFFF) + 1
+		return fmt.Sprintf("USERDEFINED_%d", rest)
+	}
+
+	var b strings.Builder
+
+	// Masked transparency (“TRANS”) – written first if present.
+	if ((v >> bfMaskedShift) & bfMaskedMask) == 1 {
+		b.WriteString("TRANS")
+	}
+
+	// Drawstyle (with the SOLIDFILL ↔ TEXTURE special case)
+	draw := (v >> bfDrawstyleShift) & bfDrawstyleMask
+	tex := (v >> bfTextureShift) & bfTextureMask
+
+	if draw == 3 /* SOLIDFILL */ && tex > 0 {
+		// Texture takes the place of SOLIDFILL
+		b.WriteString(fmt.Sprintf("TEXTURE%d", tex))
+	} else {
+		b.WriteString(drawstyleName(draw))
+		// NOTE: Per your spec, Texture is only written “instead of SOLIDFILL”.
+		// If you ever want TEXTURE# always appended when >0, move this out.
+	}
+
+	// Lighting
+	light := (v >> bfLightingShift) & bfLightingMask
+	b.WriteString(lightingName(light))
+
+	// Shading
+	shade := (v >> bfShadingShift) & bfShadingMask
+	b.WriteString(shadingName(shade))
+
+	// Additive
+	if ((v >> bfAdditiveShift) & bfAdditiveMask) == 1 {
+		b.WriteString("ADDITIVE")
+	}
+
+	// Alpha Blend toggle
+	alphaToggle := ((v >> bfAlphaToggleShift) & bfAlphaToggleMask) == 1
+	if alphaToggle {
+		b.WriteString("BLEND")
+	}
+
+	// Alpha Blend Opacity
+	alpha := (v >> bfAlphaShift) & bfAlphaMask
+	if alphaToggle || alpha > 0 {
+		percent := float64(alpha) / 16.0 * 100.0
+		// Always show one decimal place (matches your examples like 50.0%)
+		b.WriteString(fmt.Sprintf("OPACITY%.1f%%", percent))
+	}
+
+	// UnknownA
+	unkA := (v >> bfUnknownAShift) & bfUnknownAMask
+	if unkA > 0 {
+		b.WriteString(fmt.Sprintf("UNKNOWNA%d", unkA))
+	}
+
+	// UnknownB
+	unkB := (v >> bfUnknownBShift) & bfUnknownBMask
+	if unkB > 0 {
+		b.WriteString(fmt.Sprintf("UNKNOWNB%d", unkB))
+	}
+
+	return b.String()
 }
 
-func RenderMethodInt(in string) uint32 {
-	mu.RLock()
-	defer mu.RUnlock()
-	for key, val := range methods {
-		if val == in {
-			return key
+func RenderMethodInt(s string) uint32 {
+	// Fast paths
+	if s == "" || s == "TRANSPARENT" {
+		return 0
+	}
+	if strings.HasPrefix(s, "USERDEFINED_") {
+		// value = 0x80000000 | ((N-1) & 0x7FFFFFFF)
+		nStr := strings.TrimPrefix(s, "USERDEFINED_")
+		if n, err := strconv.ParseUint(nStr, 10, 32); err == nil {
+			return 0x80000000 | (uint32(n-1) & 0x7FFFFFFF)
+		}
+		// If parse fails, fall through to best-effort parse.
+	}
+
+	var v uint32
+	rest := s
+
+	// TRANS
+	if strings.HasPrefix(rest, "TRANS") {
+		v |= 1 << bfMaskedShift
+		rest = strings.TrimPrefix(rest, "TRANS")
+	}
+
+	// Drawstyle / Texture special case
+	if strings.HasPrefix(rest, "TEXTURE") {
+		num := takeNumber(&rest, "TEXTURE")
+		v |= 3 // SOLIDFILL code in drawstyle field
+		v |= (num & bfTextureMask) << bfTextureShift
+	} else {
+		switch {
+		case strings.HasPrefix(rest, "DRAW0"):
+			v |= 0
+			rest = strings.TrimPrefix(rest, "DRAW0")
+		case strings.HasPrefix(rest, "DRAW1"):
+			v |= 1
+			rest = strings.TrimPrefix(rest, "DRAW1")
+		case strings.HasPrefix(rest, "WIREFRAME"):
+			v |= 2
+			rest = strings.TrimPrefix(rest, "WIREFRAME")
+		case strings.HasPrefix(rest, "SOLIDFILL"):
+			v |= 3
+			rest = strings.TrimPrefix(rest, "SOLIDFILL")
+		}
+		// (Per spec, only replace SOLIDFILL with TEXTURE when Texture>0.
+		// We do not append a separate TEXTURE# here if present in the string
+		// after SOLIDFILL; adapt if you later decide otherwise.)
+	}
+
+	// Lighting
+	for name, code := range lightingCodes {
+		if strings.HasPrefix(rest, name) {
+			v |= code << bfLightingShift
+			rest = strings.TrimPrefix(rest, name)
+			break
 		}
 	}
-	return 0
+
+	// Shading
+	for name, code := range shadingCodes {
+		if strings.HasPrefix(rest, name) {
+			v |= code << bfShadingShift
+			rest = strings.TrimPrefix(rest, name)
+			break
+		}
+	}
+
+	// ADDITIVE
+	if strings.HasPrefix(rest, "ADDITIVE") {
+		v |= 1 << bfAdditiveShift
+		rest = strings.TrimPrefix(rest, "ADDITIVE")
+	}
+
+	// BLEND
+	if strings.HasPrefix(rest, "BLEND") {
+		v |= 1 << bfAlphaToggleShift
+		rest = strings.TrimPrefix(rest, "BLEND")
+	}
+
+	// OPACITYxx.x%
+	if strings.HasPrefix(rest, "OPACITY") {
+		re := regexp.MustCompile(`^OPACITY([\d.]+)%`)
+		if m := re.FindStringSubmatch(rest); len(m) == 2 {
+			// round to nearest 1/16 step
+			percent, _ := strconv.ParseFloat(m[1], 64)
+			field := uint32(math.Round((percent / 100.0) * 16.0))
+			if field > 0xF {
+				field = 0xF
+			}
+			v |= field << bfAlphaShift
+			rest = rest[len(m[0]):]
+		}
+	}
+
+	// UNKNOWNA#
+	if strings.HasPrefix(rest, "UNKNOWNA") {
+		num := takeNumber(&rest, "UNKNOWNA")
+		v |= (num & bfUnknownAMask) << bfUnknownAShift
+	}
+
+	// UNKNOWNB#
+	if strings.HasPrefix(rest, "UNKNOWNB") {
+		num := takeNumber(&rest, "UNKNOWNB")
+		v |= (num & bfUnknownBMask) << bfUnknownBShift
+	}
+
+	return v
 }
 
-var (
-	methods = map[uint32]string{
-		0x0:        "TRANSPARENT",
-		0x6:        "WIREFRAME",
-		0x2:        "WIREFRAMECONSTANTZEROINTENSITY",
-		0xA:        "WIREFRAMECONSTANT",
-		0x12:       "WIREFRAMEAMBIENT",
-		0x16:       "WIREFRAMESCALEDAMBIENT",
-		0x7:        "SOLIDFILL",
-		0x3:        "SOLIDFILLZEROINTENSITY",
-		0xB:        "SOLIDFILLCONSTANT",
-		0x13:       "SOLIDFILLAMBIENT",
-		0x17:       "SOLIDFILLSCALEDAMBIENT",
-		0x43:       "SOLIDFILLGOURAUD1",
-		0x63:       "SOLIDFILLGOURAUD2",
-		0x4B:       "SOLIDFILLCONSTANTGOURAUD1",
-		0x6B:       "SOLIDFILLCONSTANTGOURAUD2",
-		0x53:       "SOLIDFILLAMBIENTGOURAUD1",
-		0x73:       "SOLIDFILLAMBIENTGOURAUD2",
-		0x57:       "SOLIDFILLSCALEDAMBIENTGOURAUD1",
-		0x77:       "SOLIDFILLSCALEDAMBIENTGOURAUD2",
-		0x107:      "TEXTURE1",
-		0x10B:      "TEXTURE1CONSTANT",
-		0x113:      "TEXTURE1AMBIENT",
-		0x117:      "TEXTURE1SCALEDAMBIENT",
-		0x143:      "TEXTURE1GOURAUD1",
-		0x163:      "TEXTURE1GOURAUD2",
-		0x14B:      "TEXTURE1CONSTANTGOURAUD1",
-		0x16B:      "TEXTURE1CONSTANTGOURAUD2",
-		0x153:      "TEXTURE1AMBIENTGOURAUD1",
-		0x173:      "TEXTURE1AMBIENTGOURAUD2",
-		0x157:      "TEXTURE1SCALEDAMBIENTGOURAUD1",
-		0x177:      "TEXTURE1SCALEDAMBIENTGOURAUD2",
-		0x187:      "TRANSTEXTURE1",
-		0x183:      "TRANSTEXTURE1ZEROINTENSITY",
-		0x18B:      "TRANSTEXTURE1CONSTANT",
-		0x193:      "TRANSTEXTURE1AMBIENT",
-		0x197:      "TRANSTEXTURE1SCALEDAMBIENT",
-		0x1C3:      "TRANSTEXTURE1GOURAUD1",
-		0x1E3:      "TRANSTEXTURE1GOURAUD2",
-		0x1CB:      "TRANSTEXTURE1CONSTANTGOURAUD1",
-		0x1EB:      "TRANSTEXTURE1CONSTANTGOURAUD2",
-		0x1D3:      "TRANSTEXTURE1AMBIENTGOURAUD1",
-		0x1F3:      "TRANSTEXTURE1AMBIENTGOURAUD2",
-		0x1D7:      "TRANSTEXTURE1SCALEDAMBIENTGOURAUD1",
-		0x1F7:      "TRANSTEXTURE1SCALEDAMBIENTGOURAUD2",
-		0x207:      "TEXTURE2",
-		0x20B:      "TEXTURE2CONSTANT",
-		0x213:      "TEXTURE2AMBIENT",
-		0x217:      "TEXTURE2SCALEDAMBIENT",
-		0x243:      "TEXTURE2GOURAUD1",
-		0x263:      "TEXTURE2GOURAUD2",
-		0x24B:      "TEXTURE2CONSTANTGOURAUD1",
-		0x26B:      "TEXTURE2CONSTANTGOURAUD2",
-		0x253:      "TEXTURE2AMBIENTGOURAUD1",
-		0x273:      "TEXTURE2AMBIENTGOURAUD2",
-		0x257:      "TEXTURE2SCALEDAMBIENTGOURAUD1",
-		0x277:      "TEXTURE2SCALEDAMBIENTGOURAUD2",
-		0x287:      "TRANSTEXTURE2",
-		0x283:      "TRANSTEXTURE2ZEROINTENSITY",
-		0x28B:      "TRANSTEXTURE2CONSTANT",
-		0x293:      "TRANSTEXTURE2AMBIENT",
-		0x297:      "TRANSTEXTURE2SCALEDAMBIENT",
-		0x2C3:      "TRANSTEXTURE2GOURAUD1",
-		0x2E3:      "TRANSTEXTURE2GOURAUD2",
-		0x2CB:      "TRANSTEXTURE2CONSTANTGOURAUD1",
-		0x2EB:      "TRANSTEXTURE2CONSTANTGOURAUD2",
-		0x2D3:      "TRANSTEXTURE2AMBIENTGOURAUD1",
-		0x2F3:      "TRANSTEXTURE2AMBIENTGOURAUD2",
-		0x2D7:      "TRANSTEXTURE2SCALEDAMBIENTGOURAUD1",
-		0x2F7:      "TRANSTEXTURE2SCALEDAMBIENTGOURAUD2",
-		0x307:      "TEXTURE3",
-		0x30B:      "TEXTURE3CONSTANT",
-		0x313:      "TEXTURE3AMBIENT",
-		0x317:      "TEXTURE3SCALEDAMBIENT",
-		0x343:      "TEXTURE3GOURAUD1",
-		0x363:      "TEXTURE3GOURAUD2",
-		0x34B:      "TEXTURE3CONSTANTGOURAUD1",
-		0x36B:      "TEXTURE3CONSTANTGOURAUD2",
-		0x353:      "TEXTURE3AMBIENTGOURAUD1",
-		0x373:      "TEXTURE3AMBIENTGOURAUD2",
-		0x357:      "TEXTURE3SCALEDAMBIENTGOURAUD1",
-		0x377:      "TEXTURE3SCALEDAMBIENTGOURAUD2",
-		0x407:      "TEXTURE4",
-		0x40B:      "TEXTURE4CONSTANT",
-		0x413:      "TEXTURE4AMBIENT",
-		0x417:      "TEXTURE4SCALEDAMBIENT",
-		0x443:      "TEXTURE4GOURAUD1",
-		0x463:      "TEXTURE4GOURAUD2",
-		0x44B:      "TEXTURE4CONSTANTGOURAUD1",
-		0x46B:      "TEXTURE4CONSTANTGOURAUD2",
-		0x453:      "TEXTURE4AMBIENTGOURAUD1",
-		0x473:      "TEXTURE4AMBIENTGOURAUD2",
-		0x457:      "TEXTURE4SCALEDAMBIENTGOURAUD1",
-		0x477:      "TEXTURE4SCALEDAMBIENTGOURAUD2",
-		0x487:      "TRANSTEXTURE4",
-		0x483:      "TRANSTEXTURE4ZEROINTENSITY",
-		0x48B:      "TRANSTEXTURE4CONSTANT",
-		0x493:      "TRANSTEXTURE4AMBIENT",
-		0x497:      "TRANSTEXTURE4SCALEDAMBIENT",
-		0x4C3:      "TRANSTEXTURE4GOURAUD1",
-		0x4E3:      "TRANSTEXTURE4GOURAUD2",
-		0x4CB:      "TRANSTEXTURE4CONSTANTGOURAUD1",
-		0x4EB:      "TRANSTEXTURE4CONSTANTGOURAUD2",
-		0x4D3:      "TRANSTEXTURE4AMBIENTGOURAUD1",
-		0x4F3:      "TRANSTEXTURE4AMBIENTGOURAUD2",
-		0x4D7:      "TRANSTEXTURE4SCALEDAMBIENTGOURAUD1",
-		0x4F7:      "TRANSTEXTURE4SCALEDAMBIENTGOURAUD2",
-		0x507:      "TEXTURE5",
-		0x50B:      "TEXTURE5CONSTANT",
-		0x513:      "TEXTURE5AMBIENT",
-		0x517:      "TEXTURE5SCALEDAMBIENT",
-		0x543:      "TEXTURE5GOURAUD1",
-		0x563:      "TEXTURE5GOURAUD2",
-		0x54B:      "TEXTURE5CONSTANTGOURAUD1",
-		0x56B:      "TEXTURE5CONSTANTGOURAUD2",
-		0x553:      "TEXTURE5AMBIENTGOURAUD1",
-		0x573:      "TEXTURE5AMBIENTGOURAUD2",
-		0x557:      "TEXTURE5SCALEDAMBIENTGOURAUD1",
-		0x577:      "TEXTURE5SCALEDAMBIENTGOURAUD2",
-		0x587:      "TRANSTEXTURE5",
-		0x583:      "TRANSTEXTURE5ZEROINTENSITY",
-		0x58B:      "TRANSTEXTURE5CONSTANT",
-		0x593:      "TRANSTEXTURE5AMBIENT",
-		0x597:      "TRANSTEXTURE5SCALEDAMBIENT",
-		0x5C3:      "TRANSTEXTURE5GOURAUD1",
-		0x5E3:      "TRANSTEXTURE5GOURAUD2",
-		0x5CB:      "TRANSTEXTURE5CONSTANTGOURAUD1",
-		0x5EB:      "TRANSTEXTURE5CONSTANTGOURAUD2",
-		0x5D3:      "TRANSTEXTURE5AMBIENTGOURAUD1",
-		0x5F3:      "TRANSTEXTURE5AMBIENTGOURAUD2",
-		0x5D7:      "TRANSTEXTURE5SCALEDAMBIENTGOURAUD1",
-		0x5F7:      "TRANSTEXTURE5SCALEDAMBIENTGOURAUD2",
-		0x80000000: "USERDEFINED_1",
-		0x80000001: "USERDEFINED_2",
-		0x80000002: "USERDEFINED_3",
-		0x80000003: "USERDEFINED_4",
-		0x80000004: "USERDEFINED_5",
-		0x80000005: "USERDEFINED_6",
-		0x80000006: "USERDEFINED_7",
-		0x80000007: "USERDEFINED_8",
-		0x80000008: "USERDEFINED_9",
-		0x80000009: "USERDEFINED_10",
-		0x8000000A: "USERDEFINED_11",
-		0x8000000B: "USERDEFINED_12",
-		0x8000000C: "USERDEFINED_13",
-		0x8000000D: "USERDEFINED_14",
-		0x8000000E: "USERDEFINED_15",
-		0x8000000F: "USERDEFINED_16",
-		0x80000010: "USERDEFINED_17",
-		0x80000011: "USERDEFINED_18",
-		0x80000012: "USERDEFINED_19",
-		0x80000013: "USERDEFINED_20",
-		0x80000014: "USERDEFINED_21",
-		0x80000015: "USERDEFINED_22",
-		0x80000016: "USERDEFINED_23",
-		0x80000017: "USERDEFINED_24",
-		0x80000018: "USERDEFINED_25",
-		0x80000019: "USERDEFINED_26",
-		0x8000001A: "USERDEFINED_27",
-		0x8000001B: "USERDEFINED_28",
-		0x8000001C: "USERDEFINED_29",
-		0x8000001D: "USERDEFINED_30",
-		0x8000001E: "USERDEFINED_31",
-		0x8000001F: "USERDEFINED_32",
-		0x80000020: "USERDEFINED_33",
+// ——— helpers ————————————————————————————————————————————————————————
+
+func drawstyleName(code uint32) string {
+	switch code {
+	case 0:
+		return "DRAW0"
+	case 1:
+		return "DRAW1"
+	case 2:
+		return "WIREFRAME"
+	case 3:
+		return "SOLIDFILL"
+	default:
+		return "DRAW0"
 	}
-)
+}
+
+var lightingNames = [...]string{
+	"ZEROINTENSITY",
+	"LIGHT1",
+	"CONSTANT",
+	"LIGHT3",
+	"AMBIENT",
+	"SCALEDAMBIENT",
+	"LIGHT6",
+	"LIGHT7",
+}
+var lightingCodes = map[string]uint32{
+	"ZEROINTENSITY": 0,
+	"LIGHT1":        1,
+	"CONSTANT":      2,
+	"LIGHT3":        3,
+	"AMBIENT":       4,
+	"SCALEDAMBIENT": 5,
+	"LIGHT6":        6,
+	"LIGHT7":        7,
+}
+
+func lightingName(code uint32) string {
+	if code < uint32(len(lightingNames)) {
+		return lightingNames[code]
+	}
+	return "ZEROINTENSITY"
+}
+
+var shadingNames = [...]string{
+	"SHADE0",
+	"SHADE1",
+	"GOURAUD1",
+	"GOURAUD2",
+}
+var shadingCodes = map[string]uint32{
+	"SHADE0":   0,
+	"SHADE1":   1,
+	"GOURAUD1": 2,
+	"GOURAUD2": 3,
+}
+
+func shadingName(code uint32) string {
+	if code < uint32(len(shadingNames)) {
+		return shadingNames[code]
+	}
+	return "SHADE0"
+}
+
+func takeNumber(rest *string, prefix string) uint32 {
+	t := strings.TrimPrefix(*rest, prefix)
+	i := 0
+	for i < len(t) && t[i] >= '0' && t[i] <= '9' {
+		i++
+	}
+	num := uint32(0)
+	if i > 0 {
+		n, _ := strconv.ParseUint(t[:i], 10, 32)
+		num = uint32(n)
+	}
+	*rest = t[i:]
+	return num
+}
