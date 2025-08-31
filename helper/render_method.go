@@ -46,14 +46,14 @@ const (
 	bfAdditiveShift = 20
 	bfAdditiveMask  = 0x1
 
-	bfUnknownAShift = 21
-	bfUnknownAMask  = 0x7
+	bfDynamicShift = 21
+	bfDynamicMask  = 0x1
 
 	bfAlphaToggleShift = 24
 	bfAlphaToggleMask  = 0x1
 
-	bfUnknownBShift = 25
-	bfUnknownBMask  = 0x3F
+	bfPrelitShift = 30
+	bfPrelitMask  = 0x1
 
 	bfUserDefinedShift = 31
 	bfUserDefinedMask  = 0x1
@@ -106,6 +106,16 @@ func RenderMethodStr(v uint32) string {
 		b.WriteString("ADDITIVE")
 	}
 
+	// DYNAMIC (bit 21)
+	if ((v >> bfDynamicShift) & bfDynamicMask) == 1 {
+		b.WriteString("DYNAMIC")
+	}
+
+	// PRELIT (bit 30)
+	if ((v >> bfPrelitShift) & bfPrelitMask) == 1 {
+		b.WriteString("PRELIT")
+	}
+
 	// Alpha Blend toggle
 	alphaToggle := ((v >> bfAlphaToggleShift) & bfAlphaToggleMask) == 1
 	if alphaToggle {
@@ -118,18 +128,6 @@ func RenderMethodStr(v uint32) string {
 		percent := float64(alpha) / 16.0 * 100.0
 		// Always show one decimal place (matches your examples like 50.0%)
 		b.WriteString(fmt.Sprintf("OPACITY%.1f%%", percent))
-	}
-
-	// UnknownA
-	unkA := (v >> bfUnknownAShift) & bfUnknownAMask
-	if unkA > 0 {
-		b.WriteString(fmt.Sprintf("UNKNOWNA%d", unkA))
-	}
-
-	// UnknownB
-	unkB := (v >> bfUnknownBShift) & bfUnknownBMask
-	if unkB > 0 {
-		b.WriteString(fmt.Sprintf("UNKNOWNB%d", unkB))
 	}
 
 	return b.String()
@@ -207,6 +205,18 @@ func RenderMethodInt(s string) uint32 {
 		rest = strings.TrimPrefix(rest, "ADDITIVE")
 	}
 
+	// DYNAMIC
+	if strings.HasPrefix(rest, "DYNAMIC") {
+		v |= 1 << bfDynamicShift
+		rest = strings.TrimPrefix(rest, "DYNAMIC")
+	}
+
+	// PRELIT
+	if strings.HasPrefix(rest, "PRELIT") {
+		v |= 1 << bfPrelitShift
+		rest = strings.TrimPrefix(rest, "PRELIT")
+	}
+
 	// BLEND
 	if strings.HasPrefix(rest, "BLEND") {
 		v |= 1 << bfAlphaToggleShift
@@ -226,18 +236,6 @@ func RenderMethodInt(s string) uint32 {
 			v |= field << bfAlphaShift
 			rest = rest[len(m[0]):]
 		}
-	}
-
-	// UNKNOWNA#
-	if strings.HasPrefix(rest, "UNKNOWNA") {
-		num := takeNumber(&rest, "UNKNOWNA")
-		v |= (num & bfUnknownAMask) << bfUnknownAShift
-	}
-
-	// UNKNOWNB#
-	if strings.HasPrefix(rest, "UNKNOWNB") {
-		num := takeNumber(&rest, "UNKNOWNB")
-		v |= (num & bfUnknownBMask) << bfUnknownBShift
 	}
 
 	return v
