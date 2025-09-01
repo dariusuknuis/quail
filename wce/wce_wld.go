@@ -149,35 +149,34 @@ func (e *GlobalAmbientLightDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag
 
 // DMSpriteDef2 is a declaration of DMSpriteDef2
 type DMSpriteDef2 struct {
-	folders               []string // when writing, this is the folder the file is in
-	fragID                int32
-	Tag                   string
-	TagIndex              int
-	DmTrackTag            string
-	Params2               [3]uint32
-	BoundingBoxMin        [3]float32
-	BoundingBoxMax        [3]float32
-	CenterOffset          [3]float32
-	Vertices              [][3]float32
-	UVs                   [][2]float32
-	VertexNormals         [][3]float32
-	VertexColors          [][4]uint8
-	SkinAssignmentGroups  [][2]int16
-	MaterialPaletteTag    string
-	Faces                 []*Face
-	MeshOps               []*MeshOp
-	FaceMaterialGroups    [][2]uint16
-	VertexMaterialGroups  [][2]int16
-	BoundingRadius        float32
-	FPScale               uint16
-	PolyhedronTag         string
-	UseCenterOffset       uint16 //if 0, center offset will be set to x:0.0, y:0.0, & z:0.0 in game.
-	UseBoundingRadius     uint16 //if 0, bounding radius will be set to 1.0 in game.
-	UseParams2            uint16 //if 0, params2 will be be set to 0, 0, 0 in game.
-	UseBoundingBox        uint16 //if 0, bounding box is calculated from object AABB during runtime.
-	HexEightThousandFlag  uint16
-	HexTenThousandFlag    uint16
-	HexTwentyThousandFlag uint16
+	folders              []string // when writing, this is the folder the file is in
+	fragID               int32
+	Tag                  string
+	TagIndex             int
+	DmTrackTag           string
+	Params2              [3]uint32
+	BoundingBoxMin       [3]float32
+	BoundingBoxMax       [3]float32
+	CenterOffset         [3]float32
+	Vertices             [][3]float32
+	UVs                  [][2]float32
+	VertexNormals        [][3]float32
+	VertexColors         [][4]uint8
+	SkinAssignmentGroups [][2]int16
+	MaterialPaletteTag   string
+	Faces                []*Face
+	MeshOps              []*MeshOp
+	FaceMaterialGroups   [][2]uint16
+	VertexMaterialGroups [][2]int16
+	BoundingRadius       float32
+	FPScale              uint16
+	PolyhedronTag        string
+	UseCenterOffset      uint16 //if 0, center offset will be set to x:0.0, y:0.0, & z:0.0 in game.
+	UseBoundingRadius    uint16 //if 0, bounding radius will be set to 1.0 in game.
+	UseParams2           uint16 //if 0, params2 will be be set to 0, 0, 0 in game.
+	UseBoundingBox       uint16 //if 0, bounding box is calculated from object AABB during runtime.
+	UseVertexColorAlpha  uint16 //if 0, vertex colors will only use RGB value from the mesh data, A is ignored.
+	SpriteDefPolyhedron  uint16 //used in objects and terrain meshes to have collision.
 }
 
 type Face struct {
@@ -327,9 +326,8 @@ func (e *DMSpriteDef2) Write(token *AsciiWriteToken) error {
 		fmt.Fprintf(w, "\tUSEBOUNDINGRADIUS %d\n", e.UseBoundingRadius)
 		fmt.Fprintf(w, "\tUSEPARAMS2 %d\n", e.UseParams2)
 		fmt.Fprintf(w, "\tUSEBOUNDINGBOX %d\n", e.UseBoundingBox)
-		fmt.Fprintf(w, "\tHEXEIGHTTHOUSANDFLAG %d\n", e.HexEightThousandFlag)
-		fmt.Fprintf(w, "\tHEXTENTHOUSANDFLAG %d\n", e.HexTenThousandFlag)
-		fmt.Fprintf(w, "\tHEXTWENTYTHOUSANDFLAG %d\n", e.HexTwentyThousandFlag)
+		fmt.Fprintf(w, "\tUSEVERTEXCOLORALPHA %d\n", e.UseVertexColorAlpha)
+		fmt.Fprintf(w, "\tSPRITEDEFPOLYHEDRON %d\n", e.SpriteDefPolyhedron)
 
 		fmt.Fprintf(w, "\n")
 	}
@@ -692,31 +690,22 @@ func (e *DMSpriteDef2) Read(token *AsciiReadToken) error {
 		return fmt.Errorf("use bounding box: %w", err)
 	}
 
-	records, err = token.ReadProperty("HEXEIGHTTHOUSANDFLAG", 1)
+	records, err = token.ReadProperty("USEVERTEXCOLORALPHA", 1)
 	if err != nil {
 		return err
 	}
-	err = parse(&e.HexEightThousandFlag, records[1])
+	err = parse(&e.UseVertexColorAlpha, records[1])
 	if err != nil {
-		return fmt.Errorf("hexeightthousandflag: %w", err)
+		return fmt.Errorf("use vertex color alpha: %w", err)
 	}
 
-	records, err = token.ReadProperty("HEXTENTHOUSANDFLAG", 1)
+	records, err = token.ReadProperty("SPRITEDEFPOLYHEDRON", 1)
 	if err != nil {
 		return err
 	}
-	err = parse(&e.HexTenThousandFlag, records[1])
+	err = parse(&e.SpriteDefPolyhedron, records[1])
 	if err != nil {
-		return fmt.Errorf("hextenthousandflag: %w", err)
-	}
-
-	records, err = token.ReadProperty("HEXTWENTYTHOUSANDFLAG", 1)
-	if err != nil {
-		return err
-	}
-	err = parse(&e.HexTwentyThousandFlag, records[1])
-	if err != nil {
-		return fmt.Errorf("hextwentythousandflag: %w", err)
+		return fmt.Errorf("sprite def polyhedron: %w", err)
 	}
 
 	return nil
@@ -841,14 +830,11 @@ func (e *DMSpriteDef2) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 	if e.UseBoundingBox != 0 {
 		dmSpriteDef.Flags |= 0x4000
 	}
-	if e.HexEightThousandFlag != 0 {
+	if e.UseVertexColorAlpha != 0 {
 		dmSpriteDef.Flags |= 0x8000
 	}
-	if e.HexTenThousandFlag != 0 {
+	if e.SpriteDefPolyhedron != 0 {
 		dmSpriteDef.Flags |= 0x10000
-	}
-	if e.HexTwentyThousandFlag != 0 {
-		dmSpriteDef.Flags |= 0x20000
 	}
 
 	dmSpriteDef.SetNameRef(rawWld.NameAdd(e.Tag))
@@ -1050,13 +1036,10 @@ func (e *DMSpriteDef2) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragD
 		e.UseBoundingBox = 1
 	}
 	if frag.Flags&0x8000 != 0 {
-		e.HexEightThousandFlag = 1
+		e.UseVertexColorAlpha = 1
 	}
 	if frag.Flags&0x10000 != 0 {
-		e.HexTenThousandFlag = 1
-	}
-	if frag.Flags&0x20000 != 0 {
-		e.HexTwentyThousandFlag = 1
+		e.SpriteDefPolyhedron = 1
 	}
 
 	e.FaceMaterialGroups = frag.FaceMaterialGroups
