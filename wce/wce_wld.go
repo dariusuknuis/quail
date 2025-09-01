@@ -171,9 +171,10 @@ type DMSpriteDef2 struct {
 	BoundingRadius        float32
 	FPScale               uint16
 	PolyhedronTag         string
-	HexOneFlag            uint16
-	HexTwoFlag            uint16
-	HexFourThousandFlag   uint16
+	UseCenterOffset       uint16 //if 0, center offset will be set to x:0.0, y:0.0, & z:0.0 in game.
+	UseBoundingRadius     uint16 //if 0, bounding radius will be set to 1.0 in game.
+	UseParams2            uint16 //if 0, params2 will be be set to 0, 0, 0 in game.
+	UseBoundingBox        uint16 //if 0, bounding box is calculated from object AABB during runtime.
 	HexEightThousandFlag  uint16
 	HexTenThousandFlag    uint16
 	HexTwentyThousandFlag uint16
@@ -322,9 +323,10 @@ func (e *DMSpriteDef2) Write(token *AsciiWriteToken) error {
 		fmt.Fprintf(w, "\tBOUNDINGRADIUS %0.8e\n", e.BoundingRadius)
 		fmt.Fprintf(w, "\n")
 		fmt.Fprintf(w, "\tFPSCALE %d\n", e.FPScale)
-		fmt.Fprintf(w, "\tHEXONEFLAG %d\n", e.HexOneFlag)
-		fmt.Fprintf(w, "\tHEXTWOFLAG %d\n", e.HexTwoFlag)
-		fmt.Fprintf(w, "\tHEXFOURTHOUSANDFLAG %d\n", e.HexFourThousandFlag)
+		fmt.Fprintf(w, "\tUSECENTEROFFSET %d\n", e.UseCenterOffset)
+		fmt.Fprintf(w, "\tUSEBOUNDINGRADIUS %d\n", e.UseBoundingRadius)
+		fmt.Fprintf(w, "\tUSEPARAMS2 %d\n", e.UseParams2)
+		fmt.Fprintf(w, "\tUSEBOUNDINGBOX %d\n", e.UseBoundingBox)
 		fmt.Fprintf(w, "\tHEXEIGHTTHOUSANDFLAG %d\n", e.HexEightThousandFlag)
 		fmt.Fprintf(w, "\tHEXTENTHOUSANDFLAG %d\n", e.HexTenThousandFlag)
 		fmt.Fprintf(w, "\tHEXTWENTYTHOUSANDFLAG %d\n", e.HexTwentyThousandFlag)
@@ -654,31 +656,40 @@ func (e *DMSpriteDef2) Read(token *AsciiReadToken) error {
 		return fmt.Errorf("fpscale: %w", err)
 	}
 
-	records, err = token.ReadProperty("HEXONEFLAG", 1)
+	records, err = token.ReadProperty("USECENTEROFFSET", 1)
 	if err != nil {
 		return err
 	}
-	err = parse(&e.HexOneFlag, records[1])
+	err = parse(&e.UseCenterOffset, records[1])
 	if err != nil {
-		return fmt.Errorf("hexoneflag: %w", err)
+		return fmt.Errorf("use center offset: %w", err)
 	}
 
-	records, err = token.ReadProperty("HEXTWOFLAG", 1)
+	records, err = token.ReadProperty("USEBOUNDINGRADIUS", 1)
 	if err != nil {
 		return err
 	}
-	err = parse(&e.HexTwoFlag, records[1])
+	err = parse(&e.UseBoundingRadius, records[1])
 	if err != nil {
-		return fmt.Errorf("hextwoflag: %w", err)
+		return fmt.Errorf("use bounding radius: %w", err)
 	}
 
-	records, err = token.ReadProperty("HEXFOURTHOUSANDFLAG", 1)
+	records, err = token.ReadProperty("USEPARAMS2", 1)
 	if err != nil {
 		return err
 	}
-	err = parse(&e.HexFourThousandFlag, records[1])
+	err = parse(&e.UseParams2, records[1])
 	if err != nil {
-		return fmt.Errorf("hexfourthousandflag: %w", err)
+		return fmt.Errorf("use params2: %w", err)
+	}
+
+	records, err = token.ReadProperty("USEBOUNDINGBOX", 1)
+	if err != nil {
+		return err
+	}
+	err = parse(&e.UseBoundingBox, records[1])
+	if err != nil {
+		return fmt.Errorf("use bounding box: %w", err)
 	}
 
 	records, err = token.ReadProperty("HEXEIGHTTHOUSANDFLAG", 1)
@@ -818,13 +829,16 @@ func (e *DMSpriteDef2) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 		}
 	}
 
-	if e.HexOneFlag != 0 {
+	if e.UseCenterOffset != 0 {
 		dmSpriteDef.Flags |= 0x1
 	}
-	if e.HexTwoFlag != 0 {
+	if e.UseBoundingRadius != 0 {
 		dmSpriteDef.Flags |= 0x2
 	}
-	if e.HexFourThousandFlag != 0 {
+	if e.UseParams2 != 0 {
+		dmSpriteDef.Flags |= 0x2000
+	}
+	if e.UseBoundingBox != 0 {
 		dmSpriteDef.Flags |= 0x4000
 	}
 	if e.HexEightThousandFlag != 0 {
@@ -1024,13 +1038,16 @@ func (e *DMSpriteDef2) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragD
 	}
 
 	if frag.Flags&0x1 != 0 {
-		e.HexOneFlag = 1
+		e.UseCenterOffset = 1
 	}
 	if frag.Flags&0x2 != 0 {
-		e.HexTwoFlag = 1
+		e.UseBoundingRadius = 1
+	}
+	if frag.Flags&0x2000 != 0 {
+		e.UseParams2 = 1
 	}
 	if frag.Flags&0x4000 != 0 {
-		e.HexFourThousandFlag = 1
+		e.UseBoundingBox = 1
 	}
 	if frag.Flags&0x8000 != 0 {
 		e.HexEightThousandFlag = 1
