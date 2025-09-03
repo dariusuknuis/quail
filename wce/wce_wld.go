@@ -171,12 +171,12 @@ type DMSpriteDef2 struct {
 	BoundingRadius       float32
 	FPScale              uint16
 	PolyhedronTag        string
-	UseCenterOffset      uint16 //if 0, center offset will be set to x:0.0, y:0.0, & z:0.0 in game.
-	UseBoundingRadius    uint16 //if 0, bounding radius will be set to 1.0 in game.
-	UseParams2           uint16 //if 0, params2 will be be set to 0, 0, 0 in game.
-	UseBoundingBox       uint16 //if 0, bounding box is calculated from object AABB during runtime.
-	UseVertexColorAlpha  uint16 //if 0, vertex colors will only use RGB value from the mesh data, A is ignored.
-	SpriteDefPolyhedron  uint16 //used in objects and terrain meshes to have collision.
+	UseCenterOffset      uint16 //0x1, if 0, center offset will be set to x:0.0, y:0.0, & z:0.0 in game.
+	UseBoundingRadius    uint16 //0x2, if 0, bounding radius will be set to 1.0 in game.
+	UseParams2           uint16 //0x2000, if 0, params2 will be be set to 0, 0, 0 in game.
+	UseBoundingBox       uint16 //0x4000, if 0, bounding box is calculated from object AABB during runtime.
+	UseVertexColorAlpha  uint16 //0x8000, if 0, vertex colors will only use RGB value from the mesh data, A is ignored.
+	SpriteDefPolyhedron  uint16 //0x10000, used in objects and terrain meshes to have collision.
 }
 
 type Face struct {
@@ -1819,21 +1819,22 @@ func (e *MaterialPalette) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFr
 
 // MaterialDef is an entry MATERIALDEFINITION
 type MaterialDef struct {
-	folders              []string // when writing, this is the folder the file is in
-	fragID               int32
-	Tag                  string
-	TagIndex             int
-	Variation            int
-	SpriteHexFiftyFlag   int
-	RenderMethod         string
-	RGBPen               [4]uint8
-	Brightness           float32
-	ScaledAmbient        float32
-	SimpleSpriteTag      string
-	SimpleSpriteTagIndex int
-	UShiftPerMs          NullFloat32
-	VShiftPerMs          NullFloat32
-	DoubleSided          int
+	folders                    []string // when writing, this is the folder the file is in
+	fragID                     int32
+	Tag                        string
+	TagIndex                   int
+	Variation                  int
+	RenderMethod               string
+	RGBPen                     [4]uint8
+	Brightness                 float32
+	ScaledAmbient              float32
+	SimpleSpriteTag            string
+	SimpleSpriteTagIndex       int
+	SimpleSpriteHaveSkipFrames int //0x10 flag, lets 0x40 be read.
+	SimpleSpriteSkipFrames     int //0x40 flag
+	UShiftPerMs                NullFloat32
+	VShiftPerMs                NullFloat32
+	DoubleSided                int
 }
 
 func (e *MaterialDef) Definition() string {
@@ -1874,7 +1875,8 @@ func (e *MaterialDef) Write(token *AsciiWriteToken) error {
 		fmt.Fprintf(w, "\tSIMPLESPRITEINST\n")
 		fmt.Fprintf(w, "\t\tSIMPLESPRITETAG \"%s\"\n", e.SimpleSpriteTag)
 		fmt.Fprintf(w, "\t\tSIMPLESPRITETAGINDEX %d\n", e.SimpleSpriteTagIndex)
-		fmt.Fprintf(w, "\t\tSIMPLESPRITEHEXFIFTYFLAG %d\n", e.SpriteHexFiftyFlag)
+		fmt.Fprintf(w, "\t\tSIMPLESPRITEHAVESKIPFRAMES %d\n", e.SimpleSpriteHaveSkipFrames)
+		fmt.Fprintf(w, "\t\tSIMPLESPRITESKIPFRAMES %d\n", e.SimpleSpriteSkipFrames)
 		fmt.Fprintf(w, "\tUVSHIFTPERMS? %s %s\n", wcVal(e.UShiftPerMs), wcVal(e.VShiftPerMs))
 		fmt.Fprintf(w, "\tDOUBLESIDED %d\n", e.DoubleSided)
 		fmt.Fprintf(w, "\n")
@@ -1958,13 +1960,22 @@ func (e *MaterialDef) Read(token *AsciiReadToken) error {
 		return fmt.Errorf("simple sprite tag index: %w", err)
 	}
 
-	records, err = token.ReadProperty("SIMPLESPRITEHEXFIFTYFLAG", 1)
+	records, err = token.ReadProperty("SIMPLESPRITEHAVESKIPFRAMES", 1)
 	if err != nil {
 		return err
 	}
-	err = parse(&e.SpriteHexFiftyFlag, records[1])
+	err = parse(&e.SimpleSpriteHaveSkipFrames, records[1])
 	if err != nil {
-		return fmt.Errorf("hex fifty flag: %w", err)
+		return fmt.Errorf("have skip frames: %w", err)
+	}
+
+	records, err = token.ReadProperty("SIMPLESPRITESKIPFRAMES", 1)
+	if err != nil {
+		return err
+	}
+	err = parse(&e.SimpleSpriteSkipFrames, records[1])
+	if err != nil {
+		return fmt.Errorf("skip frames: %w", err)
 	}
 
 	records, err = token.ReadProperty("UVSHIFTPERMS?", 2)
@@ -2036,8 +2047,12 @@ func (e *MaterialDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 			SpriteRef: uint32(spriteDefRef),
 		}
 
-		if e.SpriteHexFiftyFlag > 0 {
-			wfSprite.Flags |= 0x50
+		if e.SimpleSpriteHaveSkipFrames > 0 {
+			wfSprite.Flags |= 0x10
+		}
+
+		if e.SimpleSpriteSkipFrames > 0 {
+			wfSprite.Flags |= 0x40
 		}
 		rawWld.Fragments = append(rawWld.Fragments, wfSprite)
 
@@ -2074,8 +2089,11 @@ func (e *MaterialDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragMa
 		if !ok {
 			return fmt.Errorf("material's simple sprite ref %d not found", simpleSprite.SpriteRef)
 		}
-		if simpleSprite.Flags&0x50 != 0 {
-			e.SpriteHexFiftyFlag = 1
+		if simpleSprite.Flags&0x10 != 0 {
+			e.SimpleSpriteHaveSkipFrames = 1
+		}
+		if simpleSprite.Flags&0x40 != 0 {
+			e.SimpleSpriteSkipFrames = 1
 		}
 
 		e.SimpleSpriteTag = rawWld.Name(spriteDef.NameRef())
@@ -5045,16 +5063,16 @@ func (e *TrackDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragTrack
 }
 
 type HierarchicalSpriteDef struct {
-	folders               []string // when writing, this is the folder the file is in
-	fragID                int32
-	Tag                   string
-	Dags                  []Dag
-	AttachedSkins         []AttachedSkin
-	CenterOffset          NullFloat32Slice3 // 0x01
-	BoundingRadius        NullFloat32       // 0x02
-	HexTwoHundredFlag     int               // 0x200
-	HexTwentyThousandFlag int               // 0x20000
-	PolyhedronTag         string
+	folders           []string // when writing, this is the folder the file is in
+	fragID            int32
+	Tag               string
+	Dags              []Dag
+	AttachedSkins     []AttachedSkin
+	CenterOffset      NullFloat32Slice3 // 0x01
+	BoundingRadius    NullFloat32       // 0x02
+	HaveAttachedSkins int               // 0x200
+	DagCollisions     int               // 0x20000
+	PolyhedronTag     string
 }
 
 type Dag struct {
@@ -5173,8 +5191,8 @@ func (e *HierarchicalSpriteDef) Write(token *AsciiWriteToken) error {
 
 		fmt.Fprintf(w, "\tCENTEROFFSET? %s\n", wcVal(e.CenterOffset))
 		fmt.Fprintf(w, "\tBOUNDINGRADIUS? %s\n", wcVal(e.BoundingRadius))
-		fmt.Fprintf(w, "\tHEXTWOHUNDREDFLAG %d\n", e.HexTwoHundredFlag)
-		fmt.Fprintf(w, "\tHEXTWENTYTHOUSANDFLAG %d\n", e.HexTwentyThousandFlag)
+		fmt.Fprintf(w, "\tHAVEATTACHEDSKINS %d\n", e.HaveAttachedSkins)
+		fmt.Fprintf(w, "\tDAGCOLLISIONS %d\n", e.DagCollisions)
 
 		fmt.Fprintf(w, "\n")
 	}
@@ -5333,22 +5351,22 @@ func (e *HierarchicalSpriteDef) Read(token *AsciiReadToken) error {
 		return fmt.Errorf("bounding radius: %w", err)
 	}
 
-	records, err = token.ReadProperty("HEXTWOHUNDREDFLAG", 1)
+	records, err = token.ReadProperty("HAVEATTACHEDSKINS", 1)
 	if err != nil {
 		return err
 	}
-	err = parse(&e.HexTwoHundredFlag, records[1])
+	err = parse(&e.HaveAttachedSkins, records[1])
 	if err != nil {
-		return fmt.Errorf("hex two hundred flag: %w", err)
+		return fmt.Errorf("have attached skins: %w", err)
 	}
 
-	records, err = token.ReadProperty("HEXTWENTYTHOUSANDFLAG", 1)
+	records, err = token.ReadProperty("DAGCOLLISIONS", 1)
 	if err != nil {
 		return err
 	}
-	err = parse(&e.HexTwentyThousandFlag, records[1])
+	err = parse(&e.DagCollisions, records[1])
 	if err != nil {
-		return fmt.Errorf("hex twenty thousand flag: %w", err)
+		return fmt.Errorf("dag collisions: %w", err)
 	}
 
 	return nil
@@ -5410,10 +5428,10 @@ func (e *HierarchicalSpriteDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) 
 		wfHierarchicalSpriteDef.BoundingRadius = e.BoundingRadius.Float32
 	}
 
-	if e.HexTwoHundredFlag > 0 {
+	if e.HaveAttachedSkins > 0 {
 		wfHierarchicalSpriteDef.Flags |= 0x200
 	}
-	if e.HexTwentyThousandFlag > 0 {
+	if e.DagCollisions > 0 {
 		wfHierarchicalSpriteDef.Flags |= 0x20000
 	}
 
@@ -5656,10 +5674,10 @@ func (e *HierarchicalSpriteDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag
 		e.BoundingRadius.Float32 = frag.BoundingRadius
 	}
 	if frag.Flags&0x200 != 0 {
-		e.HexTwoHundredFlag = 1
+		e.HaveAttachedSkins = 1
 	}
 	if frag.Flags&0x20000 != 0 {
-		e.HexTwentyThousandFlag = 1
+		e.DagCollisions = 1
 	}
 
 	for i, dag := range frag.Dags {
