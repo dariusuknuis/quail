@@ -316,6 +316,9 @@ func (e *DMSpriteDef2) Write(token *AsciiWriteToken) error {
 			fmt.Fprintf(w, " %d %d", group[0], group[1])
 		}
 		fmt.Fprintf(w, "\n")
+		fmt.Fprintf(w, "\n")
+		fmt.Fprintf(w, "\tPARAMS2 %d %d %d\n", e.Params2[0], e.Params2[1], e.Params2[2])
+		fmt.Fprintf(w, "\n")
 		fmt.Fprintf(w, "\tBOUNDINGBOXMIN %0.8e %0.8e %0.8e\n", e.BoundingBoxMin[0], e.BoundingBoxMin[1], e.BoundingBoxMin[2])
 		fmt.Fprintf(w, "\tBOUNDINGBOXMAX %0.8e %0.8e %0.8e\n", e.BoundingBoxMax[0], e.BoundingBoxMax[1], e.BoundingBoxMax[2])
 
@@ -616,6 +619,15 @@ func (e *DMSpriteDef2) Read(token *AsciiReadToken) error {
 		}
 		e.VertexMaterialGroups = append(e.VertexMaterialGroups, [2]int16{int16(val1), int16(val2)})
 		i++
+	}
+
+	records, err = token.ReadProperty("PARAMS2", 3)
+	if err != nil {
+		return err
+	}
+	err = parse(&e.Params2, records[1:]...)
+	if err != nil {
+		return fmt.Errorf("params2: %w", err)
 	}
 
 	records, err = token.ReadProperty("BOUNDINGBOXMIN", 3)
