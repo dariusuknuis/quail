@@ -276,7 +276,7 @@ func (e *DMSpriteDef2) Write(token *AsciiWriteToken) error {
 		fmt.Fprintf(w, "\n")
 		fmt.Fprintf(w, "\tNUMVERTEXCOLORS %d\n", len(e.VertexColors))
 		for _, color := range e.VertexColors {
-			fmt.Fprintf(w, "\t\tRGBA %d %d %d %d\n", color[0], color[1], color[2], color[3])
+			fmt.Fprintf(w, "\t\tBGRA %d %d %d %d\n", color[0], color[1], color[2], color[3])
 		}
 		fmt.Fprintf(w, "\n")
 		fmt.Fprintf(w, "\n")
@@ -438,7 +438,7 @@ func (e *DMSpriteDef2) Read(token *AsciiReadToken) error {
 	}
 
 	for i := 0; i < numColors; i++ {
-		records, err = token.ReadProperty("RGBA", 4)
+		records, err = token.ReadProperty("BGRA", 4)
 		if err != nil {
 			return err
 		}
