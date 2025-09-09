@@ -154,6 +154,7 @@ type DMSpriteDef2 struct {
 	Tag                  string
 	TagIndex             int
 	DmTrackTag           string
+	DMRGBTrackTag        string
 	Params2              [3]uint32
 	BoundingBoxMin       [3]float32
 	BoundingBoxMax       [3]float32
@@ -234,6 +235,17 @@ func (e *DMSpriteDef2) Write(token *AsciiWriteToken) error {
 			}
 		}
 
+		if e.DMRGBTrackTag != "" {
+			dTrack := token.wce.ByTag(e.DMRGBTrackTag)
+			if dTrack == nil {
+				return fmt.Errorf("dmrgbtrack %s not found", e.DMRGBTrackTag)
+			}
+			err = dTrack.Write(token)
+			if err != nil {
+				return fmt.Errorf("dmrgbtrack %s: %w", e.DMRGBTrackTag, err)
+			}
+		}
+
 		if e.PolyhedronTag != "" && e.PolyhedronTag != "NEGATIVE_TWO" && e.PolyhedronTag != "SPECIAL_COLLISION" {
 			poly := token.wce.ByTag(e.PolyhedronTag)
 			if poly == nil {
@@ -287,6 +299,7 @@ func (e *DMSpriteDef2) Write(token *AsciiWriteToken) error {
 		fmt.Fprintf(w, "\n")
 		fmt.Fprintf(w, "\tMATERIALPALETTE \"%s\"\n", e.MaterialPaletteTag)
 		fmt.Fprintf(w, "\tDMTRACKINST \"%s\"\n", e.DmTrackTag)
+		fmt.Fprintf(w, "\tDMRGBTRACK \"%s\"\n", e.DMRGBTrackTag)
 		fmt.Fprintf(w, "\n")
 		fmt.Fprintf(w, "\tPOLYHEDRON\n")
 		fmt.Fprintf(w, "\t\tSPRITE \"%s\"\n", e.PolyhedronTag)
@@ -300,7 +313,27 @@ func (e *DMSpriteDef2) Write(token *AsciiWriteToken) error {
 
 		fmt.Fprintf(w, "\tNUMMESHOPS %d\n", len(e.MeshOps))
 		for _, meshOp := range e.MeshOps {
-			fmt.Fprintf(w, "\tMESHOP %d %d %0.8f %d %d\n", meshOp.Index1, meshOp.Index2, meshOp.Offset, meshOp.Param1, meshOp.TypeField)
+			switch meshOp.TypeField {
+			case 1: // SW
+				// MESHOP SW <Index1(face)> <Param1(face-vertex 0/1/2)> <Index2(target-vertex)>
+				fmt.Fprintf(w, "\t\tMESHOP SW %d %d %d\n", meshOp.Index1, meshOp.Param1, meshOp.Index2)
+
+			case 2: // FA
+				// MESHOP FA <Index1(face)>
+				fmt.Fprintf(w, "\t\tMESHOP FA %d\n", meshOp.Index1)
+
+			case 3: // VA
+				// MESHOP VA <Index1(vertex)>
+				fmt.Fprintf(w, "\t\tMESHOP VA %d\n", meshOp.Index1)
+
+			case 4: // EL
+				// MESHOP EL <Offset(float)>
+				fmt.Fprintf(w, "\t\tMESHOP EL %0.8e\n", meshOp.Offset)
+
+			default:
+				// Fallback (unknown type): print numeric legacy style so it round-trips
+				fmt.Fprintf(w, "\t\tMESHOP %d %d %0.8e %d %d\n", meshOp.Index1, meshOp.Index2, meshOp.Offset, meshOp.Param1, meshOp.TypeField)
+			}
 		}
 		fmt.Fprintf(w, "\n")
 		fmt.Fprintf(w, "\t// FACEMATERIALGROUPS assigns materials per face\n")
@@ -488,6 +521,12 @@ func (e *DMSpriteDef2) Read(token *AsciiReadToken) error {
 	}
 	e.DmTrackTag = records[1]
 
+	records, err = token.ReadProperty("DMRGBTRACK", 1)
+	if err != nil {
+		return err
+	}
+	e.DMRGBTrackTag = records[1]
+
 	_, err = token.ReadProperty("POLYHEDRON", 0)
 	if err != nil {
 		return err
@@ -540,38 +579,92 @@ func (e *DMSpriteDef2) Read(token *AsciiReadToken) error {
 	if err != nil {
 		return err
 	}
-	numMeshOps := int(0)
-	err = parse(&numMeshOps, records[1])
-	if err != nil {
+	numMeshOps := 0
+	if err := parse(&numMeshOps, records[1]); err != nil {
 		return fmt.Errorf("num mesh ops: %w", err)
 	}
 
 	for i := 0; i < numMeshOps; i++ {
-		meshOp := &MeshOp{}
-		records, err = token.ReadProperty("MESHOP", 5)
+		records, err = token.ReadProperty("MESHOP", -1)
 		if err != nil {
 			return err
 		}
-		err = parse(&meshOp.Index1, records[1])
-		if err != nil {
-			return fmt.Errorf("mesh op %d index1: %w", i, err)
+		if len(records) < 2 {
+			return fmt.Errorf("mesh op %d: malformed line", i)
 		}
-		err = parse(&meshOp.Index2, records[2])
-		if err != nil {
-			return fmt.Errorf("mesh op %d index2: %w", i, err)
+
+		meshOp := &MeshOp{}
+		kind := records[1]
+
+		switch {
+		case strings.EqualFold(kind, "SW"):
+			// MESHOP SW <Index1(face)> <Param1(0..2)> <Index2(targetVertex)>
+			meshOp.TypeField = 1
+			if len(records) > 2 {
+				if err := parse(&meshOp.Index1, records[2]); err != nil {
+					return fmt.Errorf("mesh op %d SW index1: %w", i, err)
+				}
+			}
+			if len(records) > 3 {
+				if err := parse(&meshOp.Param1, records[3]); err != nil {
+					return fmt.Errorf("mesh op %d SW param1: %w", i, err)
+				}
+			}
+			if len(records) > 4 {
+				if err := parse(&meshOp.Index2, records[4]); err != nil {
+					return fmt.Errorf("mesh op %d SW index2: %w", i, err)
+				}
+			}
+
+		case strings.EqualFold(kind, "FA"):
+			// MESHOP FA <Index1(face)>
+			meshOp.TypeField = 2
+			if len(records) > 2 {
+				if err := parse(&meshOp.Index1, records[2]); err != nil {
+					return fmt.Errorf("mesh op %d FA index1: %w", i, err)
+				}
+			}
+
+		case strings.EqualFold(kind, "VA"):
+			// MESHOP VA <Index1(vertex)>
+			meshOp.TypeField = 3
+			if len(records) > 2 {
+				if err := parse(&meshOp.Index1, records[2]); err != nil {
+					return fmt.Errorf("mesh op %d VA index1: %w", i, err)
+				}
+			}
+
+		case strings.EqualFold(kind, "EL"):
+			// MESHOP EL <Offset>
+			meshOp.TypeField = 4
+			if len(records) > 2 {
+				if err := parse(&meshOp.Offset, records[2]); err != nil {
+					return fmt.Errorf("mesh op %d EL offset: %w", i, err)
+				}
+			}
+
+		default:
+			// Legacy numeric format: MESHOP <Index1> <Index2> <Offset> <Param1> <TypeField>
+			if len(records) < 6 {
+				return fmt.Errorf("mesh op %d: unknown kind %q and too few numeric args", i, kind)
+			}
+			if err := parse(&meshOp.Index1, records[1]); err != nil {
+				return fmt.Errorf("mesh op %d legacy index1: %w", i, err)
+			}
+			if err := parse(&meshOp.Index2, records[2]); err != nil {
+				return fmt.Errorf("mesh op %d legacy index2: %w", i, err)
+			}
+			if err := parse(&meshOp.Offset, records[3]); err != nil {
+				return fmt.Errorf("mesh op %d legacy offset: %w", i, err)
+			}
+			if err := parse(&meshOp.Param1, records[4]); err != nil {
+				return fmt.Errorf("mesh op %d legacy param1: %w", i, err)
+			}
+			if err := parse(&meshOp.TypeField, records[5]); err != nil {
+				return fmt.Errorf("mesh op %d legacy type: %w", i, err)
+			}
 		}
-		err = parse(&meshOp.Offset, records[3])
-		if err != nil {
-			return fmt.Errorf("mesh op %d offset: %w", i, err)
-		}
-		err = parse(&meshOp.Param1, records[4])
-		if err != nil {
-			return fmt.Errorf("mesh op %d param1: %w", i, err)
-		}
-		err = parse(&meshOp.TypeField, records[5])
-		if err != nil {
-			return fmt.Errorf("mesh op %d typefield: %w", i, err)
-		}
+
 		e.MeshOps = append(e.MeshOps, meshOp)
 	}
 
@@ -779,6 +872,26 @@ func (e *DMSpriteDef2) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 		}
 	}
 
+	if e.DMRGBTrackTag != "" {
+		dmRGBTrackDef := wce.ByTag(e.DMRGBTrackTag)
+		if dmRGBTrackDef == nil {
+			return -1, fmt.Errorf("dm rgb track def %s not found", e.DMRGBTrackTag)
+		}
+
+		dmRGBDefTrackRef, err := dmRGBTrackDef.ToRaw(wce, rawWld)
+		if err != nil {
+			return -1, fmt.Errorf("dm rgb track %s to raw: %w", e.DMRGBTrackTag, err)
+		}
+
+		wfRGBTrack := &rawfrag.WldFragDmRGBTrack{
+			TrackRef: int32(dmRGBDefTrackRef),
+			Flags:    0,
+		}
+		rawWld.Fragments = append(rawWld.Fragments, wfRGBTrack)
+		dmRGBTrackRef := int32(len(rawWld.Fragments))
+		dmSpriteDef.Fragment3Ref = int32(dmRGBTrackRef)
+	}
+
 	if e.PolyhedronTag != "" { //&& (!strings.HasPrefix(e.Tag, "R") || !wld.isZone)
 		if strings.HasPrefix(e.Tag, "R") && wce.WorldDef.Zone == 1 {
 			if e.PolyhedronTag == "NEGATIVE_TWO" {
@@ -957,6 +1070,24 @@ func (e *DMSpriteDef2) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragD
 			return fmt.Errorf("dmtrackdef2 name ref %d not valid", dmTrack.TrackRef)
 		}
 		e.DmTrackTag = rawWld.Name(dmTrackDef.NameRef())
+	}
+
+	if frag.Fragment3Ref != 0 {
+		if len(rawWld.Fragments) < int(frag.Fragment3Ref) {
+			return fmt.Errorf("dmrgbtrack ref %d out of bounds", frag.Fragment3Ref)
+		}
+		dmRGBTrack, ok := rawWld.Fragments[frag.Fragment3Ref].(*rawfrag.WldFragDmRGBTrack)
+		if !ok {
+			return fmt.Errorf("dmrgbtrack ref %d not found", frag.Fragment3Ref)
+		}
+		if len(rawWld.Fragments) < int(dmRGBTrack.TrackRef) {
+			return fmt.Errorf("dmrgbtrackdef ref %d not found", dmRGBTrack.TrackRef)
+		}
+		dmRGBTrackDef, ok := rawWld.Fragments[dmRGBTrack.TrackRef].(*rawfrag.WldFragDmRGBTrackDef)
+		if !ok {
+			return fmt.Errorf("dmrgbtrackdef ref %d not found", dmRGBTrack.TrackRef)
+		}
+		e.DMRGBTrackTag = rawWld.Name(dmRGBTrackDef.NameRef())
 	}
 
 	if frag.Fragment4Ref != 0 {
@@ -6982,14 +7113,13 @@ func (e *Zone) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragZone) err
 }
 
 type RGBTrackDef struct {
-	folders []string // when writing, this is the folder the file is in
-	fragID  int32
-	Tag     string
-	Data1   uint32
-	Data2   uint32
-	Data4   uint32
-	Sleep   uint32
-	RGBAs   [][4]uint8
+	folders    []string // when writing, this is the folder the file is in
+	fragID     int32
+	Tag        string
+	Data4      uint32
+	Sleep      uint32
+	RGBAFrames [][][4]uint8
+	UseAlpha   uint16
 }
 
 func (e *RGBTrackDef) Definition() string {
@@ -7007,14 +7137,15 @@ func (e *RGBTrackDef) Write(token *AsciiWriteToken) error {
 			return err
 		}
 		fmt.Fprintf(w, "%s \"%s\"\n", e.Definition(), e.Tag)
-		fmt.Fprintf(w, "\tDATA1 %d\n", e.Data1)
-		fmt.Fprintf(w, "\tDATA2 %d\n", e.Data2)
 		fmt.Fprintf(w, "\tSLEEP %d\n", e.Sleep)
 		fmt.Fprintf(w, "\tDATA4 %d\n", e.Data4)
-		fmt.Fprintf(w, "\tRGBDEFORMATIONFRAME\n")
-		fmt.Fprintf(w, "\t\tNUMRGBAS %d\n", len(e.RGBAs))
-		for _, rgba := range e.RGBAs {
-			fmt.Fprintf(w, "\t\tRGBA %d %d %d %d\n", rgba[0], rgba[1], rgba[2], rgba[3])
+		fmt.Fprintf(w, "\tUSEALPHA %d\n", e.UseAlpha)
+		fmt.Fprintf(w, "\tNUMRGBDEFORMATIONFRAMES %d\n", len(e.RGBAFrames))
+		for _, rgbaFrame := range e.RGBAFrames {
+			fmt.Fprintf(w, "\t\tNUMRGBAS %d\n", len(rgbaFrame))
+			for _, rgba := range rgbaFrame {
+				fmt.Fprintf(w, "\t\tRGBA %d %d %d %d\n", rgba[0], rgba[1], rgba[2], rgba[3])
+			}
 		}
 		fmt.Fprintf(w, "\n")
 	}
@@ -7024,25 +7155,8 @@ func (e *RGBTrackDef) Write(token *AsciiWriteToken) error {
 
 func (e *RGBTrackDef) Read(token *AsciiReadToken) error {
 	e.folders = append(e.folders, token.folder)
-	records, err := token.ReadProperty("DATA1", 1)
-	if err != nil {
-		return err
-	}
-	err = parse(&e.Data1, records[1])
-	if err != nil {
-		return fmt.Errorf("data1: %w", err)
-	}
 
-	records, err = token.ReadProperty("DATA2", 1)
-	if err != nil {
-		return err
-	}
-	err = parse(&e.Data2, records[1])
-	if err != nil {
-		return fmt.Errorf("data2: %w", err)
-	}
-
-	records, err = token.ReadProperty("SLEEP", 1)
+	records, err := token.ReadProperty("SLEEP", 1)
 	if err != nil {
 		return err
 	}
@@ -7060,35 +7174,57 @@ func (e *RGBTrackDef) Read(token *AsciiReadToken) error {
 		return fmt.Errorf("data4: %w", err)
 	}
 
-	_, err = token.ReadProperty("RGBDEFORMATIONFRAME", 0)
+	records, err = token.ReadProperty("USEALPHA", 1)
 	if err != nil {
 		return err
 	}
+	err = parse(&e.UseAlpha, records[1])
+	if err != nil {
+		return fmt.Errorf("use alpha: %w", err)
+	}
 
-	records, err = token.ReadProperty("NUMRGBAS", 1)
+	records, err = token.ReadProperty("NUMRGBDEFORMATIONFRAMES", 1)
 	if err != nil {
 		return err
 	}
-
-	numRGBAs := int(0)
-	err = parse(&numRGBAs, records[1])
+	numRGBDeformationFrames := int(0)
+	err = parse(&numRGBDeformationFrames, records[1])
 	if err != nil {
-		return fmt.Errorf("num rgbas: %w", err)
+		return fmt.Errorf("num rgb deformation frames: %w", err)
 	}
 
-	for i := 0; i < numRGBAs; i++ {
-		records, err = token.ReadProperty("RGBA", 4)
+	originalRGBAs := 0
+	for i := 0; i < numRGBDeformationFrames; i++ {
+		records, err = token.ReadProperty("NUMRGBAS", 1)
 		if err != nil {
 			return err
 		}
-
-		rgba := [4]uint8{}
-
-		err = parse(&rgba, records[1:]...)
+		numRGBAs := int(0)
+		err = parse(&numRGBAs, records[1])
 		if err != nil {
-			return fmt.Errorf("rgba: %w", err)
+			return fmt.Errorf("rgb deformation frame %d num rgbas: %w", i, err)
 		}
-		e.RGBAs = append(e.RGBAs, rgba)
+
+		if i == 0 {
+			originalRGBAs = numRGBAs
+		}
+		if originalRGBAs != numRGBAs {
+			return fmt.Errorf("rgb deformation frame %d has different number of rgbas than original frame", i)
+		}
+		var rgbaFrames [][4]uint8
+		for j := 0; j < numRGBAs; j++ {
+			records, err = token.ReadProperty("RGBA", 4)
+			if err != nil {
+				return err
+			}
+			rgba := [4]uint8{}
+			err = parse(&rgba, records[1:]...)
+			if err != nil {
+				return fmt.Errorf("rbg deformation frame %d rgba %d: %w", i, j, err)
+			}
+			rgbaFrames = append(rgbaFrames, rgba)
+		}
+		e.RGBAFrames = append(e.RGBAFrames, rgbaFrames)
 	}
 
 	return nil
@@ -7099,7 +7235,25 @@ func (e *RGBTrackDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 		return e.fragID, nil
 	}
 	wfRGBTrack := &rawfrag.WldFragDmRGBTrackDef{
-		RGBAs: e.RGBAs,
+		Sleep: e.Sleep,
+		Data4: e.Data4,
+	}
+
+	for _, rgbaFrame := range e.RGBAFrames {
+		rgbaFrames := make([][4]uint8, 0)
+		for _, rgba := range rgbaFrame {
+			rgbaFrames = append(rgbaFrames, [4]uint8{
+				uint8(rgba[0]),
+				uint8(rgba[1]),
+				uint8(rgba[2]),
+				uint8(rgba[3]),
+			})
+		}
+		wfRGBTrack.RGBAFrames = append(wfRGBTrack.RGBAFrames, rgbaFrames)
+	}
+
+	if e.UseAlpha != 0 {
+		wfRGBTrack.Flags |= 0x1
 	}
 
 	wfRGBTrack.SetNameRef(rawWld.NameAdd(e.Tag))
@@ -7115,11 +7269,26 @@ func (e *RGBTrackDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragDm
 	}
 
 	e.Tag = rawWld.Name(frag.NameRef())
-	e.Data1 = frag.Data1
-	e.Data2 = frag.Data2
 	e.Sleep = frag.Sleep
 	e.Data4 = frag.Data4
-	e.RGBAs = frag.RGBAs
+
+	for _, rgbaFrame := range frag.RGBAFrames {
+		rgbaFrames := make([][4]uint8, 0)
+		for _, rgba := range rgbaFrame {
+			rgbaFrames = append(rgbaFrames, [4]uint8{
+				uint8(rgba[0]),
+				uint8(rgba[1]),
+				uint8(rgba[2]),
+				uint8(rgba[3]),
+			})
+		}
+		e.RGBAFrames = append(e.RGBAFrames, rgbaFrames)
+	}
+
+	if frag.Flags&0x1 != 0 {
+		e.UseAlpha = 1
+	}
+
 	return nil
 }
 

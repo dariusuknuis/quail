@@ -15,8 +15,8 @@ type WldFragDmSpriteDef2 struct {
 	Flags                uint32
 	MaterialPaletteRef   uint32
 	DMTrackRef           int32 // only used for flags/trees
-	Fragment3Ref         int32
-	Fragment4Ref         int32 // unknown, usually ref to first texture
+	Fragment3Ref         int32 // DMRGBTrack reference
+	Fragment4Ref         int32 // polyhedron (collision volume) reference
 	CenterOffset         [3]float32
 	Params2              [3]uint32
 	BoundingRadius       float32 // AKA max_distance in libeq
