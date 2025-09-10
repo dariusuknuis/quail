@@ -18,7 +18,7 @@ type WldFragDmSpriteDef2 struct {
 	Fragment3Ref         int32 // DMRGBTrack reference
 	Fragment4Ref         int32 // polyhedron (collision volume) reference
 	CenterOffset         [3]float32
-	Params2              [3]uint32
+	Params2              [3]float32
 	BoundingRadius       float32 // AKA max_distance in libeq
 	BoundingBoxMin       [3]float32
 	BoundingBoxMax       [3]float32
@@ -79,9 +79,9 @@ func (e *WldFragDmSpriteDef2) Write(w io.Writer, isNewWorld bool) error {
 	enc.Float32(e.CenterOffset[1])
 	enc.Float32(e.CenterOffset[2])
 
-	enc.Uint32(e.Params2[0])
-	enc.Uint32(e.Params2[1])
-	enc.Uint32(e.Params2[2])
+	enc.Float32(e.Params2[0])
+	enc.Float32(e.Params2[1])
+	enc.Float32(e.Params2[2])
 
 	enc.Float32(e.BoundingRadius)
 	enc.Float32(e.BoundingBoxMin[0])
@@ -191,9 +191,9 @@ func (e *WldFragDmSpriteDef2) Read(r io.ReadSeeker, isNewWorld bool) error {
 	e.CenterOffset[1] = dec.Float32() // for zone meshes, y coordinate of the center of the mesh
 	e.CenterOffset[2] = dec.Float32() // for zone meshes, z coordinate of the center of the mesh
 
-	e.Params2[0] = dec.Uint32() // unknown, usually empty
-	e.Params2[1] = dec.Uint32() // unknown, usually empty
-	e.Params2[2] = dec.Uint32() // unknown, usually empty
+	e.Params2[0] = dec.Float32() // unknown, usually empty
+	e.Params2[1] = dec.Float32() // unknown, usually empty
+	e.Params2[2] = dec.Float32() // unknown, usually empty
 
 	e.BoundingRadius = dec.Float32()    // Given the values in center, this seems to contain the maximum distance between any vertex and that position. It seems to define a radius from that position within which the mesh lies.
 	e.BoundingBoxMin[0] = dec.Float32() // min x, y, and z coords in absolute coords of any vertex in the mesh.

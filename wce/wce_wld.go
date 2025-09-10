@@ -155,7 +155,7 @@ type DMSpriteDef2 struct {
 	TagIndex             int
 	DmTrackTag           string
 	DMRGBTrackTag        string
-	Params2              [3]uint32
+	Params2              [3]float32
 	BoundingBoxMin       [3]float32
 	BoundingBoxMax       [3]float32
 	CenterOffset         [3]float32
@@ -350,7 +350,7 @@ func (e *DMSpriteDef2) Write(token *AsciiWriteToken) error {
 		}
 		fmt.Fprintf(w, "\n")
 		fmt.Fprintf(w, "\n")
-		fmt.Fprintf(w, "\tPARAMS2 %d %d %d\n", e.Params2[0], e.Params2[1], e.Params2[2])
+		fmt.Fprintf(w, "\tPARAMS2 %0.8e %0.8e %0.8e\n", e.Params2[0], e.Params2[1], e.Params2[2])
 		fmt.Fprintf(w, "\n")
 		fmt.Fprintf(w, "\tBOUNDINGBOXMIN %0.8e %0.8e %0.8e\n", e.BoundingBoxMin[0], e.BoundingBoxMin[1], e.BoundingBoxMin[2])
 		fmt.Fprintf(w, "\tBOUNDINGBOXMAX %0.8e %0.8e %0.8e\n", e.BoundingBoxMax[0], e.BoundingBoxMax[1], e.BoundingBoxMax[2])
