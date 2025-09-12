@@ -11,17 +11,17 @@ import (
 
 /*
 Bit layout (LSB -> MSB)
-bits  0-1: Drawstyle
-bits  2-4: Lighting
-bits  5-6: Shading
-bit     7: Masked Transparency Toggle (TRANS)
+bits   0-1: Drawstyle
+bits   2-4: Lighting
+bits   5-6: Shading
+bit		 7: Masked Transparency Toggle (TRANS)
 bits  8-15: Texture
 bits 16-19: Alpha Blend Opacity (0..15)  => shown as % = field/16 * 100
-bit    20: Additive Toggle
-bits 21-23: UnknownA
-bit    24: Alpha Blend Toggle (BLEND)
-bits 25-30: UnknownB
-bit    31: Userdefined Toggle
+bit    	20: Additive Toggle
+bit 	21: "Dynamic" point lights used? (doesn't seem to do anything)
+bit    	24: Alpha Blend Toggle (BLEND)
+bit 	30: "PreLit" use vertex color flag? (doesn't seem to do anything)
+bit     31: Userdefined Toggle
 */
 
 const (
