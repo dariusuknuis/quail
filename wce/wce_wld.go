@@ -3309,13 +3309,15 @@ func (e *ActorInst) Write(token *AsciiWriteToken) error {
 		}
 
 		if e.DMRGBTrackTag.Valid {
-			dTrack := token.wce.ByTag(e.DMRGBTrackTag.String)
-			if dTrack == nil {
-				return fmt.Errorf("dmrgbtrack %s not found", e.DMRGBTrackTag.String)
-			}
-			err = dTrack.Write(token)
-			if err != nil {
-				return fmt.Errorf("dmrgbtrack %s: %w", e.DMRGBTrackTag.String, err)
+			if e.DMRGBTrackTag.String != "" {
+				dTrack := token.wce.ByTag(e.DMRGBTrackTag.String)
+				if dTrack == nil {
+					return fmt.Errorf("dmrgbtrack %s not found", e.DMRGBTrackTag.String)
+				}
+				err = dTrack.Write(token)
+				if err != nil {
+					return fmt.Errorf("dmrgbtrack %s: %w", e.DMRGBTrackTag.String, err)
+				}
 			}
 		}
 
@@ -3528,27 +3530,31 @@ func (e *ActorInst) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 
 	if e.DMRGBTrackTag.Valid {
 		wfActorInst.Flags |= rawfrag.ActorFlagHaveDMRGBTrack
-		dmRGBTrackDef := wce.ByTag(e.DMRGBTrackTag.String)
-		if dmRGBTrackDef == nil {
-			return -1, fmt.Errorf("dm rgb track def %s not found", e.DMRGBTrackTag.String)
-		}
+		if strings.TrimSpace(e.DMRGBTrackTag.String) == "" {
+			wfActorInst.DMRGBTrackRef = 0
+		} else {
+			dmRGBTrackDef := wce.ByTag(e.DMRGBTrackTag.String)
+			if dmRGBTrackDef == nil {
+				return -1, fmt.Errorf("dm rgb track def %s not found", e.DMRGBTrackTag.String)
+			}
 
-		dmRGBDefTrackRef, err := dmRGBTrackDef.ToRaw(wce, rawWld)
-		if err != nil {
-			return -1, fmt.Errorf("dm rgb track %s to raw: %w", e.DMRGBTrackTag.String, err)
-		}
+			dmRGBDefTrackRef, err := dmRGBTrackDef.ToRaw(wce, rawWld)
+			if err != nil {
+				return -1, fmt.Errorf("dm rgb track %s to raw: %w", e.DMRGBTrackTag.String, err)
+			}
 
-		wfRGBTrack := &rawfrag.WldFragDmRGBTrack{
-			TrackRef: int32(dmRGBDefTrackRef),
-			Flags:    0,
+			wfRGBTrack := &rawfrag.WldFragDmRGBTrack{
+				TrackRef: int32(dmRGBDefTrackRef),
+				Flags:    0,
+			}
+			if e.DefinitionTag != "" && wfActorInst.ActorDefRef == 0 {
+				// in some cases, a string ref occurs instead
+				wfActorInst.ActorDefRef = rawWld.NameAdd(e.DefinitionTag)
+			}
+			rawWld.Fragments = append(rawWld.Fragments, wfRGBTrack)
+			dmRGBTrackRef := int32(len(rawWld.Fragments))
+			wfActorInst.DMRGBTrackRef = int32(dmRGBTrackRef)
 		}
-		if e.DefinitionTag != "" && wfActorInst.ActorDefRef == 0 {
-			// in some cases, a string ref occurs instead
-			wfActorInst.ActorDefRef = rawWld.NameAdd(e.DefinitionTag)
-		}
-		rawWld.Fragments = append(rawWld.Fragments, wfRGBTrack)
-		dmRGBTrackRef := int32(len(rawWld.Fragments))
-		wfActorInst.DMRGBTrackRef = int32(dmRGBTrackRef)
 	}
 
 	if e.UsesBoundingBox > 0 {
@@ -3641,7 +3647,7 @@ func (e *ActorInst) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragActo
 		e.Active.Valid = true
 	}
 
-	if frag.Flags&rawfrag.ActorFlagActiveGeometry == frag.Flags&rawfrag.ActorFlagActiveGeometry {
+	if frag.Flags&rawfrag.ActorFlagActiveGeometry == rawfrag.ActorFlagActiveGeometry {
 		e.ActiveGeometry = 1
 	}
 
@@ -3652,30 +3658,31 @@ func (e *ActorInst) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragActo
 	if frag.Flags&rawfrag.ActorFlagHaveDMRGBTrack == rawfrag.ActorFlagHaveDMRGBTrack {
 		e.DMRGBTrackTag.Valid = true
 
-		trackTag := ""
 		if frag.DMRGBTrackRef == 0 {
-			return fmt.Errorf("dmrgbtrack flag set, but ref is 0")
-		}
-		if len(rawWld.Fragments) < int(frag.DMRGBTrackRef) {
-			return fmt.Errorf("dmrgbtrack ref %d out of bounds", frag.DMRGBTrackRef)
-		}
+			e.DMRGBTrackTag.String = ""
+		} else {
+			trackTag := ""
+			if len(rawWld.Fragments) < int(frag.DMRGBTrackRef) {
+				return fmt.Errorf("dmrgbtrack ref %d out of bounds", frag.DMRGBTrackRef)
+			}
 
-		track, ok := rawWld.Fragments[frag.DMRGBTrackRef].(*rawfrag.WldFragDmRGBTrack)
-		if !ok {
-			return fmt.Errorf("dmrgbtrack ref %d not found", frag.DMRGBTrackRef)
-		}
-		if len(rawWld.Fragments) < int(track.TrackRef) {
-			return fmt.Errorf("dmrgbtrackdef ref %d not found", track.TrackRef)
-		}
+			track, ok := rawWld.Fragments[frag.DMRGBTrackRef].(*rawfrag.WldFragDmRGBTrack)
+			if !ok {
+				return fmt.Errorf("dmrgbtrack ref %d not found", frag.DMRGBTrackRef)
+			}
+			if len(rawWld.Fragments) < int(track.TrackRef) {
+				return fmt.Errorf("dmrgbtrackdef ref %d not found", track.TrackRef)
+			}
 
-		trackDef, ok := rawWld.Fragments[track.TrackRef].(*rawfrag.WldFragDmRGBTrackDef)
-		if !ok {
-			return fmt.Errorf("dmrgbtrackdef ref %d not found", track.TrackRef)
+			trackDef, ok := rawWld.Fragments[track.TrackRef].(*rawfrag.WldFragDmRGBTrackDef)
+			if !ok {
+				return fmt.Errorf("dmrgbtrackdef ref %d not found", track.TrackRef)
+			}
+			if trackDef.NameRef() != 0 {
+				trackTag = rawWld.Name(trackDef.NameRef())
+			}
+			e.DMRGBTrackTag.String = trackTag
 		}
-		if trackDef.NameRef() != 0 {
-			trackTag = rawWld.Name(trackDef.NameRef())
-		}
-		e.DMRGBTrackTag.String = trackTag
 	}
 
 	if frag.Flags&rawfrag.ActorFlagUsesBoundingBox == rawfrag.ActorFlagUsesBoundingBox {
