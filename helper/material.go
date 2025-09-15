@@ -21,7 +21,7 @@ func MaterialTagParse(isChr bool, tag string) (string, error) {
 	}
 
 	// Regex pattern for other variation materials
-	regex := regexp.MustCompile(`^[A-Z]{3}(CH|FA|FT|HE|HN|LG|TA|UA)\d{4}_MDF$`)
+	regex := regexp.MustCompile(`^[A-Z]{3}(CH|FA|FT|HE|HN|LG|MN|TA|TL|UA)\d{4}_MDF$`)
 
 	if regex.MatchString(tag) && len(tag) == 13 {
 		// Parse the 6th, 7th, 8th, and 9th characters
