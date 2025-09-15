@@ -3881,6 +3881,10 @@ func (e *LightDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragLight
 		}
 	}
 
+	if frag.Flags&0x08 == 0x08 {
+		e.SkipFrames = 1
+	}
+
 	if frag.Flags&0x10 != 0 {
 		e.Colors = frag.Colors
 	}
@@ -3890,17 +3894,18 @@ func (e *LightDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragLight
 
 // PointLight is a declaration of POINTLIGHT
 type PointLight struct {
-	folders         []string // when writing, this is the folder the file is in
-	fragID          int32
-	Tag             string
-	LightDefTag     string
-	Static          int
-	StaticInfluence int
-	HasRegions      int
-	LightFlags      uint32
-	Flags           uint32
-	Location        [3]float32
-	Radius          float32
+	folders          []string // when writing, this is the folder the file is in
+	fragID           int32
+	Tag              string
+	LightDefTag      string
+	Static           int
+	StaticInfluence  int
+	DynamicInfluence int
+	Regions          NullUint32Slice
+	LightFlags       uint32
+	Flags            uint32
+	Location         [3]float32
+	Radius           float32
 }
 
 func (e *PointLight) Definition() string {
@@ -3933,9 +3938,10 @@ func (e *PointLight) Write(token *AsciiWriteToken) error {
 		fmt.Fprintf(w, "\tLIGHT \"%s\"\n", e.LightDefTag)
 		fmt.Fprintf(w, "\tSTATIC %d\n", e.Static)
 		fmt.Fprintf(w, "\tSTATICINFLUENCE %d\n", e.StaticInfluence)
-		fmt.Fprintf(w, "\tHASREGIONS %d\n", e.HasRegions)
+		fmt.Fprintf(w, "\tDYNAMICINFLUENCE %d\n", e.DynamicInfluence)
 		fmt.Fprintf(w, "\tXYZ %0.8e %0.8e %0.8e\n", e.Location[0], e.Location[1], e.Location[2])
 		fmt.Fprintf(w, "\tRADIUSOFINFLUENCE %0.8e\n", e.Radius)
+		fmt.Fprintf(w, "\tREGIONS? %s\n", wcVal(e.Regions))
 		fmt.Fprintf(w, "\n")
 	}
 	e.folders = []string{}
@@ -3968,13 +3974,13 @@ func (e *PointLight) Read(token *AsciiReadToken) error {
 		return fmt.Errorf("static influence: %w", err)
 	}
 
-	records, err = token.ReadProperty("HASREGIONS", 1)
+	records, err = token.ReadProperty("DYNAMICINFLUENCE", 1)
 	if err != nil {
 		return err
 	}
-	err = parse(&e.HasRegions, records[1])
+	err = parse(&e.DynamicInfluence, records[1])
 	if err != nil {
-		return fmt.Errorf("has regions: %w", err)
+		return fmt.Errorf("dynamic influence: %w", err)
 	}
 
 	records, err = token.ReadProperty("XYZ", 3)
@@ -3993,6 +3999,36 @@ func (e *PointLight) Read(token *AsciiReadToken) error {
 	err = parse(&e.Radius, records[1])
 	if err != nil {
 		return fmt.Errorf("radius of influence: %w", err)
+	}
+
+	records, err = token.ReadProperty("REGIONS?", -1)
+	if err != nil {
+		return err
+	}
+
+	if len(records) >= 2 && records[1] == "NULL" {
+		e.Regions.Valid = false
+		e.Regions.Uint32Slice = nil
+	} else {
+		numRegions := int(0)
+		err = parse(&numRegions, records[1])
+		if err != nil {
+			return fmt.Errorf("num regions: %w", err)
+		}
+		if len(records) != numRegions+2 {
+			return fmt.Errorf("regions: expected %d, got %d", numRegions, len(records)-2)
+		}
+
+		e.Regions.Valid = true
+		e.Regions.Uint32Slice = make([]uint32, 0, numRegions)
+		for i := 0; i < numRegions; i++ {
+			val := uint32(0)
+			err = parse(&val, records[i+2])
+			if err != nil {
+				return fmt.Errorf("region %d: %w", i, err)
+			}
+			e.Regions.Uint32Slice = append(e.Regions.Uint32Slice, val)
+		}
 	}
 
 	return nil
@@ -4041,8 +4077,14 @@ func (e *PointLight) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 		light.Flags |= 0x40
 	}
 
-	if e.HasRegions == 1 {
+	if e.Regions.Valid {
 		light.Flags |= 0x80
+		light.Regions = append([]uint32(nil), e.Regions.Uint32Slice...)
+
+	}
+
+	if e.DynamicInfluence == 1 {
+		light.Flags |= 0x100
 	}
 
 	rawWld.Fragments = append(rawWld.Fragments, light)
@@ -4089,7 +4131,12 @@ func (e *PointLight) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragPoi
 	}
 
 	if frag.Flags&0x80 == 0x80 {
-		e.HasRegions = 1
+		e.Regions.Valid = true
+		e.Regions.Uint32Slice = append([]uint32(nil), frag.Regions...)
+	}
+
+	if frag.Flags&0x100 == 0x100 {
+		e.DynamicInfluence = 1
 	}
 
 	return nil
@@ -8800,6 +8847,193 @@ func (e *DMTrackDef2) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragDm
 	if frag.Flags != 0 {
 		return fmt.Errorf("unknown flags %d", frag.Flags)
 	}
+
+	return nil
+}
+
+// DirectionalLight is a declaration of DIRECTIONALLIGHT
+type DirectionalLight struct {
+	folders     []string // when writing, this is the folder the file is in
+	fragID      int32
+	Tag         string
+	LightDefTag string
+	Static      int
+	Regions     []uint32
+	Flags       uint32
+	Normal      [3]float32
+}
+
+func (e *DirectionalLight) Definition() string {
+	return "DIRECTIONALLIGHT"
+}
+
+// Write
+func (e *DirectionalLight) Write(token *AsciiWriteToken) error {
+	for _, folder := range e.folders {
+		err := token.SetWriter(folder)
+		if err != nil {
+			return err
+		}
+		w, err := token.Writer()
+		if err != nil {
+			return err
+		}
+
+		if e.LightDefTag != "" {
+			lightDef := token.wce.ByTag(e.LightDefTag)
+			if lightDef == nil {
+				return fmt.Errorf("lightdef %s not found", e.LightDefTag)
+			}
+			err = lightDef.Write(token)
+			if err != nil {
+				return fmt.Errorf("lightdef %s: %w", e.LightDefTag, err)
+			}
+		}
+		fmt.Fprintf(w, "%s \"%s\"\n", e.Definition(), e.Tag)
+		fmt.Fprintf(w, "\tNORMAL %0.8e %0.8e %0.8e\n", e.Normal[0], e.Normal[1], e.Normal[2])
+		fmt.Fprintf(w, "\tLIGHT \"%s\"\n", e.LightDefTag)
+		fmt.Fprintf(w, "\tSTATIC %d\n", e.Static)
+		fmt.Fprintf(w, "\tREGIONS %d", len(e.Regions))
+		for _, val := range e.Regions {
+			fmt.Fprintf(w, " %d", val)
+		}
+		fmt.Fprintf(w, "\n")
+	}
+	e.folders = []string{}
+	return nil
+}
+
+func (e *DirectionalLight) Read(token *AsciiReadToken) error {
+	e.folders = append(e.folders, token.folder)
+	records, err := token.ReadProperty("NORMAL", 3)
+	if err != nil {
+		return err
+	}
+	err = parse(&e.Normal, records[1:]...)
+	if err != nil {
+		return fmt.Errorf("normal: %w", err)
+	}
+
+	records, err = token.ReadProperty("LIGHT", 1)
+	if err != nil {
+		return err
+	}
+	e.LightDefTag = records[1]
+
+	records, err = token.ReadProperty("STATIC", 1)
+	if err != nil {
+		return err
+	}
+	err = parse(&e.Static, records[1])
+	if err != nil {
+		return fmt.Errorf("static: %w", err)
+	}
+
+	records, err = token.ReadProperty("REGIONS", -1)
+	if err != nil {
+		return err
+	}
+
+	numRegions := int(0)
+	err = parse(&numRegions, records[1])
+	if err != nil {
+		return fmt.Errorf("num regions: %w", err)
+	}
+	if len(records) != numRegions+2 {
+		return fmt.Errorf("regions: expected %d, got %d", numRegions, len(records)-2)
+	}
+
+	e.Regions = make([]uint32, 0, numRegions)
+	for i := 0; i < numRegions; i++ {
+		val := uint32(0)
+		err = parse(&val, records[i+2])
+		if err != nil {
+			return fmt.Errorf("region %d: %w", i, err)
+		}
+		e.Regions = append(e.Regions, val)
+	}
+
+	return nil
+}
+
+func (e *DirectionalLight) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
+	if e.fragID != 0 {
+		return e.fragID, nil
+	}
+
+	if e.LightDefTag == "" {
+		return -1, fmt.Errorf("lightdef tag not set")
+	}
+
+	lightDef := wce.ByTag(e.LightDefTag)
+	if lightDef == nil {
+		return -1, fmt.Errorf("lightdef %s not found", e.LightDefTag)
+	}
+
+	lightDefRef, err := lightDef.ToRaw(wce, rawWld)
+	if err != nil {
+		return -1, fmt.Errorf("lightdef %s to raw: %w", e.LightDefTag, err)
+	}
+
+	wfLightInstance := &rawfrag.WldFragLight{
+		LightDefRef: int32(lightDefRef),
+		Flags:       0,
+	}
+
+	rawWld.Fragments = append(rawWld.Fragments, wfLightInstance)
+
+	lightInstRef := int32(len(rawWld.Fragments))
+
+	light := &rawfrag.WldFragDirectionalLight{
+		LightRef: int32(lightInstRef),
+		Normal:   e.Normal,
+		Regions:  e.Regions,
+	}
+	light.SetNameRef(rawWld.NameAdd(e.Tag))
+
+	if e.Static == 1 {
+		light.Flags |= 0x20
+	}
+
+	rawWld.Fragments = append(rawWld.Fragments, light)
+	e.fragID = int32(len(rawWld.Fragments))
+	return int32(len(rawWld.Fragments)), nil
+}
+
+func (e *DirectionalLight) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragDirectionalLight) error {
+	if frag == nil {
+		return fmt.Errorf("frag is not directional light (wrong fragcode?)")
+	}
+
+	e.Tag = rawWld.Name(frag.NameRef())
+	if frag.LightRef > 0 {
+		if len(rawWld.Fragments) < int(frag.LightRef) {
+			return fmt.Errorf("light ref %d not found", frag.LightRef)
+		}
+
+		light, ok := rawWld.Fragments[frag.LightRef].(*rawfrag.WldFragLight)
+		if !ok {
+			return fmt.Errorf("light ref %d not found", frag.LightRef)
+		}
+
+		if len(rawWld.Fragments) < int(light.LightDefRef) {
+			return fmt.Errorf("lightdef ref %d not found", light.LightDefRef)
+		}
+
+		lightDef, ok := rawWld.Fragments[light.LightDefRef].(*rawfrag.WldFragLightDef)
+		if !ok {
+			return fmt.Errorf("lightdef ref %d not found", light.LightDefRef)
+		}
+
+		e.LightDefTag = rawWld.Name(lightDef.NameRef())
+	}
+	e.Normal = frag.Normal
+
+	if frag.Flags&0x20 == 0x20 {
+		e.Static = 1
+	}
+
+	e.Regions = frag.Regions
 
 	return nil
 }

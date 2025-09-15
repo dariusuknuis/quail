@@ -56,6 +56,11 @@ type NullInt16Slice3 struct {
 	Valid       bool
 }
 
+type NullUint32Slice struct {
+	Uint32Slice []uint32
+	Valid       bool
+}
+
 func wcVal(inVal interface{}) string {
 	switch val := inVal.(type) {
 	case int:
@@ -143,6 +148,18 @@ func wcVal(inVal interface{}) string {
 			return "NULL NULL NULL NULL"
 		}
 		return fmt.Sprintf("%d %d %d", val.Int16Slice3[0], val.Int16Slice3[1], val.Int16Slice3[2])
+	case NullUint32Slice:
+		if !val.Valid {
+			return "NULL"
+		}
+		if len(val.Uint32Slice) == 0 {
+			return "0"
+		}
+		out := fmt.Sprintf("%d", len(val.Uint32Slice))
+		for i := 0; i < len(val.Uint32Slice); i++ {
+			out = fmt.Sprintf("%s %d", out, val.Uint32Slice[i])
+		}
+		return out
 	default:
 		return fmt.Sprintf("INVALID_%v", inVal)
 	}
@@ -565,6 +582,35 @@ func parse(inVal interface{}, src ...string) error {
 			val.Int16Slice3[i] = int16(v)
 		}
 		val.Valid = true
+		return nil
+	case *NullUint32Slice:
+		if src[0] == "NULL" {
+			val.Valid = false
+			val.Uint32Slice = nil
+			return nil
+		}
+
+		n64, err := strconv.ParseUint(src[0], 10, 32)
+		if err != nil {
+			return err
+		}
+		n := int(n64)
+		if n < 0 {
+			return fmt.Errorf("negative count for list: %d", n)
+		}
+		if len(src)-1 < n {
+			return fmt.Errorf("need %d ids, got %d: %v", n, len(src)-1, src)
+		}
+		vals := make([]uint32, n)
+		for i := 0; i < n; i++ {
+			u, err := strconv.ParseUint(src[1+i], 10, 32)
+			if err != nil {
+				return err
+			}
+			vals[i] = uint32(u)
+		}
+		val.Valid = true
+		val.Uint32Slice = vals
 		return nil
 
 	default:

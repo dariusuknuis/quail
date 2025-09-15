@@ -223,6 +223,7 @@ func (a *AsciiReadToken) readDefinitions() error {
 		&EqgLayDef{},
 		&ParticleCloudDef{},
 		&PointLight{},
+		&DirectionalLight{},
 		&PolyhedronDefinition{},
 		&Region{},
 		&RGBTrackDef{},
@@ -484,6 +485,13 @@ func (a *AsciiReadToken) readDefinitions() error {
 				frag.Tag = args[1]
 				a.wce.PointLights = append(a.wce.PointLights, frag)
 				definitions[i] = &PointLight{}
+			case *DirectionalLight:
+				if len(args) == 1 {
+					return fmt.Errorf("definition %s has no arguments", defName)
+				}
+				frag.Tag = args[1]
+				a.wce.DirectionalLights = append(a.wce.DirectionalLights, frag)
+				definitions[i] = &DirectionalLight{}
 			case *DMSpriteDef:
 				if len(args) == 1 {
 					return fmt.Errorf("definition %s has no arguments", defName)

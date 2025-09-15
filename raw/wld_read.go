@@ -456,6 +456,8 @@ func (wld *Wld) TagByFrag(srcFrag interface{}) string {
 		return wld.Name(frag.NameRef())
 	case *rawfrag.WldFragZone:
 		return wld.Name(frag.NameRef())
+	case *rawfrag.WldFragDirectionalLight:
+		return wld.Name(frag.NameRef())
 	}
 
 	return ""

@@ -132,6 +132,9 @@ func fragRefs(fragment interface{}) []int32 {
 
 	case *rawfrag.WldFragTrack:
 		refs = append(refs, frag.TrackRef)
+
+	case *rawfrag.WldFragDirectionalLight:
+		refs = append(refs, frag.LightRef)
 	}
 
 	return refs

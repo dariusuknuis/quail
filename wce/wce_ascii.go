@@ -165,6 +165,13 @@ func (wce *Wce) writeAsciiData(path string) error {
 		}
 	}
 
+	for _, dLight := range wce.DirectionalLights {
+		err = dLight.Write(token)
+		if err != nil {
+			return fmt.Errorf("directional light (%s): %w", dLight.Tag, err)
+		}
+	}
+
 	for _, blitSpriteDef := range wce.BlitSpriteDefs {
 		err = blitSpriteDef.Write(token)
 		if err != nil {

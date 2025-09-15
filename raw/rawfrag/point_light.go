@@ -15,6 +15,7 @@ type WldFragPointLight struct {
 	Flags    uint32
 	Location [3]float32
 	Radius   float32
+	Regions  []uint32
 }
 
 func (e *WldFragPointLight) FragCode() int {
@@ -31,6 +32,12 @@ func (e *WldFragPointLight) Write(w io.Writer, isNewWorld bool) error {
 	enc.Float32(e.Location[1])
 	enc.Float32(e.Location[2])
 	enc.Float32(e.Radius)
+	if e.Flags&0x80 != 0 {
+		enc.Uint32(uint32(len(e.Regions)))
+		for _, id := range e.Regions {
+			enc.Uint32(id)
+		}
+	}
 	err := enc.Error()
 	if err != nil {
 		return fmt.Errorf("write: %w", err)
@@ -47,6 +54,13 @@ func (e *WldFragPointLight) Read(r io.ReadSeeker, isNewWorld bool) error {
 	e.Location[1] = dec.Float32()
 	e.Location[2] = dec.Float32()
 	e.Radius = dec.Float32()
+	if e.Flags&0x80 != 0 {
+		n := dec.Uint32()
+		e.Regions = make([]uint32, n)
+		for i := uint32(0); i < n; i++ {
+			e.Regions[i] = dec.Uint32()
+		}
+	}
 
 	err := dec.Error()
 	if err != nil {

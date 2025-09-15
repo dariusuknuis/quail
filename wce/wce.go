@@ -37,6 +37,7 @@ type Wce struct {
 	MaterialPalettes       []*MaterialPalette
 	ParticleCloudDefs      []*ParticleCloudDef
 	PointLights            []*PointLight
+	DirectionalLights      []*DirectionalLight
 	PolyhedronDefs         []*PolyhedronDefinition
 	Regions                []*Region
 	RGBTrackDefs           []*RGBTrackDef
@@ -326,6 +327,7 @@ func (wce *Wce) reset() {
 	wce.ActorInsts = []*ActorInst{}
 	wce.LightDefs = []*LightDef{}
 	wce.PointLights = []*PointLight{}
+	wce.DirectionalLights = []*DirectionalLight{}
 	wce.Sprite3DDefs = []*Sprite3DDef{}
 	wce.TrackInstances = []*TrackInstance{}
 	wce.TrackDefs = []*TrackDef{}

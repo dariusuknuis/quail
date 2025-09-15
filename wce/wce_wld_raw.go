@@ -256,6 +256,13 @@ func readRawFrag(e *Wce, rawWld *raw.Wld, fragment helper.FragmentReadWriter, fo
 			return fmt.Errorf("pointlight: %w", err)
 		}
 		e.PointLights = append(e.PointLights, def)
+	case rawfrag.FragCodeDirectionalLight:
+		def := &DirectionalLight{folders: folders}
+		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragDirectionalLight))
+		if err != nil {
+			return fmt.Errorf("directionallight: %w", err)
+		}
+		e.DirectionalLights = append(e.DirectionalLights, def)
 	case rawfrag.FragCodePolyhedronDef:
 		def := &PolyhedronDefinition{folders: folders}
 		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragPolyhedronDef))
@@ -433,10 +440,17 @@ func (wce *Wce) WriteWldRaw(w io.Writer) error {
 		}
 	}
 
-	for _, light := range wce.PointLights {
-		_, err = light.ToRaw(wce, dst)
+	for _, pLight := range wce.PointLights {
+		_, err = pLight.ToRaw(wce, dst)
 		if err != nil {
-			return fmt.Errorf("pointlight %s: %w", light.Tag, err)
+			return fmt.Errorf("pointlight %s: %w", pLight.Tag, err)
+		}
+	}
+
+	for _, dLight := range wce.DirectionalLights {
+		_, err = dLight.ToRaw(wce, dst)
+		if err != nil {
+			return fmt.Errorf("directionallight %s: %w", dLight.Tag, err)
 		}
 	}
 
@@ -461,10 +475,10 @@ func (wce *Wce) WriteWldRaw(w io.Writer) error {
 		}
 	}
 
-	for _, alight := range wce.AmbientLights {
-		_, err = alight.ToRaw(wce, dst)
+	for _, aLight := range wce.AmbientLights {
+		_, err = aLight.ToRaw(wce, dst)
 		if err != nil {
-			return fmt.Errorf("ambientlight %s: %w", alight.Tag, err)
+			return fmt.Errorf("ambientlight %s: %w", aLight.Tag, err)
 		}
 	}
 
