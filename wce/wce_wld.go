@@ -1977,7 +1977,7 @@ type MaterialDef struct {
 	SimpleSpriteSkipFrames     int //0x40 flag
 	UShiftPerMs                NullFloat32
 	VShiftPerMs                NullFloat32
-	DoubleSided                int
+	TwoSided                int
 }
 
 func (e *MaterialDef) Definition() string {
@@ -2021,7 +2021,7 @@ func (e *MaterialDef) Write(token *AsciiWriteToken) error {
 		fmt.Fprintf(w, "\t\tSIMPLESPRITEHAVESKIPFRAMES %d\n", e.SimpleSpriteHaveSkipFrames)
 		fmt.Fprintf(w, "\t\tSIMPLESPRITESKIPFRAMES %d\n", e.SimpleSpriteSkipFrames)
 		fmt.Fprintf(w, "\tUVSHIFTPERMS? %s %s\n", wcVal(e.UShiftPerMs), wcVal(e.VShiftPerMs))
-		fmt.Fprintf(w, "\tDOUBLESIDED %d\n", e.DoubleSided)
+		fmt.Fprintf(w, "\tTWOSIDED %d\n", e.TwoSided)
 		fmt.Fprintf(w, "\n")
 
 	}
@@ -2136,13 +2136,13 @@ func (e *MaterialDef) Read(token *AsciiReadToken) error {
 		return fmt.Errorf("ushiftperms: %w", err)
 	}
 
-	records, err = token.ReadProperty("DOUBLESIDED", 1)
+	records, err = token.ReadProperty("TWOSIDED", 1)
 	if err != nil {
 		return err
 	}
-	err = parse(&e.DoubleSided, records[1])
+	err = parse(&e.TwoSided, records[1])
 	if err != nil {
-		return fmt.Errorf("doublesided: %w", err)
+		return fmt.Errorf("twosided: %w", err)
 	}
 
 	token.wce.variationMaterialDefs[token.wce.lastReadFolder] = append(token.wce.variationMaterialDefs[token.wce.lastReadFolder], e)
@@ -2161,7 +2161,7 @@ func (e *MaterialDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 		ScaledAmbient: e.ScaledAmbient,
 	}
 
-	if e.DoubleSided > 0 {
+	if e.TwoSided > 0 {
 		wfMaterialDef.Flags |= 0x01
 	}
 
@@ -2254,7 +2254,7 @@ func (e *MaterialDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragMa
 	}
 
 	if frag.Flags&0x01 != 0 {
-		e.DoubleSided = 1
+		e.TwoSided = 1
 	}
 	if frag.Flags&0x02 != 0 {
 		e.UShiftPerMs.Valid = true
