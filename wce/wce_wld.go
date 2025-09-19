@@ -3698,14 +3698,15 @@ func (e *ActorInst) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragActo
 
 // LightDef is a declaration of LIGHTDEF
 type LightDef struct {
-	folders      []string // when writing, this is the folder the file is in
-	fragID       int32
-	Tag          string
-	CurrentFrame NullUint32
-	Sleep        NullUint32
-	SkipFrames   int
-	LightLevels  []float32
-	Colors       [][3]float32
+	folders        []string // when writing, this is the folder the file is in
+	fragID         int32
+	Tag            string
+	CurrentFrame   NullUint32
+	Sleep          NullUint32
+	HaveSkipFrames int
+	SkipFrames     int
+	LightLevels    []float32
+	Colors         [][3]float32
 }
 
 func (e *LightDef) Definition() string {
@@ -3730,6 +3731,7 @@ func (e *LightDef) Write(token *AsciiWriteToken) error {
 			fmt.Fprintf(w, "\t\tLIGHTLEVELS %0.8e\n", level)
 		}
 		fmt.Fprintf(w, "\tSLEEP? %s\n", wcVal(e.Sleep))
+		fmt.Fprintf(w, "\tHAVESKIPFRAMES %d\n", e.HaveSkipFrames)
 		fmt.Fprintf(w, "\tSKIPFRAMES %d\n", e.SkipFrames)
 		fmt.Fprintf(w, "\tNUMCOLORS %d\n", len(e.Colors))
 		for _, color := range e.Colors {
@@ -3782,6 +3784,14 @@ func (e *LightDef) Read(token *AsciiReadToken) error {
 	err = parse(&e.Sleep, records[1])
 	if err != nil {
 		return fmt.Errorf("sleep: %w", err)
+	}
+
+	records, err = token.ReadProperty("HAVESKIPFRAMES", 1)
+	if err != nil {
+		return err
+	}
+	if records[1] == "1" {
+		e.HaveSkipFrames = 1
 	}
 
 	records, err = token.ReadProperty("SKIPFRAMES", 1)
@@ -3838,9 +3848,10 @@ func (e *LightDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 		wfLightDef.Sleep = e.Sleep.Uint32
 	}
 
-	if len(e.LightLevels) > 0 {
+	wfLightDef.LightLevels = e.LightLevels
+
+	if e.HaveSkipFrames > 0 {
 		wfLightDef.Flags |= 0x04
-		wfLightDef.LightLevels = e.LightLevels
 	}
 
 	if e.SkipFrames > 0 {
@@ -3874,12 +3885,11 @@ func (e *LightDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragLight
 		e.Sleep.Valid = true
 		e.Sleep.Uint32 = frag.Sleep
 	}
+
+	e.LightLevels = frag.LightLevels
+
 	if frag.Flags&0x04 == 0x04 {
-		e.LightLevels = frag.LightLevels
-	} else {
-		if len(frag.LightLevels) > 0 {
-			return fmt.Errorf("light levels found but flag 0x04 not set")
-		}
+		e.HaveSkipFrames = 1
 	}
 
 	if frag.Flags&0x08 == 0x08 {

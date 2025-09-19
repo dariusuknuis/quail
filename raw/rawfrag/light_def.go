@@ -33,11 +33,11 @@ func (e *WldFragLightDef) Write(w io.Writer, isNewWorld bool) error {
 	if e.Flags&0x2 != 0 {
 		enc.Uint32(e.Sleep)
 	}
-	if e.Flags&0x4 != 0 {
-		for _, lightLevel := range e.LightLevels {
-			enc.Float32(lightLevel)
-		}
+
+	for _, lightLevel := range e.LightLevels {
+		enc.Float32(lightLevel)
 	}
+
 	if e.Flags&0x10 != 0 {
 		for _, color := range e.Colors {
 			enc.Float32(color[0])
@@ -63,11 +63,11 @@ func (e *WldFragLightDef) Read(r io.ReadSeeker, isNewWorld bool) error {
 	if e.Flags&0x2 != 0 {
 		e.Sleep = dec.Uint32()
 	}
-	if e.Flags&0x4 != 0 {
-		for i := uint32(0); i < frameCount; i++ {
-			e.LightLevels = append(e.LightLevels, dec.Float32())
-		}
+
+	for i := uint32(0); i < frameCount; i++ {
+		e.LightLevels = append(e.LightLevels, dec.Float32())
 	}
+
 	if e.Flags&0x10 != 0 {
 		for i := uint32(0); i < frameCount; i++ {
 			e.Colors = append(e.Colors, [3]float32{dec.Float32(), dec.Float32(), dec.Float32()})
