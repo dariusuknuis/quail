@@ -203,12 +203,12 @@ func (a *AsciiReadToken) readDefinitions() error {
 		&EqgAniDef{},
 		&AmbientLight{},
 		&BlitSpriteDef{},
+		&DefaultPalette{},
 		&DMSpriteDef{},
 		&DMSpriteDef2{},
 		&DMTrackDef2{},
 		&EQMaterialDef{},
 		&GlobalAmbientLightDef{},
-		&DefaultPalette{},
 		&HierarchicalSpriteDef{},
 		&EqgLayDef{},
 		&EqgParticlePointDef{},
@@ -233,6 +233,7 @@ func (a *AsciiReadToken) readDefinitions() error {
 		&Sprite3DDef{},
 		&TrackDef{},
 		&TrackInstance{},
+		&UserData{},
 		&WorldDef{folders: []string{"world"}},
 		&WorldTree{},
 		&Zone{},
@@ -296,6 +297,22 @@ func (a *AsciiReadToken) readDefinitions() error {
 				frag.PaletteFile = args[1]
 				a.wce.DefaultPalette = frag
 				definitions[i] = &DefaultPalette{}
+			case *UserData:
+				if len(args) == 1 {
+					return fmt.Errorf("definition %s has no arguments", defName)
+				}
+				frag.Data = args[1]
+				exists := false
+				for _, existing := range a.wce.UserDatas {
+					if existing.Data == frag.Data {
+						exists = true
+						break
+					}
+				}
+				if !exists {
+					a.wce.UserDatas = append(a.wce.UserDatas, frag)
+				}
+				definitions[i] = &UserData{}
 			case *BlitSpriteDef:
 				if len(args) == 1 {
 					return fmt.Errorf("definition %s has no arguments", defName)

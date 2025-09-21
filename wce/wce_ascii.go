@@ -109,6 +109,13 @@ func (wce *Wce) writeAsciiData(path string) error {
 		}
 	}
 
+	for _, userData := range wce.UserDatas {
+		err = userData.Write(token)
+		if err != nil {
+			return fmt.Errorf("userdata %s: %w", userData.Data, err)
+		}
+	}
+
 	for _, ambientLight := range wce.AmbientLights {
 		err = ambientLight.Write(token)
 		if err != nil {

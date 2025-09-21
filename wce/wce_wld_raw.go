@@ -80,6 +80,14 @@ func readRawFrag(e *Wce, rawWld *raw.Wld, fragment helper.FragmentReadWriter, fo
 			return fmt.Errorf("globalambientlightdef: %w", err)
 		}
 		e.GlobalAmbientLightDef = def
+	case rawfrag.FragCodeUserData:
+		def := &UserData{folders: folders}
+		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragUserData))
+		if err != nil {
+			return fmt.Errorf("userdata: %w", err)
+		}
+
+		e.UserDatas = append(e.UserDatas, def)
 	case rawfrag.FragCodeBMInfo:
 		return nil
 	case rawfrag.FragCodeSimpleSpriteDef:
@@ -336,6 +344,13 @@ func (wce *Wce) WriteWldRaw(w io.Writer) error {
 		_, err = wce.DefaultPalette.ToRaw(wce, dst)
 		if err != nil {
 			return fmt.Errorf("default palette file: %w", err)
+		}
+	}
+
+	for _, userData := range wce.UserDatas {
+		_, err = userData.ToRaw(wce, dst)
+		if err != nil {
+			return fmt.Errorf("userdata %s: %w", userData.Data, err)
 		}
 	}
 

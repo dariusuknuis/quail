@@ -195,12 +195,75 @@ func (e *DefaultPalette) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 }
 
 func (e *DefaultPalette) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragDefaultPaletteFile) error {
-	e.folders = []string{"ZONE"}
+	if frag == nil {
+		return fmt.Errorf("frag is not default palette (wrong fragcode?)")
+	}
+
+	//e.folders = []string{"ZONE"}
 	if wce.DefaultPalette != nil {
 		return fmt.Errorf("duplicate default palette found")
 	}
 	e.PaletteFile = frag.FileName
 	wce.DefaultPalette = e
+
+	return nil
+}
+
+// UserData is a declaration of USERDATA
+type UserData struct {
+	folders []string // when writing, this is the folder the file is in
+	fragID  int32
+	Data    string
+}
+
+func (e *UserData) Definition() string {
+	return "USERDATA"
+}
+
+func (e *UserData) Write(token *AsciiWriteToken) error {
+	for _, folder := range e.folders {
+		err := token.SetWriter(folder)
+		if err != nil {
+			return err
+		}
+		w, err := token.Writer()
+		if err != nil {
+			return err
+		}
+		fmt.Fprintf(w, "%s \"%s\"\n", e.Definition(), e.Data)
+		fmt.Fprintf(w, "\n")
+	}
+	e.folders = []string{}
+	return nil
+}
+
+func (e *UserData) Read(token *AsciiReadToken) error {
+	e.folders = append(e.folders, token.folder)
+
+	return nil
+}
+
+func (e *UserData) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
+	if e.fragID != 0 {
+		return e.fragID, nil
+	}
+	wfUserData := &rawfrag.WldFragUserData{
+		Data: e.Data,
+	}
+
+	rawWld.Fragments = append(rawWld.Fragments, wfUserData)
+	e.fragID = int32(len(rawWld.Fragments))
+	return int32(len(rawWld.Fragments)), nil
+}
+
+func (e *UserData) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragUserData) error {
+	if frag == nil {
+		return fmt.Errorf("frag is not userdata (wrong fragcode?)")
+	}
+
+	//e.folders = []string{"ZONE"}
+
+	e.Data = frag.Data
 
 	return nil
 }
