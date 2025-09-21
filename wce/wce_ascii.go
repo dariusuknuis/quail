@@ -102,6 +102,13 @@ func (wce *Wce) writeAsciiData(path string) error {
 		}
 	}
 
+	if wce.DefaultPalette != nil {
+		err = wce.DefaultPalette.Write(token)
+		if err != nil {
+			return fmt.Errorf("default palette file: %w", err)
+		}
+	}
+
 	for _, ambientLight := range wce.AmbientLights {
 		err = ambientLight.Write(token)
 		if err != nil {

@@ -292,6 +292,13 @@ func readRawFrag(e *Wce, rawWld *raw.Wld, fragment helper.FragmentReadWriter, fo
 		}
 		e.Sprite2DDefs = append(e.Sprite2DDefs, def)
 	case rawfrag.FragCodeSprite2D:
+	case rawfrag.FragCodeDefaultPaletteFile:
+		def := &DefaultPalette{folders: folders}
+		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragDefaultPaletteFile))
+		if err != nil {
+			return fmt.Errorf("default palette file: %w", err)
+		}
+		e.DefaultPalette = def
 	default:
 		return fmt.Errorf("unhandled fragment type %d (%s)", fragment.FragCode(), raw.FragName(fragment.FragCode()))
 	}
@@ -322,6 +329,13 @@ func (wce *Wce) WriteWldRaw(w io.Writer) error {
 		_, err = wce.GlobalAmbientLightDef.ToRaw(wce, dst)
 		if err != nil {
 			return fmt.Errorf("global ambient light: %w", err)
+		}
+	}
+
+	if wce.DefaultPalette != nil {
+		_, err = wce.DefaultPalette.ToRaw(wce, dst)
+		if err != nil {
+			return fmt.Errorf("default palette file: %w", err)
 		}
 	}
 

@@ -208,6 +208,7 @@ func (a *AsciiReadToken) readDefinitions() error {
 		&DMTrackDef2{},
 		&EQMaterialDef{},
 		&GlobalAmbientLightDef{},
+		&DefaultPalette{},
 		&HierarchicalSpriteDef{},
 		&EqgLayDef{},
 		&EqgParticlePointDef{},
@@ -285,6 +286,16 @@ func (a *AsciiReadToken) readDefinitions() error {
 				}
 				a.wce.GlobalAmbientLightDef = frag
 				definitions[i] = &GlobalAmbientLightDef{}
+			case *DefaultPalette:
+				if a.wce.DefaultPalette != nil {
+					return fmt.Errorf("duplicate default palette file")
+				}
+				if len(args) == 1 {
+					return fmt.Errorf("definition %s has no arguments", defName)
+				}
+				frag.PaletteFile = args[1]
+				a.wce.DefaultPalette = frag
+				definitions[i] = &DefaultPalette{}
 			case *BlitSpriteDef:
 				if len(args) == 1 {
 					return fmt.Errorf("definition %s has no arguments", defName)

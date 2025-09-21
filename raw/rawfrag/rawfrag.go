@@ -42,8 +42,8 @@ var (
 		0x1C: "Light",
 		0x1D: "PointLightOld",
 		0x1E: "PointLightOldDef",
-		0x1F: "Sound",
-		0x20: "SoundDef",
+		0x1F: "SoundDef",
+		0x20: "Sound",
 		0x21: "WorldTree",
 		0x22: "Region",
 		0x23: "ActiveGeoRegion",
@@ -102,8 +102,8 @@ const (
 	FragCodeLight                 = 0x1C // 28
 	FragCodePointLightOld         = 0x1D // 29
 	FragCodePointLightOldDef      = 0x1E // 30
-	FragCodeSound                 = 0x1F // 31
-	FragCodeSoundDef              = 0x20 // 32
+	FragCodeSoundDef              = 0x1F // 31
+	FragCodeSound                 = 0x20 // 32
 	FragCodeWorldTree             = 0x21 // 33 WORLDTREE
 	FragCodeRegion                = 0x22 // 34 REGION
 	FragCodeActiveGeoRegion       = 0x23 // 35
@@ -220,10 +220,10 @@ func NewFrag(r io.ReadSeeker) helper.FragmentReadWriter {
 		return &WldFragPointLightOld{}
 	case FragCodePointLightOldDef:
 		return &WldFragPointLightOldDef{}
-	case FragCodeSound:
-		return &WldFragSound{}
 	case FragCodeSoundDef:
 		return &WldFragSoundDef{}
+	case FragCodeSound:
+		return &WldFragSound{}
 	case FragCodeWorldTree:
 		return &WldFragWorldTree{}
 	case FragCodeRegion:

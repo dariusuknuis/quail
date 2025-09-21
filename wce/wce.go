@@ -28,6 +28,7 @@ type Wce struct {
 	ActorInsts             []*ActorInst
 	AmbientLights          []*AmbientLight
 	BlitSpriteDefs         []*BlitSpriteDef
+	DefaultPalette         *DefaultPalette
 	DMSpriteDef2s          []*DMSpriteDef2
 	DMSpriteDefs           []*DMSpriteDef
 	DMTrackDef2s           []*DMTrackDef2
@@ -321,6 +322,7 @@ func (wce *Wce) reset() {
 	wce.MaterialDefs = []*MaterialDef{}
 	wce.variationMaterialDefs = make(map[string][]*MaterialDef)
 	wce.MaterialPalettes = []*MaterialPalette{}
+	wce.DefaultPalette = nil
 	wce.DMSpriteDefs = []*DMSpriteDef{}
 	wce.DMSpriteDef2s = []*DMSpriteDef2{}
 	wce.ActorDefs = []*ActorDef{}

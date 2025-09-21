@@ -147,6 +147,64 @@ func (e *GlobalAmbientLightDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag
 	return nil
 }
 
+// DefaultPalette is a declaration of DEFAULTPALETTEFILE
+type DefaultPalette struct {
+	folders     []string // when writing, this is the folder the file is in
+	fragID      int32
+	PaletteFile string
+}
+
+func (e *DefaultPalette) Definition() string {
+	return "DEFAULTPALETTEFILE"
+}
+
+func (e *DefaultPalette) Write(token *AsciiWriteToken) error {
+	for _, folder := range e.folders {
+		err := token.SetWriter(folder)
+		if err != nil {
+			return err
+		}
+		w, err := token.Writer()
+		if err != nil {
+			return err
+		}
+		fmt.Fprintf(w, "%s \"%s\"\n", e.Definition(), e.PaletteFile)
+		fmt.Fprintf(w, "\n")
+	}
+	e.folders = []string{}
+	return nil
+}
+
+func (e *DefaultPalette) Read(token *AsciiReadToken) error {
+	e.folders = append(e.folders, token.folder)
+
+	return nil
+}
+
+func (e *DefaultPalette) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
+	if e.fragID != 0 {
+		return e.fragID, nil
+	}
+	wfDefaultPaletteFile := &rawfrag.WldFragDefaultPaletteFile{
+		FileName: e.PaletteFile,
+	}
+
+	rawWld.Fragments = append(rawWld.Fragments, wfDefaultPaletteFile)
+	e.fragID = int32(len(rawWld.Fragments))
+	return int32(len(rawWld.Fragments)), nil
+}
+
+func (e *DefaultPalette) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragDefaultPaletteFile) error {
+	e.folders = []string{"ZONE"}
+	if wce.DefaultPalette != nil {
+		return fmt.Errorf("duplicate default palette found")
+	}
+	e.PaletteFile = frag.FileName
+	wce.DefaultPalette = e
+
+	return nil
+}
+
 // DMSpriteDef2 is a declaration of DMSpriteDef2
 type DMSpriteDef2 struct {
 	folders              []string // when writing, this is the folder the file is in
@@ -893,49 +951,32 @@ func (e *DMSpriteDef2) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 		dmSpriteDef.Fragment3Ref = int32(dmRGBTrackRef)
 	}
 
-	if e.PolyhedronTag != "" { //&& (!strings.HasPrefix(e.Tag, "R") || !wld.isZone)
-		if strings.HasPrefix(e.Tag, "R") && wce.WorldDef.Zone == 1 {
-			if e.PolyhedronTag == "NEGATIVE_TWO" {
-				dmSpriteDef.Fragment4Ref = -2
-			}
-			if dmSpriteDef.Fragment4Ref != -2 {
-				return -1, fmt.Errorf("zone region polyhedron should be NEGATIVE_TWO, not %s", e.PolyhedronTag)
-			}
-			/* 			for i, frag := range rawWld.Fragments {
-				_, ok := frag.(*rawfrag.WldFragBMInfo)
-				if !ok {
-					continue
-				}
-				dmSpriteDef.Fragment4Ref = int32(i) + 1
-				break
-			} */
+	if e.PolyhedronTag != "" {
+		if e.PolyhedronTag == "NEGATIVE_TWO" {
+			dmSpriteDef.Fragment4Ref = -2
+		} else if e.PolyhedronTag == "SPECIAL_COLLISION" {
 		} else {
-			if e.PolyhedronTag == "NEGATIVE_TWO" {
-				dmSpriteDef.Fragment4Ref = -2
-			} else if e.PolyhedronTag == "SPECIAL_COLLISION" {
-			} else {
-				polyhedronFrag := wce.ByTag(e.PolyhedronTag)
-				if polyhedronFrag == nil {
-					return -1, fmt.Errorf("polyhedron %s not found", e.PolyhedronTag)
+			polyhedronFrag := wce.ByTag(e.PolyhedronTag)
+			if polyhedronFrag == nil {
+				return -1, fmt.Errorf("polyhedron %s not found", e.PolyhedronTag)
+			}
+
+			switch polyhedron := polyhedronFrag.(type) {
+			case *PolyhedronDefinition:
+
+				polyhedronRef, err := polyhedron.ToRaw(wce, rawWld)
+				if err != nil {
+					return -1, fmt.Errorf("polyhedron %s to raw: %w", e.PolyhedronTag, err)
 				}
 
-				switch polyhedron := polyhedronFrag.(type) {
-				case *PolyhedronDefinition:
-
-					polyhedronRef, err := polyhedron.ToRaw(wce, rawWld)
-					if err != nil {
-						return -1, fmt.Errorf("polyhedron %s to raw: %w", e.PolyhedronTag, err)
-					}
-
-					wfPoly := &rawfrag.WldFragPolyhedron{
-						FragmentRef: int32(polyhedronRef),
-					}
-					rawWld.Fragments = append(rawWld.Fragments, wfPoly)
-
-					dmSpriteDef.Fragment4Ref = int32(len(rawWld.Fragments))
-				default:
-					return -1, fmt.Errorf("polyhedrontag %T unhandled", polyhedron)
+				wfPoly := &rawfrag.WldFragPolyhedron{
+					FragmentRef: int32(polyhedronRef),
 				}
+				rawWld.Fragments = append(rawWld.Fragments, wfPoly)
+
+				dmSpriteDef.Fragment4Ref = int32(len(rawWld.Fragments))
+			default:
+				return -1, fmt.Errorf("polyhedrontag %T unhandled", polyhedron)
 			}
 		}
 
