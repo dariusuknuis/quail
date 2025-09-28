@@ -7483,8 +7483,8 @@ type ParticleCloudDef struct {
 	Tint                    [4]uint8
 	HighOpacity             int
 	FollowItem              int
-	HexEightyFlag           int
-	HexOneHundredFlag       int
+	Brownian                int
+	Fade                    int
 	HexFourHundredFlag      int
 	HexFourThousandFlag     int
 	HexEightThousandFlag    int
@@ -7544,8 +7544,8 @@ func (e *ParticleCloudDef) Write(token *AsciiWriteToken) error {
 		fmt.Fprintf(w, "\tSPAWNBOXMAX? %s\n", wcVal(e.SpawnBoxMax))
 		fmt.Fprintf(w, "\tBOXMIN? %s\n", wcVal(e.BoxMin))
 		fmt.Fprintf(w, "\tBOXMAX? %s\n", wcVal(e.BoxMax))
-		fmt.Fprintf(w, "\tHEXEIGHTYFLAG %d\n", e.HexEightyFlag)
-		fmt.Fprintf(w, "\tHEXONEHUNDREDFLAG %d\n", e.HexOneHundredFlag)
+		fmt.Fprintf(w, "\tBROWNIAN %d\n", e.Brownian)
+		fmt.Fprintf(w, "\tFADE %d\n", e.Fade)
 		fmt.Fprintf(w, "\tHEXFOURHUNDREDFLAG %d\n", e.HexFourHundredFlag)
 		fmt.Fprintf(w, "\tHEXFOURTHOUSANDFLAG %d\n", e.HexFourThousandFlag)
 		fmt.Fprintf(w, "\tHEXEIGHTTHOUSANDFLAG %d\n", e.HexEightThousandFlag)
@@ -7771,22 +7771,22 @@ func (e *ParticleCloudDef) Read(token *AsciiReadToken) error {
 		return fmt.Errorf("box max: %w", err)
 	}
 
-	records, err = token.ReadProperty("HEXEIGHTYFLAG", 1)
+	records, err = token.ReadProperty("BROWNIAN", 1)
 	if err != nil {
 		return err
 	}
-	err = parse(&e.HexEightyFlag, records[1])
+	err = parse(&e.Brownian, records[1])
 	if err != nil {
-		return fmt.Errorf("hex eighty flag: %w", err)
+		return fmt.Errorf("brownian: %w", err)
 	}
 
-	records, err = token.ReadProperty("HEXONEHUNDREDFLAG", 1)
+	records, err = token.ReadProperty("FADE", 1)
 	if err != nil {
 		return err
 	}
-	err = parse(&e.HexOneHundredFlag, records[1])
+	err = parse(&e.Fade, records[1])
 	if err != nil {
-		return fmt.Errorf("hex one hundred flag: %w", err)
+		return fmt.Errorf("fade %w", err)
 	}
 
 	records, err = token.ReadProperty("HEXFOURHUNDREDFLAG", 1)
@@ -7864,11 +7864,11 @@ func (e *ParticleCloudDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 		wfParticleCloud.PCloudFlags |= 0x02
 	}
 
-	if e.HexEightyFlag != 0 {
+	if e.Brownian != 0 {
 		wfParticleCloud.PCloudFlags |= 0x80
 	}
 
-	if e.HexOneHundredFlag != 0 {
+	if e.Fade != 0 {
 		wfParticleCloud.PCloudFlags |= 0x100
 	}
 
@@ -8000,10 +8000,10 @@ func (e *ParticleCloudDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldF
 		e.FollowItem = 1
 	}
 	if frag.PCloudFlags&0x80 != 0 {
-		e.HexEightyFlag = 1
+		e.Brownian = 1
 	}
 	if frag.PCloudFlags&0x100 != 0 {
-		e.HexOneHundredFlag = 1
+		e.Fade = 1
 	}
 	if frag.PCloudFlags&0x400 != 0 {
 		e.HexFourHundredFlag = 1

@@ -87,9 +87,11 @@ func (e *WldFragParticleCloudDef) Write(w io.Writer, isNewWorld bool) error {
 		enc.Float32(e.BoxMax[2])
 	}
 
-	if e.Flags&ParticleCloudFlagHasSpriteDef != 0 {
-		enc.Uint32(e.BlitSpriteRef)
-	}
+	// if e.Flags&ParticleCloudFlagHasSpriteDef != 0 {
+	// 	enc.Uint32(e.BlitSpriteRef)
+	// }
+
+	enc.Uint32(e.BlitSpriteRef)
 
 	err := enc.Error()
 	if err != nil {
