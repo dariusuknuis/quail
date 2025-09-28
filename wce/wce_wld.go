@@ -7496,9 +7496,9 @@ type ParticleCloudDef struct {
 	HexEightHundredFlag     int
 	HexOneThousandFlag      int
 	HexTwoThousandFlag      int
-	HexFourThousandFlag     int
-	HexEightThousandFlag    int
-	HexTenThousandFlag      int
+	ObjectRelative          int
+	ParentObjRelative       int
+	SpawnScaleRelative      int
 	HexTwentyThousandFlag   int
 	SpawnBoxMin             NullFloat32Slice3
 	SpawnBoxMax             NullFloat32Slice3
@@ -7567,9 +7567,9 @@ func (e *ParticleCloudDef) Write(token *AsciiWriteToken) error {
 		fmt.Fprintf(w, "\tHEXEIGHTHUNDREDFLAG %d\n", e.HexEightHundredFlag)
 		fmt.Fprintf(w, "\tHEXONETHOUSANDFLAG %d\n", e.HexOneThousandFlag)
 		fmt.Fprintf(w, "\tHEXTWOTHOUSANDFLAG %d\n", e.HexTwoThousandFlag)
-		fmt.Fprintf(w, "\tHEXFOURTHOUSANDFLAG %d\n", e.HexFourThousandFlag)
-		fmt.Fprintf(w, "\tHEXEIGHTTHOUSANDFLAG %d\n", e.HexEightThousandFlag)
-		fmt.Fprintf(w, "\tHEXTENTHOUSANDFLAG %d\n", e.HexTenThousandFlag)
+		fmt.Fprintf(w, "\tOBJECTRELATIVE %d\n", e.ObjectRelative)
+		fmt.Fprintf(w, "\tPARENTOBJRELATIVE %d\n", e.ParentObjRelative)
+		fmt.Fprintf(w, "\tSPAWNSCALERELATIVE %d\n", e.SpawnScaleRelative)
 		fmt.Fprintf(w, "\tHEXTWENTYTHOUSANDFLAG %d\n", e.HexTwentyThousandFlag)
 		fmt.Fprintf(w, "\n")
 	}
@@ -7909,29 +7909,29 @@ func (e *ParticleCloudDef) Read(token *AsciiReadToken) error {
 		return fmt.Errorf("hex two thousand flag: %w", err)
 	}
 
-	records, err = token.ReadProperty("HEXFOURTHOUSANDFLAG", 1)
+	records, err = token.ReadProperty("OBJECTRELATIVE", 1)
 	if err != nil {
 		return err
 	}
-	err = parse(&e.HexFourThousandFlag, records[1])
+	err = parse(&e.ObjectRelative, records[1])
 	if err != nil {
 		return fmt.Errorf("hex four thousand flag: %w", err)
 	}
 
-	records, err = token.ReadProperty("HEXEIGHTTHOUSANDFLAG", 1)
+	records, err = token.ReadProperty("PARENTOBJRELATIVE", 1)
 	if err != nil {
 		return err
 	}
-	err = parse(&e.HexEightThousandFlag, records[1])
+	err = parse(&e.ParentObjRelative, records[1])
 	if err != nil {
 		return fmt.Errorf("hex eight thousand flag: %w", err)
 	}
 
-	records, err = token.ReadProperty("HEXTENTHOUSANDFLAG", 1)
+	records, err = token.ReadProperty("SPAWNSCALERELATIVE", 1)
 	if err != nil {
 		return err
 	}
-	err = parse(&e.HexTenThousandFlag, records[1])
+	err = parse(&e.SpawnScaleRelative, records[1])
 	if err != nil {
 		return fmt.Errorf("hex ten thousand flag: %w", err)
 	}
@@ -8027,15 +8027,15 @@ func (e *ParticleCloudDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 		wfParticleCloud.PCloudFlags |= 0x2000
 	}
 
-	if e.HexFourThousandFlag != 0 {
+	if e.ObjectRelative != 0 {
 		wfParticleCloud.PCloudFlags |= 0x4000
 	}
 
-	if e.HexEightThousandFlag != 0 {
+	if e.ParentObjRelative != 0 {
 		wfParticleCloud.PCloudFlags |= 0x8000
 	}
 
-	if e.HexTenThousandFlag != 0 {
+	if e.SpawnScaleRelative != 0 {
 		wfParticleCloud.PCloudFlags |= 0x10000
 	}
 
@@ -8189,13 +8189,13 @@ func (e *ParticleCloudDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldF
 		e.HexTwoThousandFlag = 1
 	}
 	if frag.PCloudFlags&0x4000 != 0 {
-		e.HexFourThousandFlag = 1
+		e.ObjectRelative = 1
 	}
 	if frag.PCloudFlags&0x8000 != 0 {
-		e.HexEightThousandFlag = 1
+		e.ParentObjRelative = 1
 	}
 	if frag.PCloudFlags&0x10000 != 0 {
-		e.HexTenThousandFlag = 1
+		e.SpawnScaleRelative = 1
 	}
 	if frag.PCloudFlags&0x20000 != 0 {
 		e.HexTwentyThousandFlag = 1
