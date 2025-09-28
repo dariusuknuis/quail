@@ -37,7 +37,7 @@ type WldFragParticleCloudDef struct {
 	SpawnBoxMax             [3]float32
 	BoxMin                  [3]float32
 	BoxMax                  [3]float32
-	BlitSpriteRef           uint32
+	BlitSpriteRef           int32
 }
 
 func (e *WldFragParticleCloudDef) FragCode() int {
@@ -91,7 +91,7 @@ func (e *WldFragParticleCloudDef) Write(w io.Writer, isNewWorld bool) error {
 	// 	enc.Uint32(e.BlitSpriteRef)
 	// }
 
-	enc.Uint32(e.BlitSpriteRef)
+	enc.Int32(e.BlitSpriteRef)
 
 	err := enc.Error()
 	if err != nil {
@@ -129,9 +129,11 @@ func (e *WldFragParticleCloudDef) Read(r io.ReadSeeker, isNewWorld bool) error {
 		e.BoxMin = [3]float32{dec.Float32(), dec.Float32(), dec.Float32()}
 		e.BoxMax = [3]float32{dec.Float32(), dec.Float32(), dec.Float32()}
 	}
-	if e.Flags&ParticleCloudFlagHasSpriteDef != 0 {
-		e.BlitSpriteRef = dec.Uint32()
-	}
+	// if e.Flags&ParticleCloudFlagHasSpriteDef != 0 {
+	// 	e.BlitSpriteRef = dec.Int32()
+	// }
+	e.BlitSpriteRef = dec.Int32()
+
 	err := dec.Error()
 	if err != nil {
 		return fmt.Errorf("read: %w", err)

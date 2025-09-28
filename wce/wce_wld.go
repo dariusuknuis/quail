@@ -7481,11 +7481,21 @@ type ParticleCloudDef struct {
 	SpawnRate               uint32
 	SpawnScale              float32
 	Tint                    [4]uint8
+	UseSprite               int
 	HighOpacity             int
 	FollowItem              int
+	HexFourFlag             int
+	HexEightFlag            int
+	HexTenFlag              int
+	HexTwentyFlag           int
+	HexFortyFlag            int
 	Brownian                int
 	Fade                    int
+	HexTwoHundredFlag       int
 	HexFourHundredFlag      int
+	HexEightHundredFlag     int
+	HexOneThousandFlag      int
+	HexTwoThousandFlag      int
 	HexFourThousandFlag     int
 	HexEightThousandFlag    int
 	HexTenThousandFlag      int
@@ -7526,8 +7536,6 @@ func (e *ParticleCloudDef) Write(token *AsciiWriteToken) error {
 		fmt.Fprintf(w, "\tBLITTAG \"%s\"\n", e.BlitSpriteDefTag)
 		fmt.Fprintf(w, "\tPARTICLETYPE %d // 1: Single pixel, 2: Tails, 3 Blit?\n", e.ParticleType)
 		fmt.Fprintf(w, "\tMOVEMENT \"%s\" // SPHERE, PLANE, STREAM, NONE\n", e.SpawnType)
-		fmt.Fprintf(w, "\tHIGHOPACITY %d\n", e.HighOpacity)
-		fmt.Fprintf(w, "\tFOLLOWITEM %d\n", e.FollowItem)
 		fmt.Fprintf(w, "\tSIZE %d // Number of particles to emit\n", e.Size)
 		fmt.Fprintf(w, "\tGRAVITYMULTIPLIER %0.8e\n", e.GravityMultiplier)
 		fmt.Fprintf(w, "\tGRAVITY %0.8e %0.8e %0.8e\n", e.Gravity[0], e.Gravity[1], e.Gravity[2])
@@ -7544,9 +7552,21 @@ func (e *ParticleCloudDef) Write(token *AsciiWriteToken) error {
 		fmt.Fprintf(w, "\tSPAWNBOXMAX? %s\n", wcVal(e.SpawnBoxMax))
 		fmt.Fprintf(w, "\tBOXMIN? %s\n", wcVal(e.BoxMin))
 		fmt.Fprintf(w, "\tBOXMAX? %s\n", wcVal(e.BoxMax))
+		fmt.Fprintf(w, "\tUSESPRITE %d\n", e.UseSprite)
+		fmt.Fprintf(w, "\tHIGHOPACITY %d\n", e.HighOpacity)
+		fmt.Fprintf(w, "\tFOLLOWITEM %d\n", e.FollowItem)
+		fmt.Fprintf(w, "\tHEXFOURFLAG %d\n", e.HexFourFlag)
+		fmt.Fprintf(w, "\tHEXEIGHTFLAG %d\n", e.HexEightFlag)
+		fmt.Fprintf(w, "\tHEXTENFLAG %d\n", e.HexTenFlag)
+		fmt.Fprintf(w, "\tHEXTWENTYFLAG %d\n", e.HexTwentyFlag)
+		fmt.Fprintf(w, "\tHEXFORTYFLAG %d\n", e.HexFortyFlag)
 		fmt.Fprintf(w, "\tBROWNIAN %d\n", e.Brownian)
 		fmt.Fprintf(w, "\tFADE %d\n", e.Fade)
+		fmt.Fprintf(w, "\tHEXTWOHUNDREDFLAG %d\n", e.HexTwoHundredFlag)
 		fmt.Fprintf(w, "\tHEXFOURHUNDREDFLAG %d\n", e.HexFourHundredFlag)
+		fmt.Fprintf(w, "\tHEXEIGHTHUNDREDFLAG %d\n", e.HexEightHundredFlag)
+		fmt.Fprintf(w, "\tHEXONETHOUSANDFLAG %d\n", e.HexOneThousandFlag)
+		fmt.Fprintf(w, "\tHEXTWOTHOUSANDFLAG %d\n", e.HexTwoThousandFlag)
 		fmt.Fprintf(w, "\tHEXFOURTHOUSANDFLAG %d\n", e.HexFourThousandFlag)
 		fmt.Fprintf(w, "\tHEXEIGHTTHOUSANDFLAG %d\n", e.HexEightThousandFlag)
 		fmt.Fprintf(w, "\tHEXTENTHOUSANDFLAG %d\n", e.HexTenThousandFlag)
@@ -7591,25 +7611,6 @@ func (e *ParticleCloudDef) Read(token *AsciiReadToken) error {
 	}
 
 	e.SpawnType = records[1]
-
-	records, err = token.ReadProperty("HIGHOPACITY", 1)
-	if err != nil {
-		return err
-	}
-
-	err = parse(&e.HighOpacity, records[1])
-	if err != nil {
-		return fmt.Errorf("high opacity: %w", err)
-	}
-
-	records, err = token.ReadProperty("FOLLOWITEM", 1)
-	if err != nil {
-		return err
-	}
-	err = parse(&e.FollowItem, records[1])
-	if err != nil {
-		return fmt.Errorf("follow item: %w", err)
-	}
 
 	records, err = token.ReadProperty("SIZE", 1)
 	if err != nil {
@@ -7771,6 +7772,80 @@ func (e *ParticleCloudDef) Read(token *AsciiReadToken) error {
 		return fmt.Errorf("box max: %w", err)
 	}
 
+	records, err = token.ReadProperty("USESPRITE", 1)
+	if err != nil {
+		return err
+	}
+
+	err = parse(&e.UseSprite, records[1])
+	if err != nil {
+		return fmt.Errorf("use sprite: %w", err)
+	}
+
+	records, err = token.ReadProperty("HIGHOPACITY", 1)
+	if err != nil {
+		return err
+	}
+
+	err = parse(&e.HighOpacity, records[1])
+	if err != nil {
+		return fmt.Errorf("high opacity: %w", err)
+	}
+
+	records, err = token.ReadProperty("FOLLOWITEM", 1)
+	if err != nil {
+		return err
+	}
+	err = parse(&e.FollowItem, records[1])
+	if err != nil {
+		return fmt.Errorf("follow item: %w", err)
+	}
+
+	records, err = token.ReadProperty("HEXFOURFLAG", 1)
+	if err != nil {
+		return err
+	}
+	err = parse(&e.HexFourFlag, records[1])
+	if err != nil {
+		return fmt.Errorf("hex four flag: %w", err)
+	}
+
+	records, err = token.ReadProperty("HEXEIGHTFLAG", 1)
+	if err != nil {
+		return err
+	}
+	err = parse(&e.HexEightFlag, records[1])
+	if err != nil {
+		return fmt.Errorf("hex eight flag: %w", err)
+	}
+
+	records, err = token.ReadProperty("HEXTENFLAG", 1)
+	if err != nil {
+		return err
+	}
+	err = parse(&e.HexTenFlag, records[1])
+	if err != nil {
+		return fmt.Errorf("hex ten flag: %w", err)
+	}
+
+	records, err = token.ReadProperty("HEXTWENTYFLAG", 1)
+	if err != nil {
+		return err
+	}
+	err = parse(&e.HexTwentyFlag, records[1])
+	if err != nil {
+		return fmt.Errorf("hex twenty flag: %w", err)
+	}
+
+	records, err = token.ReadProperty("HEXFORTYFLAG", 1)
+	if err != nil {
+		return err
+	}
+	err = parse(&e.HexFortyFlag, records[1])
+	if err != nil {
+		return fmt.Errorf("hex forty flag: %w", err)
+	}
+
 	records, err = token.ReadProperty("BROWNIAN", 1)
 	if err != nil {
 		return err
@@ -7789,6 +7864,15 @@ func (e *ParticleCloudDef) Read(token *AsciiReadToken) error {
 		return fmt.Errorf("fade %w", err)
 	}
 
+	records, err = token.ReadProperty("HEXTWOHUNDREDFLAG", 1)
+	if err != nil {
+		return err
+	}
+	err = parse(&e.HexTwoHundredFlag, records[1])
+	if err != nil {
+		return fmt.Errorf("hex two hundred flag: %w", err)
+	}
+
 	records, err = token.ReadProperty("HEXFOURHUNDREDFLAG", 1)
 	if err != nil {
 		return err
@@ -7796,6 +7880,33 @@ func (e *ParticleCloudDef) Read(token *AsciiReadToken) error {
 	err = parse(&e.HexFourHundredFlag, records[1])
 	if err != nil {
 		return fmt.Errorf("hex four hundred flag: %w", err)
+	}
+
+	records, err = token.ReadProperty("HEXEIGHTHUNDREDFLAG", 1)
+	if err != nil {
+		return err
+	}
+	err = parse(&e.HexEightHundredFlag, records[1])
+	if err != nil {
+		return fmt.Errorf("hex eight hundred flag: %w", err)
+	}
+
+	records, err = token.ReadProperty("HEXONETHOUSANDFLAG", 1)
+	if err != nil {
+		return err
+	}
+	err = parse(&e.HexOneThousandFlag, records[1])
+	if err != nil {
+		return fmt.Errorf("hex one thousand flag: %w", err)
+	}
+
+	records, err = token.ReadProperty("HEXTWOTHOUSANDFLAG", 1)
+	if err != nil {
+		return err
+	}
+	err = parse(&e.HexTwoThousandFlag, records[1])
+	if err != nil {
+		return fmt.Errorf("hex two thousand flag: %w", err)
 	}
 
 	records, err = token.ReadProperty("HEXFOURTHOUSANDFLAG", 1)
@@ -7857,11 +7968,35 @@ func (e *ParticleCloudDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 		Tint:                    e.Tint,
 	}
 
+	if e.UseSprite != 0 {
+		wfParticleCloud.Flags |= rawfrag.ParticleCloudFlagHasSpriteDef
+	}
+
 	if e.HighOpacity != 0 {
 		wfParticleCloud.PCloudFlags |= 0x01
 	}
 	if e.FollowItem != 0 {
 		wfParticleCloud.PCloudFlags |= 0x02
+	}
+
+	if e.HexFourFlag != 0 {
+		wfParticleCloud.PCloudFlags |= 0x04
+	}
+
+	if e.HexEightFlag != 0 {
+		wfParticleCloud.PCloudFlags |= 0x08
+	}
+
+	if e.HexTenFlag != 0 {
+		wfParticleCloud.PCloudFlags |= 0x10
+	}
+
+	if e.HexTwentyFlag != 0 {
+		wfParticleCloud.PCloudFlags |= 0x20
+	}
+
+	if e.HexFortyFlag != 0 {
+		wfParticleCloud.PCloudFlags |= 0x40
 	}
 
 	if e.Brownian != 0 {
@@ -7872,8 +8007,24 @@ func (e *ParticleCloudDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 		wfParticleCloud.PCloudFlags |= 0x100
 	}
 
+	if e.HexTwoHundredFlag != 0 {
+		wfParticleCloud.PCloudFlags |= 0x200
+	}
+
 	if e.HexFourHundredFlag != 0 {
 		wfParticleCloud.PCloudFlags |= 0x400
+	}
+
+	if e.HexEightHundredFlag != 0 {
+		wfParticleCloud.PCloudFlags |= 0x800
+	}
+
+	if e.HexOneThousandFlag != 0 {
+		wfParticleCloud.PCloudFlags |= 0x1000
+	}
+
+	if e.HexTwoThousandFlag != 0 {
+		wfParticleCloud.PCloudFlags |= 0x2000
 	}
 
 	if e.HexFourThousandFlag != 0 {
@@ -7942,13 +8093,11 @@ func (e *ParticleCloudDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 			return 0, fmt.Errorf("blit sprite def to raw: %w", err)
 		}
 
-		blitSpriteDefRef := uint32(blitFragID)
+		blitSpriteDefRef := int32(blitFragID)
 
 		wfParticleCloud.BlitSpriteRef = blitSpriteDefRef
 
 		wfParticleCloud.SetNameRef(rawWld.NameAdd(e.Tag))
-
-		wfParticleCloud.Flags |= rawfrag.ParticleCloudFlagHasSpriteDef
 	}
 
 	rawWld.Fragments = append(rawWld.Fragments, wfParticleCloud)
@@ -7993,11 +8142,30 @@ func (e *ParticleCloudDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldF
 	e.SpawnScale = frag.SpawnScale
 	e.Tint = frag.Tint
 
+	if frag.Flags&rawfrag.ParticleCloudFlagHasSpriteDef != 0 {
+		e.UseSprite = 1
+	}
+
 	if frag.PCloudFlags&0x01 != 0 {
 		e.HighOpacity = 1
 	}
 	if frag.PCloudFlags&0x02 != 0 {
 		e.FollowItem = 1
+	}
+	if frag.PCloudFlags&0x4 != 0 {
+		e.HexFourFlag = 1
+	}
+	if frag.PCloudFlags&0x8 != 0 {
+		e.HexEightFlag = 1
+	}
+	if frag.PCloudFlags&0x10 != 0 {
+		e.HexTenFlag = 1
+	}
+	if frag.PCloudFlags&0x20 != 0 {
+		e.HexTwentyFlag = 1
+	}
+	if frag.PCloudFlags&0x40 != 0 {
+		e.HexFortyFlag = 1
 	}
 	if frag.PCloudFlags&0x80 != 0 {
 		e.Brownian = 1
@@ -8005,8 +8173,20 @@ func (e *ParticleCloudDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldF
 	if frag.PCloudFlags&0x100 != 0 {
 		e.Fade = 1
 	}
+	if frag.PCloudFlags&0x200 != 0 {
+		e.HexTwoHundredFlag = 1
+	}
 	if frag.PCloudFlags&0x400 != 0 {
 		e.HexFourHundredFlag = 1
+	}
+	if frag.PCloudFlags&0x800 != 0 {
+		e.HexEightHundredFlag = 1
+	}
+	if frag.PCloudFlags&0x1000 != 0 {
+		e.HexOneThousandFlag = 1
+	}
+	if frag.PCloudFlags&0x2000 != 0 {
+		e.HexTwoThousandFlag = 1
 	}
 	if frag.PCloudFlags&0x4000 != 0 {
 		e.HexFourThousandFlag = 1
@@ -8029,7 +8209,10 @@ func (e *ParticleCloudDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldF
 		e.BoxMin = NullFloat32Slice3{Valid: true, Float32Slice3: frag.BoxMin}
 		e.BoxMax = NullFloat32Slice3{Valid: true, Float32Slice3: frag.BoxMax}
 	}
-	if frag.Flags&rawfrag.ParticleCloudFlagHasSpriteDef != 0 {
+	if frag.BlitSpriteRef != 0 {
+		if len(rawWld.Fragments) < int(frag.BlitSpriteRef) {
+			return fmt.Errorf("blit sprite def ref %d out of bounds", frag.BlitSpriteRef)
+		}
 		bSprite, ok := rawWld.Fragments[frag.BlitSpriteRef].(*rawfrag.WldFragBlitSpriteDef)
 		if !ok {
 			return fmt.Errorf("blit sprite def ref %d not found", frag.BlitSpriteRef)
