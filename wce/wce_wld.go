@@ -7482,24 +7482,24 @@ type ParticleCloudDef struct {
 	SpawnScale              float32
 	Tint                    [4]uint8
 	UseSprite               int
-	HighOpacity             int
-	FollowItem              int
-	HexFourFlag             int
-	HexEightFlag            int
-	HexTenFlag              int
-	HexTwentyFlag           int
-	HexFortyFlag            int
+	Free                    int
+	Collison                int
+	Respawn                 int
+	ViewRelX                int
+	ViewRelY                int
+	ViewRelZ                int
+	ViewWarp                int
 	Brownian                int
 	Fade                    int
-	HexTwoHundredFlag       int
-	HexFourHundredFlag      int
-	HexEightHundredFlag     int
-	HexOneThousandFlag      int
-	HexTwoThousandFlag      int
+	BoundingBox             int
+	UpdateBBox              int
+	PointGravity            int
+	PCloudFlagGravity       int
+	FreeDef                 int
 	ObjectRelative          int
 	ParentObjRelative       int
 	SpawnScaleRelative      int
-	HexTwentyThousandFlag   int
+	HideWithSpawnObject     int
 	SpawnBoxMin             NullFloat32Slice3
 	SpawnBoxMax             NullFloat32Slice3
 	BoxMin                  NullFloat32Slice3
@@ -7553,24 +7553,24 @@ func (e *ParticleCloudDef) Write(token *AsciiWriteToken) error {
 		fmt.Fprintf(w, "\tBOXMIN? %s\n", wcVal(e.BoxMin))
 		fmt.Fprintf(w, "\tBOXMAX? %s\n", wcVal(e.BoxMax))
 		fmt.Fprintf(w, "\tUSESPRITE %d\n", e.UseSprite)
-		fmt.Fprintf(w, "\tHIGHOPACITY %d\n", e.HighOpacity)
-		fmt.Fprintf(w, "\tFOLLOWITEM %d\n", e.FollowItem)
-		fmt.Fprintf(w, "\tHEXFOURFLAG %d\n", e.HexFourFlag)
-		fmt.Fprintf(w, "\tHEXEIGHTFLAG %d\n", e.HexEightFlag)
-		fmt.Fprintf(w, "\tHEXTENFLAG %d\n", e.HexTenFlag)
-		fmt.Fprintf(w, "\tHEXTWENTYFLAG %d\n", e.HexTwentyFlag)
-		fmt.Fprintf(w, "\tHEXFORTYFLAG %d\n", e.HexFortyFlag)
+		fmt.Fprintf(w, "\tFREE %d\n", e.Free)
+		fmt.Fprintf(w, "\tCOLLISION %d\n", e.Collison)
+		fmt.Fprintf(w, "\tRESPAWN %d\n", e.Respawn)
+		fmt.Fprintf(w, "\tVIEWRELX %d\n", e.ViewRelX)
+		fmt.Fprintf(w, "\tVIEWRELY %d\n", e.ViewRelY)
+		fmt.Fprintf(w, "\tVIEWRELZ %d\n", e.ViewRelZ)
+		fmt.Fprintf(w, "\tVIEWWARP %d\n", e.ViewWarp)
 		fmt.Fprintf(w, "\tBROWNIAN %d\n", e.Brownian)
 		fmt.Fprintf(w, "\tFADE %d\n", e.Fade)
-		fmt.Fprintf(w, "\tHEXTWOHUNDREDFLAG %d\n", e.HexTwoHundredFlag)
-		fmt.Fprintf(w, "\tHEXFOURHUNDREDFLAG %d\n", e.HexFourHundredFlag)
-		fmt.Fprintf(w, "\tHEXEIGHTHUNDREDFLAG %d\n", e.HexEightHundredFlag)
-		fmt.Fprintf(w, "\tHEXONETHOUSANDFLAG %d\n", e.HexOneThousandFlag)
-		fmt.Fprintf(w, "\tHEXTWOTHOUSANDFLAG %d\n", e.HexTwoThousandFlag)
+		fmt.Fprintf(w, "\tBOUNDINGBOX %d\n", e.BoundingBox)
+		fmt.Fprintf(w, "\tUPDATEBBOX %d\n", e.UpdateBBox)
+		fmt.Fprintf(w, "\tPOINTGRAVITY %d\n", e.PointGravity)
+		fmt.Fprintf(w, "\tGRAVITYFLAG %d\n", e.PCloudFlagGravity)
+		fmt.Fprintf(w, "\tFREEDEF %d\n", e.FreeDef)
 		fmt.Fprintf(w, "\tOBJECTRELATIVE %d\n", e.ObjectRelative)
 		fmt.Fprintf(w, "\tPARENTOBJRELATIVE %d\n", e.ParentObjRelative)
 		fmt.Fprintf(w, "\tSPAWNSCALERELATIVE %d\n", e.SpawnScaleRelative)
-		fmt.Fprintf(w, "\tHEXTWENTYTHOUSANDFLAG %d\n", e.HexTwentyThousandFlag)
+		fmt.Fprintf(w, "\tHIDEWITHSPAWNOBJECT %d\n", e.HideWithSpawnObject)
 		fmt.Fprintf(w, "\n")
 	}
 	e.folders = []string{}
@@ -7782,68 +7782,68 @@ func (e *ParticleCloudDef) Read(token *AsciiReadToken) error {
 		return fmt.Errorf("use sprite: %w", err)
 	}
 
-	records, err = token.ReadProperty("HIGHOPACITY", 1)
+	records, err = token.ReadProperty("FREE", 1)
 	if err != nil {
 		return err
 	}
 
-	err = parse(&e.HighOpacity, records[1])
+	err = parse(&e.Free, records[1])
 	if err != nil {
-		return fmt.Errorf("high opacity: %w", err)
+		return fmt.Errorf("free: %w", err)
 	}
 
-	records, err = token.ReadProperty("FOLLOWITEM", 1)
+	records, err = token.ReadProperty("COLLISION", 1)
 	if err != nil {
 		return err
 	}
-	err = parse(&e.FollowItem, records[1])
+	err = parse(&e.Collison, records[1])
 	if err != nil {
-		return fmt.Errorf("follow item: %w", err)
+		return fmt.Errorf("collision: %w", err)
 	}
 
-	records, err = token.ReadProperty("HEXFOURFLAG", 1)
+	records, err = token.ReadProperty("RESPAWN", 1)
 	if err != nil {
 		return err
 	}
-	err = parse(&e.HexFourFlag, records[1])
+	err = parse(&e.Respawn, records[1])
 	if err != nil {
-		return fmt.Errorf("hex four flag: %w", err)
+		return fmt.Errorf("respawn: %w", err)
 	}
 
-	records, err = token.ReadProperty("HEXEIGHTFLAG", 1)
+	records, err = token.ReadProperty("VIEWRELX", 1)
 	if err != nil {
 		return err
 	}
-	err = parse(&e.HexEightFlag, records[1])
+	err = parse(&e.ViewRelX, records[1])
 	if err != nil {
-		return fmt.Errorf("hex eight flag: %w", err)
+		return fmt.Errorf("view rel x: %w", err)
 	}
 
-	records, err = token.ReadProperty("HEXTENFLAG", 1)
+	records, err = token.ReadProperty("VIEWRELY", 1)
 	if err != nil {
 		return err
 	}
-	err = parse(&e.HexTenFlag, records[1])
+	err = parse(&e.ViewRelY, records[1])
 	if err != nil {
-		return fmt.Errorf("hex ten flag: %w", err)
+		return fmt.Errorf("view rel y: %w", err)
 	}
 
-	records, err = token.ReadProperty("HEXTWENTYFLAG", 1)
+	records, err = token.ReadProperty("VIEWRELZ", 1)
 	if err != nil {
 		return err
 	}
-	err = parse(&e.HexTwentyFlag, records[1])
+	err = parse(&e.ViewRelZ, records[1])
 	if err != nil {
-		return fmt.Errorf("hex twenty flag: %w", err)
+		return fmt.Errorf("view rel y: %w", err)
 	}
 
-	records, err = token.ReadProperty("HEXFORTYFLAG", 1)
+	records, err = token.ReadProperty("VIEWWARP", 1)
 	if err != nil {
 		return err
 	}
-	err = parse(&e.HexFortyFlag, records[1])
+	err = parse(&e.ViewWarp, records[1])
 	if err != nil {
-		return fmt.Errorf("hex forty flag: %w", err)
+		return fmt.Errorf("view warp: %w", err)
 	}
 
 	records, err = token.ReadProperty("BROWNIAN", 1)
@@ -7864,49 +7864,49 @@ func (e *ParticleCloudDef) Read(token *AsciiReadToken) error {
 		return fmt.Errorf("fade %w", err)
 	}
 
-	records, err = token.ReadProperty("HEXTWOHUNDREDFLAG", 1)
+	records, err = token.ReadProperty("BOUNDINGBOX", 1)
 	if err != nil {
 		return err
 	}
-	err = parse(&e.HexTwoHundredFlag, records[1])
+	err = parse(&e.BoundingBox, records[1])
 	if err != nil {
-		return fmt.Errorf("hex two hundred flag: %w", err)
+		return fmt.Errorf("bounding box: %w", err)
 	}
 
-	records, err = token.ReadProperty("HEXFOURHUNDREDFLAG", 1)
+	records, err = token.ReadProperty("UPDATEBBOX", 1)
 	if err != nil {
 		return err
 	}
-	err = parse(&e.HexFourHundredFlag, records[1])
+	err = parse(&e.UpdateBBox, records[1])
 	if err != nil {
-		return fmt.Errorf("hex four hundred flag: %w", err)
+		return fmt.Errorf("update b box: %w", err)
 	}
 
-	records, err = token.ReadProperty("HEXEIGHTHUNDREDFLAG", 1)
+	records, err = token.ReadProperty("POINTGRAVITY", 1)
 	if err != nil {
 		return err
 	}
-	err = parse(&e.HexEightHundredFlag, records[1])
+	err = parse(&e.PointGravity, records[1])
 	if err != nil {
-		return fmt.Errorf("hex eight hundred flag: %w", err)
+		return fmt.Errorf("point gravity: %w", err)
 	}
 
-	records, err = token.ReadProperty("HEXONETHOUSANDFLAG", 1)
+	records, err = token.ReadProperty("GRAVITYFLAG", 1)
 	if err != nil {
 		return err
 	}
-	err = parse(&e.HexOneThousandFlag, records[1])
+	err = parse(&e.PCloudFlagGravity, records[1])
 	if err != nil {
-		return fmt.Errorf("hex one thousand flag: %w", err)
+		return fmt.Errorf("pc cloud flag gravity: %w", err)
 	}
 
-	records, err = token.ReadProperty("HEXTWOTHOUSANDFLAG", 1)
+	records, err = token.ReadProperty("FREEDEF", 1)
 	if err != nil {
 		return err
 	}
-	err = parse(&e.HexTwoThousandFlag, records[1])
+	err = parse(&e.FreeDef, records[1])
 	if err != nil {
-		return fmt.Errorf("hex two thousand flag: %w", err)
+		return fmt.Errorf("free def: %w", err)
 	}
 
 	records, err = token.ReadProperty("OBJECTRELATIVE", 1)
@@ -7915,7 +7915,7 @@ func (e *ParticleCloudDef) Read(token *AsciiReadToken) error {
 	}
 	err = parse(&e.ObjectRelative, records[1])
 	if err != nil {
-		return fmt.Errorf("hex four thousand flag: %w", err)
+		return fmt.Errorf("object relative: %w", err)
 	}
 
 	records, err = token.ReadProperty("PARENTOBJRELATIVE", 1)
@@ -7924,7 +7924,7 @@ func (e *ParticleCloudDef) Read(token *AsciiReadToken) error {
 	}
 	err = parse(&e.ParentObjRelative, records[1])
 	if err != nil {
-		return fmt.Errorf("hex eight thousand flag: %w", err)
+		return fmt.Errorf("parent object relative: %w", err)
 	}
 
 	records, err = token.ReadProperty("SPAWNSCALERELATIVE", 1)
@@ -7933,16 +7933,16 @@ func (e *ParticleCloudDef) Read(token *AsciiReadToken) error {
 	}
 	err = parse(&e.SpawnScaleRelative, records[1])
 	if err != nil {
-		return fmt.Errorf("hex ten thousand flag: %w", err)
+		return fmt.Errorf("spawn scale relative: %w", err)
 	}
 
-	records, err = token.ReadProperty("HEXTWENTYTHOUSANDFLAG", 1)
+	records, err = token.ReadProperty("HIDEWITHSPAWNOBJECT", 1)
 	if err != nil {
 		return err
 	}
-	err = parse(&e.HexTwentyThousandFlag, records[1])
+	err = parse(&e.HideWithSpawnObject, records[1])
 	if err != nil {
-		return fmt.Errorf("hex twenty thousand flag: %w", err)
+		return fmt.Errorf("hide with spawn object: %w", err)
 	}
 
 	return nil
@@ -7972,30 +7972,30 @@ func (e *ParticleCloudDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 		wfParticleCloud.Flags |= rawfrag.ParticleCloudFlagHasSpriteDef
 	}
 
-	if e.HighOpacity != 0 {
+	if e.Free != 0 {
 		wfParticleCloud.PCloudFlags |= 0x01
 	}
-	if e.FollowItem != 0 {
+	if e.Collison != 0 {
 		wfParticleCloud.PCloudFlags |= 0x02
 	}
 
-	if e.HexFourFlag != 0 {
+	if e.Respawn != 0 {
 		wfParticleCloud.PCloudFlags |= 0x04
 	}
 
-	if e.HexEightFlag != 0 {
+	if e.ViewRelX != 0 {
 		wfParticleCloud.PCloudFlags |= 0x08
 	}
 
-	if e.HexTenFlag != 0 {
+	if e.ViewRelY != 0 {
 		wfParticleCloud.PCloudFlags |= 0x10
 	}
 
-	if e.HexTwentyFlag != 0 {
+	if e.ViewRelZ != 0 {
 		wfParticleCloud.PCloudFlags |= 0x20
 	}
 
-	if e.HexFortyFlag != 0 {
+	if e.ViewWarp != 0 {
 		wfParticleCloud.PCloudFlags |= 0x40
 	}
 
@@ -8007,23 +8007,23 @@ func (e *ParticleCloudDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 		wfParticleCloud.PCloudFlags |= 0x100
 	}
 
-	if e.HexTwoHundredFlag != 0 {
+	if e.BoundingBox != 0 {
 		wfParticleCloud.PCloudFlags |= 0x200
 	}
 
-	if e.HexFourHundredFlag != 0 {
+	if e.UpdateBBox != 0 {
 		wfParticleCloud.PCloudFlags |= 0x400
 	}
 
-	if e.HexEightHundredFlag != 0 {
+	if e.PointGravity != 0 {
 		wfParticleCloud.PCloudFlags |= 0x800
 	}
 
-	if e.HexOneThousandFlag != 0 {
+	if e.PCloudFlagGravity != 0 {
 		wfParticleCloud.PCloudFlags |= 0x1000
 	}
 
-	if e.HexTwoThousandFlag != 0 {
+	if e.FreeDef != 0 {
 		wfParticleCloud.PCloudFlags |= 0x2000
 	}
 
@@ -8039,7 +8039,7 @@ func (e *ParticleCloudDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 		wfParticleCloud.PCloudFlags |= 0x10000
 	}
 
-	if e.HexTwentyThousandFlag != 0 {
+	if e.HideWithSpawnObject != 0 {
 		wfParticleCloud.PCloudFlags |= 0x20000
 	}
 
@@ -8147,25 +8147,25 @@ func (e *ParticleCloudDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldF
 	}
 
 	if frag.PCloudFlags&0x01 != 0 {
-		e.HighOpacity = 1
+		e.Free = 1
 	}
 	if frag.PCloudFlags&0x02 != 0 {
-		e.FollowItem = 1
+		e.Collison = 1
 	}
 	if frag.PCloudFlags&0x4 != 0 {
-		e.HexFourFlag = 1
+		e.Respawn = 1
 	}
 	if frag.PCloudFlags&0x8 != 0 {
-		e.HexEightFlag = 1
+		e.ViewRelX = 1
 	}
 	if frag.PCloudFlags&0x10 != 0 {
-		e.HexTenFlag = 1
+		e.ViewRelY = 1
 	}
 	if frag.PCloudFlags&0x20 != 0 {
-		e.HexTwentyFlag = 1
+		e.ViewRelZ = 1
 	}
 	if frag.PCloudFlags&0x40 != 0 {
-		e.HexFortyFlag = 1
+		e.ViewWarp = 1
 	}
 	if frag.PCloudFlags&0x80 != 0 {
 		e.Brownian = 1
@@ -8174,19 +8174,19 @@ func (e *ParticleCloudDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldF
 		e.Fade = 1
 	}
 	if frag.PCloudFlags&0x200 != 0 {
-		e.HexTwoHundredFlag = 1
+		e.BoundingBox = 1
 	}
 	if frag.PCloudFlags&0x400 != 0 {
-		e.HexFourHundredFlag = 1
+		e.UpdateBBox = 1
 	}
 	if frag.PCloudFlags&0x800 != 0 {
-		e.HexEightHundredFlag = 1
+		e.PointGravity = 1
 	}
 	if frag.PCloudFlags&0x1000 != 0 {
-		e.HexOneThousandFlag = 1
+		e.PCloudFlagGravity = 1
 	}
 	if frag.PCloudFlags&0x2000 != 0 {
-		e.HexTwoThousandFlag = 1
+		e.FreeDef = 1
 	}
 	if frag.PCloudFlags&0x4000 != 0 {
 		e.ObjectRelative = 1
@@ -8198,7 +8198,7 @@ func (e *ParticleCloudDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldF
 		e.SpawnScaleRelative = 1
 	}
 	if frag.PCloudFlags&0x20000 != 0 {
-		e.HexTwentyThousandFlag = 1
+		e.HideWithSpawnObject = 1
 	}
 
 	if frag.Flags&rawfrag.ParticleCloudFlagHasSpawnBox != 0 {
