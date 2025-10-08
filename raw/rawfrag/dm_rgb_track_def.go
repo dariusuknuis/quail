@@ -26,9 +26,6 @@ func (e *WldFragDmRGBTrackDef) Write(w io.Writer, isNewWorld bool) error {
 	enc := encdec.NewEncoder(w, binary.LittleEndian)
 
 	enc.Int32(e.nameRef)
-	if e.Flags == 0 {
-		e.Flags = 1
-	}
 	enc.Uint32(e.Flags)
 	if len(e.RGBAFrames) < 1 {
 		return fmt.Errorf("no frames found")
