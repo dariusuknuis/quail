@@ -24,7 +24,7 @@ type WldFragThreeDSpriteBspNode struct {
 	BackTree                    uint32
 	VertexIndexes               []uint32
 	RenderMethod                uint32
-	RenderFlags                 uint8
+	RenderFlags                 uint32
 	RenderPen                   uint32
 	RenderBrightness            float32
 	RenderScaledAmbient         float32
@@ -33,6 +33,7 @@ type WldFragThreeDSpriteBspNode struct {
 	RenderUVInfoUAxis           [3]float32
 	RenderUVInfoVAxis           [3]float32
 	Uvs                         [][2]float32
+	Normal                      [4]float32
 }
 
 func (e *WldFragSprite3DDef) FragCode() int {
@@ -68,7 +69,7 @@ func (e *WldFragSprite3DDef) Write(w io.Writer, isNewWorld bool) error {
 		}
 
 		enc.Uint32(node.RenderMethod)
-		enc.Uint8(node.RenderFlags)
+		enc.Uint32(node.RenderFlags)
 
 		if node.RenderFlags&0x01 == 0x01 {
 			enc.Uint32(node.RenderPen)
@@ -100,12 +101,14 @@ func (e *WldFragSprite3DDef) Write(w io.Writer, isNewWorld bool) error {
 				enc.Float32(uv[1])
 			}
 		}
+		if e.Flags&0x40 == 0x40 {
+			enc.Float32(node.Normal[0])
+			enc.Float32(node.Normal[1])
+			enc.Float32(node.Normal[2])
+			enc.Float32(node.Normal[3])
+		}
 		// two sided is 0x40 on flag, not needed to write
 	}
-	enc.Byte(0x00)
-	enc.Byte(0x00)
-	enc.Byte(0x00)
-
 	err := enc.Error()
 	if err != nil {
 		return fmt.Errorf("write: %w", err)
@@ -141,7 +144,7 @@ func (e *WldFragSprite3DDef) Read(r io.ReadSeeker, isNewWorld bool) error {
 			node.VertexIndexes = append(node.VertexIndexes, dec.Uint32())
 		}
 		node.RenderMethod = dec.Uint32()
-		node.RenderFlags = dec.Uint8()
+		node.RenderFlags = dec.Uint32()
 
 		if node.RenderFlags&0x01 == 0x01 {
 			node.RenderPen = dec.Uint32()
@@ -173,8 +176,15 @@ func (e *WldFragSprite3DDef) Read(r io.ReadSeeker, isNewWorld bool) error {
 				node.Uvs = append(node.Uvs, u)
 			}
 		}
+		if e.Flags&0x40 == 0x40 {
+			node.Normal[0] = dec.Float32()
+			node.Normal[1] = dec.Float32()
+			node.Normal[2] = dec.Float32()
+			node.Normal[3] = dec.Float32()
+		}
 		e.BspNodes = append(e.BspNodes, node)
 	}
+
 	err := dec.Error()
 	if err != nil {
 		return fmt.Errorf("read: %w", err)

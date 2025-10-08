@@ -4264,6 +4264,7 @@ type Sprite3DDef struct {
 	Tag            string
 	CenterOffset   NullFloat32Slice3
 	BoundingRadius NullFloat32
+	EnableGouraud2 int
 	SphereListTag  string
 	Vertices       [][3]float32
 	BSPNodes       []*BSPNode
@@ -4271,19 +4272,24 @@ type Sprite3DDef struct {
 
 // BSPNode is a declaration of BSPNODE
 type BSPNode struct {
-	Vertices      []uint32
-	RenderMethod  string
-	Pen           NullUint32
-	Brightness    NullFloat32
-	ScaledAmbient NullFloat32
-	SpriteTag     NullString
-	UvOrigin      NullFloat32Slice3
-	UAxis         NullFloat32Slice3
-	VAxis         NullFloat32Slice3
-	Uvs           [][2]float32
-	TwoSided      int
-	FrontTree     uint32
-	BackTree      uint32
+	Vertices                   []uint32
+	RenderMethod               string
+	Pen                        NullUint32
+	Brightness                 NullFloat32
+	ScaledAmbient              NullFloat32
+	SimpleSpriteTag            NullString
+	SimpleSpriteTagIndex       int
+	SimpleSpriteHaveSkipFrames int //0x10 sprite flag, lets 0x40 be read.
+	SimpleSpriteSkipFrames     int //0x40 sprite flag
+	UvOrigin                   NullFloat32Slice3
+	UAxis                      NullFloat32Slice3
+	VAxis                      NullFloat32Slice3
+	UVCount                    NullInt32
+	Uvs                        [][2]float32
+	TwoSided                   int
+	FrontTree                  uint32
+	BackTree                   uint32
+	Normal                     NullFloat32Slice4
 }
 
 func (e *Sprite3DDef) Definition() string {
@@ -4302,8 +4308,8 @@ func (e *Sprite3DDef) Write(token *AsciiWriteToken) error {
 		}
 
 		fmt.Fprintf(w, "%s \"%s\"\n", e.Definition(), e.Tag)
+		fmt.Fprintf(w, "\tENABLEGOURAUD2 %d\n", e.EnableGouraud2)
 		fmt.Fprintf(w, "\tCENTEROFFSET? %s\n", wcVal(e.CenterOffset))
-		fmt.Fprintf(w, "\tBOUNDINGRADIUS? %s\n", wcVal(e.BoundingRadius))
 		fmt.Fprintf(w, "\tSPHERELIST \"%s\"\n", e.SphereListTag)
 		fmt.Fprintf(w, "\tNUMVERTICES %d\n", len(e.Vertices))
 		for _, vert := range e.Vertices {
@@ -4312,28 +4318,36 @@ func (e *Sprite3DDef) Write(token *AsciiWriteToken) error {
 		fmt.Fprintf(w, "\tNUMBSPNODES %d\n", len(e.BSPNodes))
 		for i, node := range e.BSPNodes {
 			fmt.Fprintf(w, "\t\tBSPNODE //%d\n", i)
+			fmt.Fprintf(w, "\t\t\tNORMALABCD? %s\n", wcVal(node.Normal))
 			fmt.Fprintf(w, "\t\t\tVERTEXLIST %d", len(node.Vertices))
 			for _, vert := range node.Vertices {
 				fmt.Fprintf(w, " %d", vert)
 			}
 			fmt.Fprintf(w, "\n")
-			fmt.Fprintf(w, "\t\tRENDERMETHOD \"%s\"\n", node.RenderMethod)
-			fmt.Fprintf(w, "\t\tRENDERINFO\n")
-			fmt.Fprintf(w, "\t\t\tPEN? %s\n", wcVal(node.Pen))
-			fmt.Fprintf(w, "\t\t\tBRIGHTNESS? %s\n", wcVal(node.Brightness))
-			fmt.Fprintf(w, "\t\t\tSCALEDAMBIENT? %s\n", wcVal(node.ScaledAmbient))
-			fmt.Fprintf(w, "\t\t\tSPRITE? \"%s\"\n", wcVal(node.SpriteTag))
-			fmt.Fprintf(w, "\t\t\tUVORIGIN? %s\n", wcVal(node.UvOrigin))
-			fmt.Fprintf(w, "\t\t\tUAXIS? %s\n", wcVal(node.UAxis))
-			fmt.Fprintf(w, "\t\t\tVAXIS? %s\n", wcVal(node.VAxis))
-			fmt.Fprintf(w, "\t\t\tUVCOUNT %d\n", len(node.Uvs))
-			for _, uv := range node.Uvs {
-				fmt.Fprintf(w, "\t\t\tUV %s\n", wcVal(uv))
+			fmt.Fprintf(w, "\t\t\tRENDERMETHOD \"%s\"\n", node.RenderMethod)
+			fmt.Fprintf(w, "\t\t\tRENDERINFO\n")
+			fmt.Fprintf(w, "\t\t\t\tPEN? %s\n", wcVal(node.Pen))
+			fmt.Fprintf(w, "\t\t\t\tBRIGHTNESS? %s\n", wcVal(node.Brightness))
+			fmt.Fprintf(w, "\t\t\t\tSCALEDAMBIENT? %s\n", wcVal(node.ScaledAmbient))
+			fmt.Fprintf(w, "\t\t\t\tSIMPLESPRITEINST\n")
+			fmt.Fprintf(w, "\t\t\t\t\tSIMPLESPRITETAG? \"%s\"\n", wcVal(node.SimpleSpriteTag))
+			fmt.Fprintf(w, "\t\t\t\t\tSIMPLESPRITETAGINDEX %d\n", node.SimpleSpriteTagIndex)
+			fmt.Fprintf(w, "\t\t\t\t\tSIMPLESPRITEHAVESKIPFRAMES %d\n", node.SimpleSpriteHaveSkipFrames)
+			fmt.Fprintf(w, "\t\t\t\t\tSIMPLESPRITESKIPFRAMES %d\n", node.SimpleSpriteSkipFrames)
+			fmt.Fprintf(w, "\t\t\t\tUVORIGIN? %s\n", wcVal(node.UvOrigin))
+			fmt.Fprintf(w, "\t\t\t\tUAXIS? %s\n", wcVal(node.UAxis))
+			fmt.Fprintf(w, "\t\t\t\tVAXIS? %s\n", wcVal(node.VAxis))
+			fmt.Fprintf(w, "\t\t\t\tNUMUVS? %s\n", wcVal(node.UVCount))
+			if node.UVCount.Valid && node.UVCount.Int32 > 0 {
+				for _, uv := range node.Uvs {
+					fmt.Fprintf(w, "\t\t\t\t\tUV %0.8e %0.8e\n", uv[0], uv[1])
+				}
 			}
-			fmt.Fprintf(w, "\t\t\tTWOSIDED %d\n", node.TwoSided)
-			fmt.Fprintf(w, "\t\tFRONTTREE %d\n", node.FrontTree)
-			fmt.Fprintf(w, "\t\tBACKTREE %d\n", node.BackTree)
+			fmt.Fprintf(w, "\t\t\t\tTWOSIDED %d\n", node.TwoSided)
+			fmt.Fprintf(w, "\t\t\tFRONTTREE %d\n", node.FrontTree)
+			fmt.Fprintf(w, "\t\t\tBACKTREE %d\n", node.BackTree)
 		}
+		fmt.Fprintf(w, "\tBOUNDINGRADIUS? %s\n", wcVal(e.BoundingRadius))
 		fmt.Fprintf(w, "\n")
 	}
 	e.folders = []string{}
@@ -4342,22 +4356,22 @@ func (e *Sprite3DDef) Write(token *AsciiWriteToken) error {
 
 func (e *Sprite3DDef) Read(token *AsciiReadToken) error {
 	e.folders = append(e.folders, token.folder)
-	records, err := token.ReadProperty("CENTEROFFSET?", 3)
+	records, err := token.ReadProperty("ENABLEGOURAUD2", 1)
+	if err != nil {
+		return err
+	}
+	err = parse(&e.EnableGouraud2, records[1])
+	if err != nil {
+		return fmt.Errorf("enable gouraud2: %w", err)
+	}
+
+	records, err = token.ReadProperty("CENTEROFFSET?", 3)
 	if err != nil {
 		return err
 	}
 	err = parse(&e.CenterOffset, records[1:]...)
 	if err != nil {
 		return fmt.Errorf("center offset: %w", err)
-	}
-
-	records, err = token.ReadProperty("BOUNDINGRADIUS?", 1)
-	if err != nil {
-		return err
-	}
-	err = parse(&e.BoundingRadius, records[1])
-	if err != nil {
-		return fmt.Errorf("bounding radius: %w", err)
 	}
 
 	records, err = token.ReadProperty("SPHERELIST", 1)
@@ -4405,6 +4419,14 @@ func (e *Sprite3DDef) Read(token *AsciiReadToken) error {
 		_, err = token.ReadProperty("BSPNODE", 0)
 		if err != nil {
 			return err
+		}
+		records, err = token.ReadProperty("NORMALABCD?", 4)
+		if err != nil {
+			return err
+		}
+		err = parse(&node.Normal, records[1:]...)
+		if err != nil {
+			return fmt.Errorf("normal: %w", err)
 		}
 		records, err = token.ReadProperty("VERTEXLIST", -1)
 		if err != nil {
@@ -4466,13 +4488,45 @@ func (e *Sprite3DDef) Read(token *AsciiReadToken) error {
 			return fmt.Errorf("render scaled ambient: %w", err)
 		}
 
-		records, err = token.ReadProperty("SPRITE?", 1)
+		_, err = token.ReadProperty("SIMPLESPRITEINST", 0)
 		if err != nil {
 			return err
 		}
-		err = parse(&node.SpriteTag, records[1])
+
+		records, err = token.ReadProperty("SIMPLESPRITETAG?", 1)
+		if err != nil {
+			return err
+		}
+		err = parse(&node.SimpleSpriteTag, records[1])
 		if err != nil {
 			return fmt.Errorf("render sprite: %w", err)
+		}
+
+		records, err = token.ReadProperty("SIMPLESPRITETAGINDEX", 1)
+		if err != nil {
+			return err
+		}
+		err = parse(&node.SimpleSpriteTagIndex, records[1])
+		if err != nil {
+			return fmt.Errorf("simple sprite tag index: %w", err)
+		}
+
+		records, err = token.ReadProperty("SIMPLESPRITEHAVESKIPFRAMES", 1)
+		if err != nil {
+			return err
+		}
+		err = parse(&node.SimpleSpriteHaveSkipFrames, records[1])
+		if err != nil {
+			return fmt.Errorf("have skip frames: %w", err)
+		}
+
+		records, err = token.ReadProperty("SIMPLESPRITESKIPFRAMES", 1)
+		if err != nil {
+			return err
+		}
+		err = parse(&node.SimpleSpriteSkipFrames, records[1])
+		if err != nil {
+			return fmt.Errorf("skip frames: %w", err)
 		}
 
 		records, err = token.ReadProperty("UVORIGIN?", 3)
@@ -4502,27 +4556,29 @@ func (e *Sprite3DDef) Read(token *AsciiReadToken) error {
 			return fmt.Errorf("render v axis: %w", err)
 		}
 
-		records, err = token.ReadProperty("UVCOUNT", 1)
+		records, err = token.ReadProperty("NUMUVS?", 1)
 		if err != nil {
 			return err
 		}
-		numUVs := int(0)
-		err = parse(&numUVs, records[1])
+		err = parse(&node.UVCount, records[1])
 		if err != nil {
-			return fmt.Errorf("num uvs: %w", err)
+			return fmt.Errorf("uvcount: %w", err)
 		}
 
-		for j := 0; j < numUVs; j++ {
-			records, err = token.ReadProperty("UV", 2)
-			if err != nil {
-				return err
+		if node.UVCount.Valid && node.UVCount.Int32 > 0 {
+			numUVs := int(node.UVCount.Int32)
+			for j := 0; j < numUVs; j++ {
+				records, err := token.ReadProperty("UV", 2)
+				if err != nil {
+					return err
+				}
+				uv := [2]float32{}
+				err = parse(&uv, records[1:]...)
+				if err != nil {
+					return fmt.Errorf("uv %d: %w", j, err)
+				}
+				node.Uvs = append(node.Uvs, uv)
 			}
-			uv := [2]float32{}
-			err = parse(&uv, records[1:]...)
-			if err != nil {
-				return fmt.Errorf("uv %d: %w", j, err)
-			}
-			node.Uvs = append(node.Uvs, uv)
 		}
 
 		records, err = token.ReadProperty("TWOSIDED", 1)
@@ -4557,6 +4613,15 @@ func (e *Sprite3DDef) Read(token *AsciiReadToken) error {
 		e.BSPNodes = append(e.BSPNodes, node)
 	}
 
+	records, err = token.ReadProperty("BOUNDINGRADIUS?", 1)
+	if err != nil {
+		return err
+	}
+	err = parse(&e.BoundingRadius, records[1])
+	if err != nil {
+		return fmt.Errorf("bounding radius: %w", err)
+	}
+
 	return nil
 }
 
@@ -4576,6 +4641,10 @@ func (e *Sprite3DDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 	if e.BoundingRadius.Valid {
 		wfSprite3DDef.Flags |= 0x02
 		wfSprite3DDef.BoundingRadius = e.BoundingRadius.Float32
+	}
+
+	if e.EnableGouraud2 != 0 {
+		wfSprite3DDef.Flags |= 0x20
 	}
 
 	if len(e.BSPNodes) > 0 {
@@ -4604,9 +4673,35 @@ func (e *Sprite3DDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 				bnode.RenderScaledAmbient = node.ScaledAmbient.Float32
 			}
 
-			if node.SpriteTag.Valid {
+			if node.SimpleSpriteTag.Valid {
 				bnode.RenderFlags |= 0x08
-				bnode.RenderSimpleSpriteReference = uint32(rawWld.NameAdd(node.SpriteTag.String))
+				spriteDef := wce.ByTagWithIndex(node.SimpleSpriteTag.String, node.SimpleSpriteTagIndex)
+				if spriteDef == nil {
+					return -1, fmt.Errorf("simple sprite %s not found", node.SimpleSpriteTag.String)
+				}
+
+				spriteDefRef, err := spriteDef.ToRaw(wce, rawWld)
+				if err != nil {
+					return -1, fmt.Errorf("simple sprite %s to raw: %w", node.SimpleSpriteTag.String, err)
+				}
+
+				wfSprite := &rawfrag.WldFragSimpleSprite{
+					//NameRef:   rawWld.NameAdd(m.SimpleSpriteTag),
+					SpriteRef: uint32(spriteDefRef),
+				}
+
+				if node.SimpleSpriteHaveSkipFrames > 0 {
+					wfSprite.Flags |= 0x10
+				}
+
+				if node.SimpleSpriteSkipFrames > 0 {
+					wfSprite.Flags |= 0x40
+				}
+				rawWld.Fragments = append(rawWld.Fragments, wfSprite)
+
+				spriteRef := int16(len(rawWld.Fragments))
+
+				bnode.RenderSimpleSpriteReference = uint32(spriteRef)
 			}
 
 			if node.UvOrigin.Valid {
@@ -4616,9 +4711,20 @@ func (e *Sprite3DDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 				bnode.RenderUVInfoVAxis = node.VAxis.Float32Slice3
 			}
 
-			if len(node.Uvs) > 0 {
+			if node.UVCount.Valid {
 				bnode.RenderFlags |= 0x20
-				bnode.Uvs = node.Uvs
+				if node.UVCount.Int32 > 0 {
+					bnode.Uvs = node.Uvs // valid and non-zero count
+				}
+			}
+
+			if node.TwoSided != 0 {
+				bnode.RenderFlags |= 0x40
+			}
+
+			if node.Normal.Valid {
+				wfSprite3DDef.Flags |= 0x40
+				bnode.Normal = node.Normal.Float32Slice4
 			}
 
 			wfSprite3DDef.BspNodes = append(wfSprite3DDef.BspNodes, bnode)
@@ -4662,6 +4768,10 @@ func (e *Sprite3DDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragSp
 		e.BoundingRadius.Float32 = frag.BoundingRadius
 	}
 
+	if frag.Flags&0x20 != 0 {
+		e.EnableGouraud2 = 1
+	}
+
 	for _, bspNode := range frag.BspNodes {
 		node := &BSPNode{
 			FrontTree:    bspNode.FrontTree,
@@ -4686,23 +4796,30 @@ func (e *Sprite3DDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragSp
 		}
 
 		if bspNode.RenderFlags&0x08 == 0x08 {
-			node.SpriteTag.Valid = true
+			node.SimpleSpriteTag.Valid = true
 			if len(rawWld.Fragments) < int(bspNode.RenderSimpleSpriteReference) {
-				return fmt.Errorf("sprite ref %d not found", bspNode.RenderSimpleSpriteReference)
+				return fmt.Errorf("simplesprite ref %d out of bounds", bspNode.RenderSimpleSpriteReference)
 			}
-			spriteDef := rawWld.Fragments[bspNode.RenderSimpleSpriteReference]
-			switch simpleSprite := spriteDef.(type) {
-			case *rawfrag.WldFragSimpleSpriteDef:
-				node.SpriteTag.String = rawWld.Name(simpleSprite.NameRef())
-			case *rawfrag.WldFragDMSpriteDef:
-				node.SpriteTag.String = rawWld.Name(simpleSprite.NameRef())
-			case *rawfrag.WldFragHierarchicalSpriteDef:
-				node.SpriteTag.String = rawWld.Name(simpleSprite.NameRef())
-			case *rawfrag.WldFragSprite2D:
-				node.SpriteTag.String = rawWld.Name(simpleSprite.NameRef())
-			default:
-				return fmt.Errorf("unhandled render sprite reference fragment type %d", spriteDef.FragCode())
+			simpleSprite, ok := rawWld.Fragments[bspNode.RenderSimpleSpriteReference].(*rawfrag.WldFragSimpleSprite)
+			if !ok {
+				return fmt.Errorf("simplesprite ref %d not found", bspNode.RenderSimpleSpriteReference)
 			}
+			if len(rawWld.Fragments) < int(simpleSprite.SpriteRef) {
+				return fmt.Errorf("sprite ref %d out of bounds", simpleSprite.SpriteRef)
+			}
+			spriteDef, ok := rawWld.Fragments[simpleSprite.SpriteRef].(*rawfrag.WldFragSimpleSpriteDef)
+			if !ok {
+				return fmt.Errorf("material's simple sprite ref %d not found", simpleSprite.SpriteRef)
+			}
+			if simpleSprite.Flags&0x10 != 0 {
+				node.SimpleSpriteHaveSkipFrames = 1
+			}
+			if simpleSprite.Flags&0x40 != 0 {
+				node.SimpleSpriteSkipFrames = 1
+			}
+
+			node.SimpleSpriteTag.String = rawWld.Name(spriteDef.NameRef())
+			node.SimpleSpriteTagIndex = wce.tagIndexes[rawWld.Name(spriteDef.NameRef())]
 		}
 
 		if bspNode.RenderFlags&0x10 == 0x10 {
@@ -4716,11 +4833,18 @@ func (e *Sprite3DDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragSp
 		}
 
 		if bspNode.RenderFlags&0x20 == 0x20 {
+			node.UVCount.Valid = true
 			node.Uvs = bspNode.Uvs
+			node.UVCount.Int32 = int32(len(node.Uvs))
 		}
 
 		if bspNode.RenderFlags&0x40 == 0x40 {
 			node.TwoSided = 1
+		}
+
+		if frag.Flags&0x40 == 0x40 {
+			node.Normal.Valid = true
+			node.Normal.Float32Slice4 = bspNode.Normal
 		}
 
 		e.BSPNodes = append(e.BSPNodes, node)
@@ -8734,6 +8858,10 @@ func (e *Sprite2DDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 			return 0, fmt.Errorf("sphere list to raw: %w", err)
 		}
 		wfSprite2D.SphereListRef = uint32(sphereListRef)
+	}
+
+	if e.TwoSided != 0 {
+		wfSprite2D.Flags |= 0x40
 	}
 
 	if e.HexTenFlag != 0 {
