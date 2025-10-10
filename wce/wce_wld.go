@@ -4259,15 +4259,16 @@ func (e *PointLight) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragPoi
 
 // Sprite3DDef is a declaration of SPRITE3DDEF
 type Sprite3DDef struct {
-	folders        []string // when writing, this is the folder the file is in
-	fragID         int32
-	Tag            string
-	CenterOffset   NullFloat32Slice3
-	BoundingRadius NullFloat32
-	EnableGouraud2 int
-	SphereListTag  string
-	Vertices       [][3]float32
-	BSPNodes       []*BSPNode
+	folders               []string // when writing, this is the folder the file is in
+	fragID                int32
+	Tag                   string
+	CenterOffset          NullFloat32Slice3
+	BoundingRadius        NullFloat32
+	EnableGouraud2        int
+	SphereListTag         string
+	SphereListScaleFactor NullFloat32
+	Vertices              [][3]float32
+	BSPNodes              []*BSPNode
 }
 
 // BSPNode is a declaration of BSPNODE
@@ -4310,7 +4311,6 @@ func (e *Sprite3DDef) Write(token *AsciiWriteToken) error {
 		fmt.Fprintf(w, "%s \"%s\"\n", e.Definition(), e.Tag)
 		fmt.Fprintf(w, "\tENABLEGOURAUD2 %d\n", e.EnableGouraud2)
 		fmt.Fprintf(w, "\tCENTEROFFSET? %s\n", wcVal(e.CenterOffset))
-		fmt.Fprintf(w, "\tSPHERELIST \"%s\"\n", e.SphereListTag)
 		fmt.Fprintf(w, "\tNUMVERTICES %d\n", len(e.Vertices))
 		for _, vert := range e.Vertices {
 			fmt.Fprintf(w, "\t\tXYZ %0.8e %0.8e %0.8e\n", vert[0], vert[1], vert[2])
@@ -4347,6 +4347,9 @@ func (e *Sprite3DDef) Write(token *AsciiWriteToken) error {
 			fmt.Fprintf(w, "\t\t\tFRONTTREE %d\n", node.FrontTree)
 			fmt.Fprintf(w, "\t\t\tBACKTREE %d\n", node.BackTree)
 		}
+		fmt.Fprintf(w, "\tSPHERELIST\n")
+		fmt.Fprintf(w, "\t\tDEFINITION \"%s\"\n", e.SphereListTag)
+		fmt.Fprintf(w, "\t\tSCALEFACTOR? %s\n", wcVal(e.SphereListScaleFactor))
 		fmt.Fprintf(w, "\tBOUNDINGRADIUS? %s\n", wcVal(e.BoundingRadius))
 		fmt.Fprintf(w, "\n")
 	}
@@ -4373,12 +4376,6 @@ func (e *Sprite3DDef) Read(token *AsciiReadToken) error {
 	if err != nil {
 		return fmt.Errorf("center offset: %w", err)
 	}
-
-	records, err = token.ReadProperty("SPHERELIST", 1)
-	if err != nil {
-		return err
-	}
-	e.SphereListTag = records[1]
 
 	records, err = token.ReadProperty("NUMVERTICES", 1)
 	if err != nil {
@@ -4613,6 +4610,26 @@ func (e *Sprite3DDef) Read(token *AsciiReadToken) error {
 		e.BSPNodes = append(e.BSPNodes, node)
 	}
 
+	_, err = token.ReadProperty("SPHERELIST", 0)
+	if err != nil {
+		return err
+	}
+
+	records, err = token.ReadProperty("DEFINITION", 1)
+	if err != nil {
+		return err
+	}
+	e.SphereListTag = records[1]
+
+	records, err = token.ReadProperty("SCALEFACTOR?", 1)
+	if err != nil {
+		return err
+	}
+	err = parse(&e.SphereListScaleFactor, records[1])
+	if err != nil {
+		return fmt.Errorf("sphere radius: %w", err)
+	}
+
 	records, err = token.ReadProperty("BOUNDINGRADIUS?", 1)
 	if err != nil {
 		return err
@@ -4729,6 +4746,33 @@ func (e *Sprite3DDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 
 			wfSprite3DDef.BspNodes = append(wfSprite3DDef.BspNodes, bnode)
 		}
+	}
+
+	if e.SphereListTag != "" {
+		sphereListDef := wce.ByTag(e.SphereListTag)
+		if sphereListDef == nil {
+			return -1, fmt.Errorf("sphere list %s not found", e.SphereListTag)
+		}
+
+		sphereListDefRef, err := sphereListDef.ToRaw(wce, rawWld)
+		if err != nil {
+			return -1, fmt.Errorf("sphere list %s to raw: %w", e.SphereListTag, err)
+		}
+
+		wfSphereList := &rawfrag.WldFragSphereList{
+			SphereListDefRef: int32(sphereListDefRef),
+		}
+
+		if e.SphereListScaleFactor.Valid {
+			wfSphereList.Flags |= 0x01
+			wfSphereList.ScaleFactor = e.SphereListScaleFactor.Float32
+		}
+
+		rawWld.Fragments = append(rawWld.Fragments, wfSphereList)
+
+		sphereListRef := int16(len(rawWld.Fragments))
+
+		wfSprite3DDef.SphereListRef = uint32(sphereListRef)
 	}
 
 	wfSprite3DDef.SetNameRef(rawWld.NameAdd(e.Tag))
@@ -4848,6 +4892,29 @@ func (e *Sprite3DDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragSp
 		}
 
 		e.BSPNodes = append(e.BSPNodes, node)
+	}
+
+	if frag.SphereListRef != 0 {
+		if len(rawWld.Fragments) < int(frag.SphereListRef) {
+			return fmt.Errorf("sphere list ref %d out of bounds", frag.SphereListRef)
+		}
+		sphereList, ok := rawWld.Fragments[frag.SphereListRef].(*rawfrag.WldFragSphereList)
+		if !ok {
+			return fmt.Errorf("sphere list ref %d not valid", frag.SphereListRef)
+		}
+		if len(rawWld.Fragments) < int(sphereList.SphereListDefRef) {
+			return fmt.Errorf("sphere list name ref %d out of bounds", sphereList.SphereListDefRef)
+		}
+		sphereListDef, ok := rawWld.Fragments[sphereList.SphereListDefRef].(*rawfrag.WldFragSphereListDef)
+		if !ok {
+			return fmt.Errorf("sphere list name ref %d not valid", sphereList.SphereListDefRef)
+		}
+
+		if sphereList.Flags&0x01 != 0 {
+			e.SphereListScaleFactor.Float32 = sphereList.ScaleFactor
+		}
+
+		e.SphereListTag = rawWld.Name(sphereListDef.NameRef())
 	}
 
 	if len(e.folders) == 1 && e.folders[0] == "world" && e.Tag == "CAMERA_DUMMY" {
@@ -5031,6 +5098,130 @@ func (e *PolyhedronDefinition) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.
 	if frag.Flags&0x01 != 0 {
 		e.HexOneFlag = 1
 	}
+
+	return nil
+}
+
+type SphereListDef struct {
+	folders        []string // when writing, this is the folder the file is in
+	fragID         int32
+	Tag            string
+	BoundingRadius float32
+	Scale          NullFloat32
+	Spheres        [][4]float32
+}
+
+func (e *SphereListDef) Definition() string {
+	return "SPHERELISTDEFINITION"
+}
+
+func (e *SphereListDef) Write(token *AsciiWriteToken) error {
+	for _, folder := range e.folders {
+		err := token.SetWriter(folder)
+		if err != nil {
+			return err
+		}
+		w, err := token.Writer()
+		if err != nil {
+			return err
+		}
+
+		fmt.Fprintf(w, "%s \"%s\"\n", e.Definition(), e.Tag)
+		fmt.Fprintf(w, "\tBOUNDINGRADIUS %0.8e\n", e.BoundingRadius)
+		fmt.Fprintf(w, "\tSCALEFACTOR? %s\n", wcVal(e.Scale))
+		fmt.Fprintf(w, "\tNUMSPHERES %d\n", len(e.Spheres))
+		for _, sphere := range e.Spheres {
+			x, y, z, r := sphere[0], sphere[1], sphere[2], sphere[3]
+			fmt.Fprintf(w, "\t\tSPHERE %0.8e %0.8e %0.8e %0.8e\n", x, y, z, r)
+		}
+		fmt.Fprintf(w, "\n")
+	}
+	e.folders = []string{}
+	return nil
+}
+
+func (e *SphereListDef) Read(token *AsciiReadToken) error {
+	e.folders = append(e.folders, token.folder)
+	records, err := token.ReadProperty("BOUNDINGRADIUS", 1)
+	if err != nil {
+		return err
+	}
+	err = parse(&e.BoundingRadius, records[1])
+	if err != nil {
+		return fmt.Errorf("bounding radius: %w", err)
+	}
+
+	records, err = token.ReadProperty("SCALEFACTOR?", 1)
+	if err != nil {
+		return err
+	}
+	err = parse(&e.Scale, records[1:]...)
+	if err != nil {
+		return fmt.Errorf("scale: %w", err)
+	}
+
+	records, err = token.ReadProperty("NUMSPHERES", 1)
+	if err != nil {
+		return err
+	}
+	numSpheres := int(0)
+	err = parse(&numSpheres, records[1])
+	if err != nil {
+		return fmt.Errorf("num spheres: %w", err)
+	}
+
+	for i := 0; i < numSpheres; i++ {
+		records, err = token.ReadProperty("SPHERE", 4)
+		if err != nil {
+			return err
+		}
+		sphere := [4]float32{}
+		err = parse(&sphere, records[1:]...)
+		if err != nil {
+			return fmt.Errorf("sphere %d: %w", i, err)
+		}
+
+		e.Spheres = append(e.Spheres, sphere)
+	}
+
+	return nil
+}
+
+func (e *SphereListDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
+	if e.fragID != 0 {
+		return e.fragID, nil
+	}
+	wfSphereListDef := &rawfrag.WldFragSphereListDef{
+		Radius:  e.BoundingRadius,
+		Spheres: e.Spheres,
+	}
+
+	if e.Scale.Valid {
+		wfSphereListDef.Flags |= 0x01
+		wfSphereListDef.Scale = e.Scale.Float32
+	}
+
+	wfSphereListDef.SetNameRef(rawWld.NameAdd(e.Tag))
+
+	rawWld.Fragments = append(rawWld.Fragments, wfSphereListDef)
+	e.fragID = int32(len(rawWld.Fragments))
+	return int32(len(rawWld.Fragments)), nil
+}
+
+func (e *SphereListDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragSphereListDef) error {
+	if frag == nil {
+		return fmt.Errorf("frag is not spherelistdef (wrong fragcode?)")
+	}
+
+	e.Tag = rawWld.Name(frag.NameRef())
+	e.BoundingRadius = frag.Radius
+
+	if frag.Flags&0x01 == 0x01 {
+		e.Scale.Valid = true
+		e.Scale.Float32 = frag.Scale
+	}
+
+	e.Spheres = frag.Spheres
 
 	return nil
 }

@@ -46,6 +46,7 @@ type Wce struct {
 	SimpleSpriteDefs       []*SimpleSpriteDef
 	Sprite2DDefs           []*Sprite2DDef
 	Sprite3DDefs           []*Sprite3DDef
+	SphereListDefs         []*SphereListDef
 	TrackDefs              []*TrackDef
 	TrackInstances         []*TrackInstance
 	variationMaterialDefs  map[string][]*MaterialDef
@@ -195,6 +196,14 @@ func (wce *Wce) ByTag(tag string) WldDefinitioner {
 		}
 	}
 
+	if strings.HasSuffix(tag, "_SPHRLDEF") {
+		for _, track := range wce.SphereListDefs {
+			if track.Tag == tag {
+				return track
+			}
+		}
+	}
+
 	for _, sprite := range wce.Sprite3DDefs {
 		if sprite.Tag == tag {
 			return sprite
@@ -333,6 +342,7 @@ func (wce *Wce) reset() {
 	wce.PointLights = []*PointLight{}
 	wce.DirectionalLights = []*DirectionalLight{}
 	wce.Sprite3DDefs = []*Sprite3DDef{}
+	wce.SphereListDefs = []*SphereListDef{}
 	wce.TrackInstances = []*TrackInstance{}
 	wce.TrackDefs = []*TrackDef{}
 	wce.HierarchicalSpriteDefs = []*HierarchicalSpriteDef{}

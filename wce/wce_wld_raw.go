@@ -227,6 +227,16 @@ func readRawFrag(e *Wce, rawWld *raw.Wld, fragment helper.FragmentReadWriter, fo
 	case rawfrag.FragCodeSprite3D:
 		// sprite instances are ignored, since they're derived from other definitions
 		return nil
+	case rawfrag.FragCodeSphereListDef:
+		def := &SphereListDef{folders: folders}
+		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragSphereListDef))
+		if err != nil {
+			return fmt.Errorf("spherelistdef: %w", err)
+		}
+		e.SphereListDefs = append(e.SphereListDefs, def)
+	case rawfrag.FragCodeSphereList:
+		// sprite instances are ignored, since they're derived from other definitions
+		return nil
 	case rawfrag.FragCodeZone:
 		def := &Zone{folders: folders}
 		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragZone))
@@ -480,6 +490,13 @@ func (wce *Wce) WriteWldRaw(w io.Writer) error {
 		_, err = dLight.ToRaw(wce, dst)
 		if err != nil {
 			return fmt.Errorf("directionallight %s: %w", dLight.Tag, err)
+		}
+	}
+
+	for _, sphere := range wce.SphereListDefs {
+		_, err = sphere.ToRaw(wce, dst)
+		if err != nil {
+			return fmt.Errorf("sphere %s: %w", sphere.Tag, err)
 		}
 	}
 

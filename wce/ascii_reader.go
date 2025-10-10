@@ -231,6 +231,7 @@ func (a *AsciiReadToken) readDefinitions() error {
 		&SimpleSpriteDef{},
 		&Sprite2DDef{},
 		&Sprite3DDef{},
+		&SphereListDef{},
 		&TrackDef{},
 		&TrackInstance{},
 		&UserData{},
@@ -443,6 +444,14 @@ func (a *AsciiReadToken) readDefinitions() error {
 				frag.Tag = args[1]
 				a.wce.Sprite3DDefs = append(a.wce.Sprite3DDefs, frag)
 				definitions[i] = &Sprite3DDef{}
+
+			case *SphereListDef:
+				if len(args) == 1 {
+					return fmt.Errorf("definition %s has no arguments", defName)
+				}
+				frag.Tag = args[1]
+				a.wce.SphereListDefs = append(a.wce.SphereListDefs, frag)
+				definitions[i] = &SphereListDef{}
 			case *WorldTree:
 				if len(args) == 1 {
 					return fmt.Errorf("definition %s has no arguments", defName)
