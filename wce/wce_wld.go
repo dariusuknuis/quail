@@ -7785,8 +7785,8 @@ type ParticleCloudDef struct {
 	ParticleType            uint32
 	SpawnType               string
 	Size                    uint32
-	GravityMultiplier       float32
-	Gravity                 [3]float32
+	Gravity                 float32
+	SpawnNormal             [3]float32
 	Duration                uint32
 	SpawnRadius             float32 // sphere radius
 	SpawnAngle              float32 // cone angle
@@ -7852,8 +7852,8 @@ func (e *ParticleCloudDef) Write(token *AsciiWriteToken) error {
 		fmt.Fprintf(w, "\tPARTICLETYPE %d // 1: Single pixel, 2: Tails, 3 Blit?\n", e.ParticleType)
 		fmt.Fprintf(w, "\tMOVEMENT \"%s\" // SPHERE, PLANE, STREAM, NONE\n", e.SpawnType)
 		fmt.Fprintf(w, "\tSIZE %d // Number of particles to emit\n", e.Size)
-		fmt.Fprintf(w, "\tGRAVITYMULTIPLIER %0.8e\n", e.GravityMultiplier)
-		fmt.Fprintf(w, "\tGRAVITY %0.8e %0.8e %0.8e\n", e.Gravity[0], e.Gravity[1], e.Gravity[2])
+		fmt.Fprintf(w, "\tGRAVITY %0.8e\n", e.Gravity)
+		fmt.Fprintf(w, "\tSPAWNNORMAL %0.8e %0.8e %0.8e\n", e.SpawnNormal[0], e.SpawnNormal[1], e.SpawnNormal[2])
 		fmt.Fprintf(w, "\tDURATION %d\n", e.Duration)
 		fmt.Fprintf(w, "\tSPAWNRADIUS %0.8e\n", e.SpawnRadius)
 		fmt.Fprintf(w, "\tSPAWNANGLE %0.8e\n", e.SpawnAngle)
@@ -7937,24 +7937,24 @@ func (e *ParticleCloudDef) Read(token *AsciiReadToken) error {
 		return fmt.Errorf("size: %w", err)
 	}
 
-	records, err = token.ReadProperty("GRAVITYMULTIPLIER", 1)
+	records, err = token.ReadProperty("GRAVITY", 1)
 	if err != nil {
 		return err
 	}
 
-	err = parse(&e.GravityMultiplier, records[1])
+	err = parse(&e.Gravity, records[1])
 	if err != nil {
-		return fmt.Errorf("gravity multiplier: %w", err)
+		return fmt.Errorf("gravity: %w", err)
 	}
 
-	records, err = token.ReadProperty("GRAVITY", 3)
+	records, err = token.ReadProperty("SPAWNNORMAL", 3)
 	if err != nil {
 		return err
 	}
 
 	err = parse(&e.Gravity, records[1:]...)
 	if err != nil {
-		return fmt.Errorf("gravity: %w", err)
+		return fmt.Errorf("spawn normal: %w", err)
 	}
 
 	records, err = token.ReadProperty("DURATION", 1)
@@ -8270,8 +8270,8 @@ func (e *ParticleCloudDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 	wfParticleCloud := &rawfrag.WldFragParticleCloudDef{
 		ParticleType:            e.ParticleType,
 		Size:                    e.Size,
-		GravityMultiplier:       e.GravityMultiplier,
 		Gravity:                 e.Gravity,
+		SpawnNormal:             e.SpawnNormal,
 		Duration:                e.Duration,
 		SpawnRadius:             e.SpawnRadius,
 		SpawnAngle:              e.SpawnAngle,
@@ -8449,8 +8449,8 @@ func (e *ParticleCloudDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldF
 		return fmt.Errorf("unknown movement type %d", frag.SpawnType)
 	}
 	e.Size = frag.Size
-	e.GravityMultiplier = frag.GravityMultiplier
 	e.Gravity = frag.Gravity
+	e.SpawnNormal = frag.SpawnNormal
 	e.Duration = frag.Duration
 	e.SpawnRadius = frag.SpawnRadius
 	e.SpawnAngle = frag.SpawnAngle

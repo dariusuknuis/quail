@@ -22,8 +22,8 @@ type WldFragParticleCloudDef struct {
 	SpawnType               uint32 // 0x01 sphere, 0x02 plane, 0x03 stream, 0x04 none
 	PCloudFlags             uint32 //Flag 1, High Opacity, Flag 3, Follows Item
 	Size                    uint32
-	GravityMultiplier       float32
-	Gravity                 [3]float32
+	Gravity                 float32
+	SpawnNormal             [3]float32
 	Duration                uint32
 	SpawnRadius             float32 // sphere radius
 	SpawnAngle              float32 // cone angle
@@ -52,10 +52,10 @@ func (e *WldFragParticleCloudDef) Write(w io.Writer, isNewWorld bool) error {
 	enc.Uint32(e.SpawnType)
 	enc.Uint32(e.PCloudFlags)
 	enc.Uint32(e.Size)
-	enc.Float32(e.GravityMultiplier)
-	enc.Float32(e.Gravity[0])
-	enc.Float32(e.Gravity[1])
-	enc.Float32(e.Gravity[2])
+	enc.Float32(e.Gravity)
+	enc.Float32(e.SpawnNormal[0])
+	enc.Float32(e.SpawnNormal[1])
+	enc.Float32(e.SpawnNormal[2])
 	enc.Uint32(e.Duration)
 	enc.Float32(e.SpawnRadius)
 	enc.Float32(e.SpawnAngle)
@@ -109,8 +109,8 @@ func (e *WldFragParticleCloudDef) Read(r io.ReadSeeker, isNewWorld bool) error {
 	e.SpawnType = dec.Uint32()
 	e.PCloudFlags = dec.Uint32()
 	e.Size = dec.Uint32()
-	e.GravityMultiplier = dec.Float32()
-	e.Gravity = [3]float32{dec.Float32(), dec.Float32(), dec.Float32()}
+	e.Gravity = dec.Float32()
+	e.SpawnNormal = [3]float32{dec.Float32(), dec.Float32(), dec.Float32()}
 	e.Duration = dec.Uint32()
 	e.SpawnRadius = dec.Float32()
 	e.SpawnAngle = dec.Float32()
