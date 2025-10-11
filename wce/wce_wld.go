@@ -8359,6 +8359,8 @@ func (e *ParticleCloudDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 	}
 
 	switch e.SpawnType {
+	case "BOX":
+		wfParticleCloud.SpawnType = 0
 	case "SPHERE":
 		wfParticleCloud.SpawnType = 1
 	case "PLANE":
@@ -8433,6 +8435,8 @@ func (e *ParticleCloudDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldF
 
 	e.ParticleType = frag.ParticleType
 	switch frag.SpawnType {
+	case 0:
+		e.SpawnType = "BOX"
 	case 1:
 		e.SpawnType = "SPHERE"
 	case 2:
