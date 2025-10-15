@@ -64,11 +64,15 @@ func runConvertE(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return fmt.Errorf("quail read dir: %w", err)
 		}
-
 	case ".json":
 		err = q.JsonRead(srcPath)
 		if err != nil {
 			return fmt.Errorf("json read: %w", err)
+		}
+	case ".eff":
+		err = q.EffRead(srcPath)
+		if err != nil {
+			return fmt.Errorf("eff read: %w", err)
 		}
 	default:
 		baseName := filepath.Base(srcPath)

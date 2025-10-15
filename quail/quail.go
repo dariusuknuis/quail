@@ -17,6 +17,7 @@ type Quail struct {
 	Wld                    *wce.Wce
 	WldObject              *wce.Wce
 	WldLights              *wce.Wce
+	SpellEffects           *wce.Wce
 	Assets                 map[string][]byte
 	StatFS                 fs.StatFS
 	ReadDirFS              fs.ReadDirFS
@@ -39,6 +40,13 @@ func Open(name string, r io.ReadSeeker) (interface{}, error) {
 	ext := strings.ToLower(filepath.Ext(name))
 	//name = filepath.Base(name)
 	switch ext {
+	case ".eff":
+		eff := &raw.EffOld{}
+		err = eff.Read(r)
+		if err != nil {
+			return nil, fmt.Errorf("effects.Decode: %w", err)
+		}
+		return eff, nil
 	case ".zon":
 		zon := &raw.Zon{}
 		err = zon.Read(r)

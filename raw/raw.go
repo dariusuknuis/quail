@@ -36,6 +36,8 @@ func New(ext string) ReadWriter {
 		return &Dds{}
 	case ".edd":
 		return &Edd{}
+	case ".eff":
+		return &EffOld{}
 	case ".lay":
 		return &Lay{}
 	case ".lit":
