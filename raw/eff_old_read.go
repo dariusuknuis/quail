@@ -3,7 +3,6 @@ package raw
 import (
 	"bytes"
 	"encoding/binary"
-	"encoding/hex"
 	"fmt"
 	"io"
 
@@ -26,7 +25,7 @@ type EffOld struct {
 }
 
 type EffOldRecord struct {
-	Header         [EffOldHeaderSize]byte
+	Header         [2]uint32
 	Source         EffOldBlock
 	SourceToTarget EffOldBlock
 	Target         EffOldBlock
@@ -35,7 +34,7 @@ type EffOldRecord struct {
 // EffOldBlock is one 0x3A0 sub-effect block containing 3 sub-effects + shared fields
 type EffOldBlock struct {
 	// Per-sub-effect triplet (index 0..2)
-	Sub [3]EffSubEffect
+	SubEffect [3]EffSubEffect
 
 	// Shared across the whole block
 	Label        string     // "Source" / "Target" (observed)
@@ -50,11 +49,11 @@ type EffOldBlock struct {
 
 // EffSubEffect groups the fields that refer to the same logical sub-effect
 type EffSubEffect struct {
-	PrimarySprite string // first 3 strings (one per sub-effect)
-	DagIndex      uint32 //1=head, 2=right hand, 3=left hand
+	Blit     string // first 3 strings (one per sub-effect)
+	DagIndex uint32 //1=head, 2=right hand, 3=left hand
 	//4=right foot, 5=left foot, Other=chest
 	EffectType    uint32
-	ColorBGRA     uint32
+	ColorBGRA     [4]uint8
 	Gravity       float32
 	SpawnNormal   [3]float32
 	SpawnRadius   float32
@@ -70,158 +69,100 @@ func (eff *EffOld) Identity() string {
 }
 
 func (eff *EffOld) String() string {
-	return fmt.Sprintf("filename: %s\nrecords: %d (expected %d)\nsize(bytes): %d (expected %d)",
-		eff.MetaFileName, len(eff.Records), EffOldRecordCount, len(eff.Records)*EffOldRecordSize, EffOldFileSize)
+	out := fmt.Sprintf("EffOld: %s,", eff.MetaFileName)
+	out += fmt.Sprintf("records: %d,", len(eff.Records))
+	return out
 }
 
 func (eff *EffOld) Read(r io.ReadSeeker) error {
 	dec := encdec.NewDecoder(r, binary.LittleEndian)
 
-	// sanity on size
-	start := dec.Pos()
-	end, err := r.Seek(0, io.SeekEnd)
-	if err != nil {
-		return fmt.Errorf("seek end: %w", err)
-	}
-	if _, err := r.Seek(start, io.SeekStart); err != nil {
-		return fmt.Errorf("seek start: %w", err)
-	}
-	if end != EffOldFileSize {
-		return fmt.Errorf("unexpected file size: %d (expected %d)", end, EffOldFileSize)
-	}
-
-	eff.Records = make([]*EffOldRecord, 0, EffOldRecordCount)
-	for i := 0; i < EffOldRecordCount; i++ {
-		rec := &EffOldRecord{}
-
-		if _, err := io.ReadFull(r, rec.Header[:]); err != nil {
-			return fmt.Errorf("record %d: header: %w", i, err)
-		}
-		if err := rec.Source.read(dec); err != nil {
-			return fmt.Errorf("record %d: source: %w", i, err)
-		}
-		if err := rec.SourceToTarget.read(dec); err != nil {
-			return fmt.Errorf("record %d: source_to_target: %w", i, err)
-		}
-		if err := rec.Target.read(dec); err != nil {
-			return fmt.Errorf("record %d: target: %w", i, err)
-		}
-
-		e.Records = append(e.Records, rec)
-	}
-
-	// trailing sanity
-	pos := dec.Pos()
-	if pos < end {
-		rem := make([]byte, end-pos)
-		if _, err := io.ReadFull(r, rem); err == nil && len(rem) > 0 {
-			fmt.Printf("remaining bytes:\n%s\n", hex.Dump(rem))
-		}
-		return fmt.Errorf("%d bytes remaining (%d total)", end-pos, end)
-	}
-	if pos > end {
-		return fmt.Errorf("read past end of file: pos=%d end=%d", pos, end)
-	}
-	if dec.Error() != nil {
-		return fmt.Errorf("read: %w", dec.Error())
-	}
-	return nil
-}
-
-func (b *EffOldBlock) read(dec *encdec.Decoder) error {
-	blkStart := dec.Pos()
-
 	readStr32 := func() string {
 		raw := dec.Bytes(str32Len)
-		if dec.Error() != nil {
-			return ""
-		}
-		if i := bytes.IndexByte(raw, 0); i >= 0 {
-			raw = raw[:i]
+		if n := bytes.IndexByte(raw, 0); n >= 0 {
+			raw = raw[:n]
 		}
 		return string(raw)
 	}
-
-	// 3 x 0x20 primary sprite strings (per sub-effect)
-	for i := 0; i < 3; i++ {
-		b.Sub[i].PrimarySprite = readStr32()
-	}
-
-	// 1 x 0x20 label string
-	b.Label = readStr32()
-
-	// 3 DagIndex (DWORD) -> per sub-effect
-	for i := 0; i < 3; i++ {
-		b.Sub[i].DagIndex = dec.Uint32()
-	}
-	// 3 EffectType (DWORD) -> per sub-effect
-	for i := 0; i < 3; i++ {
-		b.Sub[i].EffectType = dec.Uint32()
-	}
-
-	// 12 x 0x20 extra blitsprite strings (shared)
-	for i := 0; i < 12; i++ {
-		b.ExtraSprites[i] = readStr32()
-	}
-
-	// unknown + sound (shared)
-	b.UnknownParam = dec.Uint32()
-	b.SoundRef = dec.Uint32()
-
-	// 3 BGRA colors -> per sub-effect
-	for i := 0; i < 3; i++ {
-		b.Sub[i].ColorBGRA = dec.Uint32()
-	}
-	// 3 Gravity -> per sub-effect
-	for i := 0; i < 3; i++ {
-		b.Sub[i].Gravity = dec.Float32()
-	}
-	// 3 SpawnNormals (each vec3) -> per sub-effect
-	for i := 0; i < 3; i++ {
-		for j := 0; j < 3; j++ {
-			b.Sub[i].SpawnNormal[j] = dec.Float32()
+	for i := 0; i < 256; i++ {
+		effRec := &EffOldRecord{}
+		effRec.Header[0] = dec.Uint32()
+		effRec.Header[1] = dec.Uint32()
+		blocks := []*EffOldBlock{
+			&effRec.Source,
+			&effRec.SourceToTarget,
+			&effRec.Target,
+		}
+		for b := 0; b < 3; b++ {
+			block := blocks[b]
+			block.SubEffect[0].Blit = readStr32()
+			block.SubEffect[1].Blit = readStr32()
+			block.SubEffect[2].Blit = readStr32()
+			block.Label = readStr32()
+			block.SubEffect[0].DagIndex = dec.Uint32()
+			block.SubEffect[1].DagIndex = dec.Uint32()
+			block.SubEffect[2].DagIndex = dec.Uint32()
+			block.SubEffect[0].EffectType = dec.Uint32()
+			block.SubEffect[1].EffectType = dec.Uint32()
+			block.SubEffect[2].EffectType = dec.Uint32()
+			for j := 0; j < 12; j++ {
+				block.ExtraSprites[j] = readStr32()
+			}
+			block.SubEffect[0].ColorBGRA[0] = dec.Uint8()
+			block.SubEffect[0].ColorBGRA[1] = dec.Uint8()
+			block.SubEffect[0].ColorBGRA[2] = dec.Uint8()
+			block.SubEffect[0].ColorBGRA[3] = dec.Uint8()
+			block.SubEffect[1].ColorBGRA[0] = dec.Uint8()
+			block.SubEffect[1].ColorBGRA[1] = dec.Uint8()
+			block.SubEffect[1].ColorBGRA[2] = dec.Uint8()
+			block.SubEffect[1].ColorBGRA[3] = dec.Uint8()
+			block.SubEffect[2].ColorBGRA[0] = dec.Uint8()
+			block.SubEffect[2].ColorBGRA[1] = dec.Uint8()
+			block.SubEffect[2].ColorBGRA[2] = dec.Uint8()
+			block.SubEffect[2].ColorBGRA[3] = dec.Uint8()
+			block.SubEffect[0].Gravity = dec.Float32()
+			block.SubEffect[1].Gravity = dec.Float32()
+			block.SubEffect[2].Gravity = dec.Float32()
+			block.SubEffect[0].SpawnNormal[0] = dec.Float32()
+			block.SubEffect[0].SpawnNormal[1] = dec.Float32()
+			block.SubEffect[0].SpawnNormal[2] = dec.Float32()
+			block.SubEffect[1].SpawnNormal[0] = dec.Float32()
+			block.SubEffect[1].SpawnNormal[1] = dec.Float32()
+			block.SubEffect[1].SpawnNormal[2] = dec.Float32()
+			block.SubEffect[2].SpawnNormal[0] = dec.Float32()
+			block.SubEffect[2].SpawnNormal[1] = dec.Float32()
+			block.SubEffect[2].SpawnNormal[2] = dec.Float32()
+			block.SubEffect[0].SpawnRadius = dec.Float32()
+			block.SubEffect[1].SpawnRadius = dec.Float32()
+			block.SubEffect[2].SpawnRadius = dec.Float32()
+			block.SubEffect[0].SpawnAngle = dec.Float32()
+			block.SubEffect[1].SpawnAngle = dec.Float32()
+			block.SubEffect[2].SpawnAngle = dec.Float32()
+			block.SubEffect[0].Lifespan = dec.Uint32()
+			block.SubEffect[1].Lifespan = dec.Uint32()
+			block.SubEffect[2].Lifespan = dec.Uint32()
+			block.SubEffect[0].SpawnVelocity = dec.Float32()
+			block.SubEffect[1].SpawnVelocity = dec.Float32()
+			block.SubEffect[2].SpawnVelocity = dec.Float32()
+			block.SubEffect[0].SpawnRate = dec.Uint32()
+			block.SubEffect[1].SpawnRate = dec.Uint32()
+			block.SubEffect[2].SpawnRate = dec.Uint32()
+			block.SubEffect[0].SpawnScale = dec.Float32()
+			block.SubEffect[1].SpawnScale = dec.Float32()
+			block.SubEffect[2].SpawnScale = dec.Float32()
+			for k := 0; k < 51; k++ {
+				block.UnknownDW[k] = dec.Uint32()
+			}
+			for l := 0; l < 12; l++ {
+				block.UnknownF32[l] = dec.Float32()
+			}
 		}
 	}
-	// 3 SpawnRadii -> per sub-effect
-	for i := 0; i < 3; i++ {
-		b.Sub[i].SpawnRadius = dec.Float32()
+	err := dec.Error()
+	if err != nil {
+		return fmt.Errorf("read: %w", err)
 	}
-	// 3 SpawnAngle -> per sub-effect
-	for i := 0; i < 3; i++ {
-		b.Sub[i].SpawnAngle = dec.Float32()
-	}
-	// 3 Lifespan (DWORD) -> per sub-effect
-	for i := 0; i < 3; i++ {
-		b.Sub[i].Lifespan = dec.Uint32()
-	}
-	// 3 SpawnVelocity -> per sub-effect
-	for i := 0; i < 3; i++ {
-		b.Sub[i].SpawnVelocity = dec.Float32()
-	}
-	// 3 SpawnRate (DWORD) -> per sub-effect
-	for i := 0; i < 3; i++ {
-		b.Sub[i].SpawnRate = dec.Uint32()
-	}
-	// 3 SpawnScale -> per sub-effect
-	for i := 0; i < 3; i++ {
-		b.Sub[i].SpawnScale = dec.Float32()
-	}
-
-	// 51 unknown DWORDs (shared)
-	for i := 0; i < 51; i++ {
-		b.UnknownDW[i] = dec.Uint32()
-	}
-	// 12 unknown floats (shared)
-	for i := 0; i < 12; i++ {
-		b.UnknownF32[i] = dec.Float32()
-	}
-
-	// exact size check of the block
-	blkEnd := dec.Pos()
-	if blkEnd-blkStart != EffOldBlockSize {
-		return fmt.Errorf("eff block size mismatch: read %d, expected %d", blkEnd-blkStart, EffOldBlockSize)
-	}
-	return dec.Error()
+	return nil
 }
 
 // SetFileName sets the file name

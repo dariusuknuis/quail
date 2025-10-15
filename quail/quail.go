@@ -17,11 +17,11 @@ type Quail struct {
 	Wld                    *wce.Wce
 	WldObject              *wce.Wce
 	WldLights              *wce.Wce
-	SpellEffects           *wce.Wce
-	Assets                 map[string][]byte
-	StatFS                 fs.StatFS
-	ReadDirFS              fs.ReadDirFS
-	FileSystem             qfs.QFS
+	//SpellEffects           *wce.Wce
+	Assets     map[string][]byte
+	StatFS     fs.StatFS
+	ReadDirFS  fs.ReadDirFS
+	FileSystem qfs.QFS
 }
 
 // New returns a new Quail instance

@@ -61,6 +61,7 @@ type Wce struct {
 	PrtDefs                []*EqgParticleRenderDef
 	LodDefs                []*EqgLodDef
 	ZonDefs                []*EqgZonDef
+	EffectOlds             []*EffectOld
 }
 
 type WldDefinitioner interface {
@@ -362,4 +363,5 @@ func (wce *Wce) reset() {
 	wce.PrtDefs = []*EqgParticleRenderDef{}
 	wce.LodDefs = []*EqgLodDef{}
 	wce.ZonDefs = []*EqgZonDef{}
+	wce.EffectOlds = []*EffectOld{}
 }
