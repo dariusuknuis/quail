@@ -310,6 +310,13 @@ func (wce *Wce) writeAsciiData(path string) error {
 		}
 	}
 
+	for _, eff := range wce.EffectOlds {
+		err = eff.Write(token)
+		if err != nil {
+			return fmt.Errorf("classiceffect %d: %w", eff.TagIndex, err)
+		}
+	}
+
 	token.Close()
 
 	type folderType struct {

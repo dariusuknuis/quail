@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/xackery/quail/raw"
+	"github.com/xackery/quail/wce"
 )
 
 func (q *Quail) EffRead(path string) error {
@@ -16,14 +17,17 @@ func (q *Quail) EffRead(path string) error {
 	}
 	defer f.Close()
 
-	reader, err := raw.Read(".eff", f)
-	if err != nil {
-		return fmt.Errorf("eff read: %w", err)
+	eff := &raw.EffOld{}
+	if err := eff.Read(f); err != nil {
+		return fmt.Errorf("read eff: %w", err)
 	}
-	reader.SetFileName(filepath.Base(path))
+	eff.SetFileName(filepath.Base(path))
 
-	if err := q.RawRead(reader); err != nil {
-		return fmt.Errorf("q rawRead eff: %w", err)
+	w := wce.New(eff.FileName())
+	if err := w.ReadEffRaw(eff); err != nil {
+		return fmt.Errorf("convert eff: %w", err)
 	}
+
+	q.Wld = w // or append to q.Wce if you want
 	return nil
 }

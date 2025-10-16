@@ -238,6 +238,7 @@ func (a *AsciiReadToken) readDefinitions() error {
 		&WorldDef{folders: []string{"world"}},
 		&WorldTree{},
 		&Zone{},
+		&EffectOld{},
 	}
 
 	definition := ""
@@ -608,6 +609,10 @@ func (a *AsciiReadToken) readDefinitions() error {
 				frag.Tag = args[1]
 				a.wce.ZonDefs = append(a.wce.ZonDefs, frag)
 				definitions[i] = &EqgZonDef{}
+			case *EffectOld:
+				frag.TagIndex = len(a.wce.EffectOlds) // derive index from order
+				a.wce.EffectOlds = append(a.wce.EffectOlds, frag)
+				definitions[i] = &EffectOld{}
 			default:
 				return fmt.Errorf("unknown definition type for rebuild: %T", definitions[i])
 			}
