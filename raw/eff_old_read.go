@@ -108,6 +108,8 @@ func (eff *EffOld) Read(r io.ReadSeeker) error {
 			for j := 0; j < 12; j++ {
 				block.ExtraSprites[j] = readStr32()
 			}
+			block.UnknownParam = dec.Uint32()
+			block.SoundRef = dec.Uint32()
 			block.SubEffect[0].ColorBGRA[0] = dec.Uint8()
 			block.SubEffect[0].ColorBGRA[1] = dec.Uint8()
 			block.SubEffect[0].ColorBGRA[2] = dec.Uint8()
@@ -157,6 +159,7 @@ func (eff *EffOld) Read(r io.ReadSeeker) error {
 				block.UnknownF32[l] = dec.Float32()
 			}
 		}
+		eff.Records = append(eff.Records, effRec)
 	}
 	err := dec.Error()
 	if err != nil {

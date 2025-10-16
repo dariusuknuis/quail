@@ -8,28 +8,33 @@ import (
 )
 
 // ReadEffRaw converts a parsed raw.EffOld into wce.EffectOlds for ASCII output.
-func (wce *Wce) ReadEffRaw(src *raw.EffOld) error {
+func (w *Wce) ReadEffRaw(src *raw.EffOld) error {
 	if src == nil {
 		return fmt.Errorf("src is nil")
 	}
 
-	wce.reset()
-	wce.FileName = src.FileName()
-	wce.EffectOlds = wce.EffectOlds[:0]
+	w.reset()
+	w.FileName = src.FileName()
+	w.EffectOlds = w.EffectOlds[:0]
+
+	// ensure WorldDef exists so WriteAscii doesn't bail out
+	if w.WorldDef == nil {
+		w.WorldDef = &WorldDef{folders: []string{"spells"}}
+	}
 
 	for i, rr := range src.Records {
 		if rr == nil {
 			return fmt.Errorf("record %d is nil", i)
 		}
 		def := &EffectOld{
-			folders:  []string{"spells"}, // ensures it writes to spells/spells.wce
+			folders:  []string{"spells"},
 			TagIndex: i,
 		}
-		err := def.FromRaw(wce, rr)
-		if err != nil { // NOTE: FromRaw must accept *raw.EffOldRecord
+		// Your EffectOld.FromRaw should accept *raw.EffOldRecord
+		if err := def.FromRaw(w, rr); err != nil {
 			return fmt.Errorf("record %d: %w", i, err)
 		}
-		wce.EffectOlds = append(wce.EffectOlds, def)
+		w.EffectOlds = append(w.EffectOlds, def)
 	}
 	return nil
 }

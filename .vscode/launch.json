@@ -10,6 +10,22 @@
             "request": "launch",
             "mode": "auto",
             "program": "${fileDirname}"
-        }
+        },
+	    {
+      	    "name": "Debug quail_debug.exe",
+      	    "type": "go",
+      	    "request": "launch",
+      	    "mode": "exec",
+      	    "program": "${workspaceFolder}/bin/quail_debug.exe",
+      	    "cwd": "${workspaceFolder}",
+      	    "env": {
+        	"EQ_PATH": "C:\\Users\\du44\\OneDrive - Rutgers University\\Documents\\TAKP PC V2.1"
+      	    },
+      	    "args": [
+                "convert",
+                "${workspaceFolder}/bin/spells.eff",
+                "${workspaceFolder}/bin/spells.quail"
+            ]
+    	}
     ]
 }
