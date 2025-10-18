@@ -24,19 +24,19 @@ type EffectOld struct {
 }
 
 type EffectOldBlock struct {
-	Label        string
-	ExtraSprites [12]string
-	UnknownParam uint32
-	SoundRef     uint32
-	Sub          [3]EffectOldSub
-	UnknownDW    [51]uint32
-	UnknownF32   [12]float32
+	Label       string
+	ExtraEffect [12]ExtraEffect
+	EffectMode  int32
+	SoundRef    int32
+	Sub         [3]EffectOldSub
+	UnknownDW   [51]uint32
+	UnknownF32  [12]float32
 }
 
 type EffectOldSub struct {
 	PrimarySprite string
-	DagIndex      uint32
-	EffectType    uint32
+	DagIndex      int32
+	EffectType    int32
 	ColorBGRA     [4]uint8
 	Gravity       float32
 	SpawnNormal   [3]float32
@@ -46,6 +46,17 @@ type EffectOldSub struct {
 	SpawnVelocity float32
 	SpawnRate     uint32
 	SpawnScale    float32
+}
+
+type ExtraEffect struct {
+	Sprite      string
+	ColorBGR    [3]uint8
+	SpriteID    int32
+	AngleRangeA int16
+	AngleRangeB int16
+	Radius      float32
+	EffectType  int16
+	Scale       float32
 }
 
 // ===============================
@@ -79,14 +90,7 @@ func (e *EffectOld) Write(token *AsciiWriteToken) error {
 		writeBlock := func(name string, b *EffectOldBlock) {
 			fmt.Fprintf(w, "\tBLOCK \"%s\"\n", name)
 			fmt.Fprintf(w, "\t\tLABEL \"%s\"\n", b.Label)
-
-			// Keep sprites as a count + lines (same style you used)
-			fmt.Fprintf(w, "\t\tEXTRASPRITES %d\n", len(b.ExtraSprites))
-			for _, s := range b.ExtraSprites {
-				fmt.Fprintf(w, "\t\t\tSPRITE \"%s\"\n", s)
-			}
-
-			fmt.Fprintf(w, "\t\tUNKNOWNPARAM %d\n", b.UnknownParam)
+			fmt.Fprintf(w, "\t\tEFFECTMODE %d\n", b.EffectMode)
 			fmt.Fprintf(w, "\t\tSOUNDREF %d\n", b.SoundRef)
 
 			// Sub effects: multiline, exactly as you prefer
@@ -108,14 +112,19 @@ func (e *EffectOld) Write(token *AsciiWriteToken) error {
 				fmt.Fprintf(w, "\t\t\tSPAWNSCALE %0.8e\n", sub.SpawnScale)
 			}
 
-			// Fixed 51 DWORDs, numbered with no zero padding
-			for i := 0; i < 51; i++ {
-				fmt.Fprintf(w, "\t\tUNKNOWNDW_%d %d\n", i+1, b.UnknownDW[i])
+			for j := 0; j < 12; j++ {
+				ee := b.ExtraEffect[j]
+				fmt.Fprintf(w, "\t\tEXTRAEFFECT // %d\n", j)
+				fmt.Fprintf(w, "\t\t\tSPRITE \"%s\"\n", ee.Sprite)
+				fmt.Fprintf(w, "\t\t\tRGB %d %d %d \n", ee.ColorBGR[2], ee.ColorBGR[1], ee.ColorBGR[0])
+				fmt.Fprintf(w, "\t\t\tSPRITEID %d\n", ee.SpriteID)
+				fmt.Fprintf(w, "\t\t\tANGLERANGEA %d \n", ee.AngleRangeA)
+				fmt.Fprintf(w, "\t\t\tANGLERANGEB %d \n", ee.AngleRangeB)
+				fmt.Fprintf(w, "\t\t\tRADIUS %0.8e\n", ee.Radius)
+				fmt.Fprintf(w, "\t\t\tEFFECTTYPE %d\n", ee.EffectType)
+				fmt.Fprintf(w, "\t\t\tSCALE %0.8e\n", ee.Scale)
 			}
-			// Fixed 12 floats, numbered with no zero padding
-			for i := 0; i < 12; i++ {
-				fmt.Fprintf(w, "\t\tUNKNOWNF32_%d %0.8e\n", i+1, b.UnknownF32[i])
-			}
+
 		}
 
 		writeBlock("Source", &e.Source)
@@ -158,30 +167,13 @@ func (e *EffectOld) Read(token *AsciiReadToken) error {
 		}
 		dst.Label = records[1]
 
-		records, err = token.ReadProperty("EXTRASPRITES", 1)
-		if err != nil {
-			return fmt.Errorf("%s extrasprites: %w", which, err)
-		}
-		cnt := 0
-		err = parse(&cnt, records[1])
-		if err != nil {
-			return fmt.Errorf("%s extrasprites cnt: %w", which, err)
-		}
-		for j := 0; j < cnt && j < len(dst.ExtraSprites); j++ {
-			records, err = token.ReadProperty("SPRITE", 1)
-			if err != nil {
-				return fmt.Errorf("%s sprite %d: %w", which, j, err)
-			}
-			dst.ExtraSprites[j] = records[1]
-		}
-
-		records, err = token.ReadProperty("UNKNOWNPARAM", 1)
+		records, err = token.ReadProperty("EFFECTMODE", 1)
 		if err != nil {
 			return err
 		}
-		err = parse(&dst.UnknownParam, records[1])
+		err = parse(&dst.EffectMode, records[1])
 		if err != nil {
-			return fmt.Errorf("%s unknownparam: %w", which, err)
+			return fmt.Errorf("%s effect mode: %w", which, err)
 		}
 
 		records, err = token.ReadProperty("SOUNDREF", 1)
@@ -194,15 +186,15 @@ func (e *EffectOld) Read(token *AsciiReadToken) error {
 		}
 
 		for s := 0; s < 3; s++ {
-			_, err := token.ReadProperty("SUB", 0)
+			_, err := token.ReadProperty("SUBEFFECT", 0)
 			if err != nil {
 				return fmt.Errorf("%s sub %d: %w", which, s, err)
 			}
 			sub := &dst.Sub[s]
 
-			records, err = token.ReadProperty("PRIMARYSPRITE", 1)
+			records, err = token.ReadProperty("BLITSPRITE", 1)
 			if err != nil {
-				return fmt.Errorf("%s sub %d primarysprite: %w", which, s, err)
+				return fmt.Errorf("%s sub %d blit sprite: %w", which, s, err)
 			}
 			sub.PrimarySprite = records[1]
 
@@ -306,29 +298,80 @@ func (e *EffectOld) Read(token *AsciiReadToken) error {
 			}
 		}
 
-		// Fixed 51 DWORDs, read numbered keys
-		for i := 0; i < 51; i++ {
-			key := fmt.Sprintf("UNKNOWNDW_%d", i+1)
-			records, err = token.ReadProperty(key, 1)
+		for s := 0; s < 12; s++ {
+			_, err := token.ReadProperty("EXTRAEFFECT", 0)
+			if err != nil {
+				return fmt.Errorf("%s extra effect %d: %w", which, s, err)
+			}
+			ee := &dst.ExtraEffect[s]
+
+			records, err = token.ReadProperty("SPRITE", 1)
+			if err != nil {
+				return fmt.Errorf("%s extra effect %d sprite: %w", which, s, err)
+			}
+			ee.Sprite = records[1]
+
+			records, err = token.ReadProperty("RGB", 3)
 			if err != nil {
 				return err
 			}
-			err = parse(&dst.UnknownDW[i], records[1])
+			err = parse(&ee.ColorBGR, records[1:]...)
 			if err != nil {
-				return fmt.Errorf("%s %s parse: %w", which, key, err)
+				return fmt.Errorf("%s extra effect %d rgb: %w", which, s, err)
 			}
-		}
 
-		// Fixed 12 floats, read numbered keys
-		for i := 0; i < 12; i++ {
-			key := fmt.Sprintf("UNKNOWNF32_%d", i+1)
-			records, err = token.ReadProperty(key, 1)
+			records, err = token.ReadProperty("SPRITEID", 1)
 			if err != nil {
-				return fmt.Errorf("%s %s: %w", which, key, err)
+				return err
 			}
-			err = parse(&dst.UnknownF32[i], records[1])
+			err = parse(&ee.SpriteID, records[1])
 			if err != nil {
-				return fmt.Errorf("%s %s parse: %w", which, key, err)
+				return fmt.Errorf("%s extra effect %d sprite ID: %w", which, s, err)
+			}
+
+			records, err = token.ReadProperty("ANGLERANGEA", 1)
+			if err != nil {
+				return err
+			}
+			err = parse(&ee.AngleRangeA, records[1])
+			if err != nil {
+				return fmt.Errorf("%s extra effect %d angle range A: %w", which, s, err)
+			}
+
+			records, err = token.ReadProperty("ANGLERANGEB", 1)
+			if err != nil {
+				return err
+			}
+			err = parse(&ee.AngleRangeB, records[1])
+			if err != nil {
+				return fmt.Errorf("%s extra effect %d angle range B: %w", which, s, err)
+			}
+
+			records, err = token.ReadProperty("RADIUS", 1)
+			if err != nil {
+				return err
+			}
+			err = parse(&ee.Radius, records[1])
+			if err != nil {
+				return fmt.Errorf("%s extra effect %d radius: %w", which, s, err)
+			}
+
+			records, err = token.ReadProperty("EFFECTTYPE", 1)
+			if err != nil {
+				return err
+			}
+			err = parse(&ee.EffectType, records[1])
+			if err != nil {
+				return fmt.Errorf("%s extra effect %d effecttype: %w", which, s, err)
+			}
+
+			records, err = token.ReadProperty("SCALE", 1)
+			if err != nil {
+				return err
+			}
+			err = parse(&ee.Scale, records[1])
+			if err != nil {
+				return fmt.Errorf("%s extra effect %d scale: %w", which, s, err)
 			}
 		}
 
@@ -364,12 +407,8 @@ func (e *EffectOld) ToRaw(wce *Wce, dst *raw.EffOldRecord) error {
 	// Inline copy for each of the three blocks
 	copyBlock := func(src *EffectOldBlock, dstB *raw.EffOldBlock) {
 		dstB.Label = src.Label
-		dstB.UnknownParam = src.UnknownParam
+		dstB.EffectMode = src.EffectMode
 		dstB.SoundRef = src.SoundRef
-
-		for i := 0; i < len(dstB.ExtraSprites) && i < len(src.ExtraSprites); i++ {
-			dstB.ExtraSprites[i] = src.ExtraSprites[i]
-		}
 
 		for i := 0; i < 3; i++ {
 			s := src.Sub[i]
@@ -387,11 +426,15 @@ func (e *EffectOld) ToRaw(wce *Wce, dst *raw.EffOldRecord) error {
 			dstB.SubEffect[i].SpawnScale = s.SpawnScale
 		}
 
-		for i := 0; i < len(dstB.UnknownDW) && i < len(src.UnknownDW); i++ {
-			dstB.UnknownDW[i] = src.UnknownDW[i]
-		}
-		for i := 0; i < len(dstB.UnknownF32) && i < len(src.UnknownF32); i++ {
-			dstB.UnknownF32[i] = src.UnknownF32[i]
+		for i := 0; i < len(dstB.ExtraEffect) && i < len(src.ExtraEffect); i++ {
+			dstB.ExtraEffect[i].Blit = src.ExtraEffect[i].Sprite
+			dstB.ExtraEffect[i].ColorBGR = src.ExtraEffect[i].ColorBGR
+			dstB.ExtraEffect[i].SpriteID = src.ExtraEffect[i].SpriteID
+			dstB.ExtraEffect[i].AngleRangeA = src.ExtraEffect[i].AngleRangeA
+			dstB.ExtraEffect[i].AngleRangeB = src.ExtraEffect[i].AngleRangeB
+			dstB.ExtraEffect[i].Radius = src.ExtraEffect[i].Radius
+			dstB.ExtraEffect[i].EffectType = src.ExtraEffect[i].EffectType
+			dstB.ExtraEffect[i].Scale = src.ExtraEffect[i].Scale
 		}
 	}
 
@@ -413,12 +456,8 @@ func (e *EffectOld) FromRaw(_ *Wce, src *raw.EffOldRecord) error {
 
 	cpBlock := func(srcB *raw.EffOldBlock, dstB *EffectOldBlock) {
 		dstB.Label = srcB.Label
-		dstB.UnknownParam = srcB.UnknownParam
+		dstB.EffectMode = srcB.EffectMode
 		dstB.SoundRef = srcB.SoundRef
-
-		for i := 0; i < len(dstB.ExtraSprites) && i < len(srcB.ExtraSprites); i++ {
-			dstB.ExtraSprites[i] = srcB.ExtraSprites[i]
-		}
 
 		for i := 0; i < 3; i++ {
 			s := srcB.SubEffect[i]
@@ -438,11 +477,18 @@ func (e *EffectOld) FromRaw(_ *Wce, src *raw.EffOldRecord) error {
 			}
 		}
 
-		for i := 0; i < len(dstB.UnknownDW) && i < len(srcB.UnknownDW); i++ {
-			dstB.UnknownDW[i] = srcB.UnknownDW[i]
-		}
-		for i := 0; i < len(dstB.UnknownF32) && i < len(srcB.UnknownF32); i++ {
-			dstB.UnknownF32[i] = srcB.UnknownF32[i]
+		for i := 0; i < 12; i++ {
+			s := srcB.ExtraEffect[i]
+			dstB.ExtraEffect[i] = ExtraEffect{
+				Sprite:      s.Blit,
+				ColorBGR:    s.ColorBGR,
+				SpriteID:    s.SpriteID,
+				AngleRangeA: s.AngleRangeA,
+				AngleRangeB: s.AngleRangeB,
+				Radius:      s.Radius,
+				EffectType:  s.EffectType,
+				Scale:       s.Scale,
+			}
 		}
 	}
 

@@ -37,10 +37,10 @@ type EffOldBlock struct {
 	SubEffect [3]EffSubEffect
 
 	// Shared across the whole block
-	Label        string     // "Source" / "Target" (observed)
-	ExtraSprites [12]string // additional blitsprite references
-	UnknownParam uint32
-	SoundRef     uint32
+	Label       string             // "Source" / "Target" (observed)
+	ExtraEffect [12]EffExtraEffect // additional blitsprite references
+	EffectMode  int32
+	SoundRef    int32
 
 	// Trailer / still-shared (not clearly per-sub)
 	UnknownDW  [51]uint32
@@ -50,9 +50,9 @@ type EffOldBlock struct {
 // EffSubEffect groups the fields that refer to the same logical sub-effect
 type EffSubEffect struct {
 	Blit     string // first 3 strings (one per sub-effect)
-	DagIndex uint32 //1=head, 2=right hand, 3=left hand
+	DagIndex int32  //1=head, 2=right hand, 3=left hand
 	//4=right foot, 5=left foot, Other=chest
-	EffectType    uint32
+	EffectType    int32
 	ColorBGRA     [4]uint8
 	Gravity       float32
 	SpawnNormal   [3]float32
@@ -62,6 +62,17 @@ type EffSubEffect struct {
 	SpawnVelocity float32
 	SpawnRate     uint32
 	SpawnScale    float32
+}
+
+type EffExtraEffect struct {
+	Blit        string // first 3 strings (one per sub-effect)
+	ColorBGR    [3]uint8
+	SpriteID    int32
+	AngleRangeA int16
+	AngleRangeB int16
+	Radius      float32
+	EffectType  int16
+	Scale       float32
 }
 
 func (eff *EffOld) Identity() string {
@@ -95,68 +106,93 @@ func (eff *EffOld) Read(r io.ReadSeeker) error {
 		}
 		for b := 0; b < 3; b++ {
 			block := blocks[b]
-			block.SubEffect[0].Blit = readStr32()
-			block.SubEffect[1].Blit = readStr32()
-			block.SubEffect[2].Blit = readStr32()
+			for j := 0; j < 3; j++ {
+				block.SubEffect[j].Blit = readStr32()
+			}
+
 			block.Label = readStr32()
-			block.SubEffect[0].DagIndex = dec.Uint32()
-			block.SubEffect[1].DagIndex = dec.Uint32()
-			block.SubEffect[2].DagIndex = dec.Uint32()
-			block.SubEffect[0].EffectType = dec.Uint32()
-			block.SubEffect[1].EffectType = dec.Uint32()
-			block.SubEffect[2].EffectType = dec.Uint32()
+			for j := 0; j < 3; j++ {
+				block.SubEffect[j].DagIndex = dec.Int32()
+			}
+
+			for j := 0; j < 3; j++ {
+				block.SubEffect[j].EffectType = dec.Int32()
+			}
+
 			for j := 0; j < 12; j++ {
-				block.ExtraSprites[j] = readStr32()
+				block.ExtraEffect[j].Blit = readStr32()
 			}
-			block.UnknownParam = dec.Uint32()
-			block.SoundRef = dec.Uint32()
-			block.SubEffect[0].ColorBGRA[0] = dec.Uint8()
-			block.SubEffect[0].ColorBGRA[1] = dec.Uint8()
-			block.SubEffect[0].ColorBGRA[2] = dec.Uint8()
-			block.SubEffect[0].ColorBGRA[3] = dec.Uint8()
-			block.SubEffect[1].ColorBGRA[0] = dec.Uint8()
-			block.SubEffect[1].ColorBGRA[1] = dec.Uint8()
-			block.SubEffect[1].ColorBGRA[2] = dec.Uint8()
-			block.SubEffect[1].ColorBGRA[3] = dec.Uint8()
-			block.SubEffect[2].ColorBGRA[0] = dec.Uint8()
-			block.SubEffect[2].ColorBGRA[1] = dec.Uint8()
-			block.SubEffect[2].ColorBGRA[2] = dec.Uint8()
-			block.SubEffect[2].ColorBGRA[3] = dec.Uint8()
-			block.SubEffect[0].Gravity = dec.Float32()
-			block.SubEffect[1].Gravity = dec.Float32()
-			block.SubEffect[2].Gravity = dec.Float32()
-			block.SubEffect[0].SpawnNormal[0] = dec.Float32()
-			block.SubEffect[0].SpawnNormal[1] = dec.Float32()
-			block.SubEffect[0].SpawnNormal[2] = dec.Float32()
-			block.SubEffect[1].SpawnNormal[0] = dec.Float32()
-			block.SubEffect[1].SpawnNormal[1] = dec.Float32()
-			block.SubEffect[1].SpawnNormal[2] = dec.Float32()
-			block.SubEffect[2].SpawnNormal[0] = dec.Float32()
-			block.SubEffect[2].SpawnNormal[1] = dec.Float32()
-			block.SubEffect[2].SpawnNormal[2] = dec.Float32()
-			block.SubEffect[0].SpawnRadius = dec.Float32()
-			block.SubEffect[1].SpawnRadius = dec.Float32()
-			block.SubEffect[2].SpawnRadius = dec.Float32()
-			block.SubEffect[0].SpawnAngle = dec.Float32()
-			block.SubEffect[1].SpawnAngle = dec.Float32()
-			block.SubEffect[2].SpawnAngle = dec.Float32()
-			block.SubEffect[0].Lifespan = dec.Uint32()
-			block.SubEffect[1].Lifespan = dec.Uint32()
-			block.SubEffect[2].Lifespan = dec.Uint32()
-			block.SubEffect[0].SpawnVelocity = dec.Float32()
-			block.SubEffect[1].SpawnVelocity = dec.Float32()
-			block.SubEffect[2].SpawnVelocity = dec.Float32()
-			block.SubEffect[0].SpawnRate = dec.Uint32()
-			block.SubEffect[1].SpawnRate = dec.Uint32()
-			block.SubEffect[2].SpawnRate = dec.Uint32()
-			block.SubEffect[0].SpawnScale = dec.Float32()
-			block.SubEffect[1].SpawnScale = dec.Float32()
-			block.SubEffect[2].SpawnScale = dec.Float32()
-			for k := 0; k < 51; k++ {
-				block.UnknownDW[k] = dec.Uint32()
+
+			block.EffectMode = dec.Int32()
+			block.SoundRef = dec.Int32()
+			for j := 0; j < 3; j++ {
+				for k := 0; k < 4; k++ {
+					block.SubEffect[j].ColorBGRA[k] = dec.Uint8()
+				}
 			}
-			for l := 0; l < 12; l++ {
-				block.UnknownF32[l] = dec.Float32()
+
+			for j := 0; j < 3; j++ {
+				block.SubEffect[j].Gravity = dec.Float32()
+			}
+
+			for j := 0; j < 3; j++ {
+				for k := 0; k < 3; k++ {
+					block.SubEffect[j].SpawnNormal[k] = dec.Float32()
+				}
+			}
+
+			for j := 0; j < 3; j++ {
+				block.SubEffect[j].SpawnRadius = dec.Float32()
+			}
+
+			for j := 0; j < 3; j++ {
+				block.SubEffect[j].SpawnAngle = dec.Float32()
+			}
+
+			for j := 0; j < 3; j++ {
+				block.SubEffect[j].Lifespan = dec.Uint32()
+			}
+
+			for j := 0; j < 3; j++ {
+				block.SubEffect[j].SpawnVelocity = dec.Float32()
+			}
+
+			for j := 0; j < 3; j++ {
+				block.SubEffect[j].SpawnRate = dec.Uint32()
+			}
+
+			for j := 0; j < 3; j++ {
+				block.SubEffect[j].SpawnScale = dec.Float32()
+			}
+
+			for j := 0; j < 12; j++ {
+				for k := 0; k < 3; k++ {
+					block.ExtraEffect[j].ColorBGR[k] = dec.Uint8()
+				}
+			}
+
+			for j := 0; j < 12; j++ {
+				block.ExtraEffect[j].SpriteID = dec.Int32()
+			}
+
+			for j := 0; j < 12; j++ {
+				block.ExtraEffect[j].AngleRangeA = dec.Int16()
+			}
+
+			for j := 0; j < 12; j++ {
+				block.ExtraEffect[j].AngleRangeB = dec.Int16()
+			}
+
+			for j := 0; j < 12; j++ {
+				block.ExtraEffect[j].Radius = dec.Float32()
+			}
+
+			for j := 0; j < 12; j++ {
+				block.ExtraEffect[j].EffectType = dec.Int16()
+			}
+
+			for j := 0; j < 12; j++ {
+				block.ExtraEffect[j].Scale = dec.Float32()
 			}
 		}
 		eff.Records = append(eff.Records, effRec)

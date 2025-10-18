@@ -120,6 +120,11 @@ func runConvertE(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return fmt.Errorf("json write: %w", err)
 		}
+	case ".eff":
+		err = q.EffWrite(dstPath)
+		if err != nil {
+			return fmt.Errorf("eff write: %w", err)
+		}
 	default:
 		err = q.PfsWrite(1, 1, dstPath)
 		if err != nil {

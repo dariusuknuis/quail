@@ -38,3 +38,22 @@ func (w *Wce) ReadEffRaw(src *raw.EffOld) error {
 	}
 	return nil
 }
+
+func (w *Wce) WriteEffRaw(dst *raw.EffOld) error {
+	if dst == nil {
+		return fmt.Errorf("dst is nil")
+	}
+	dst.Records = dst.Records[:0]
+
+	for i, def := range w.EffectOlds {
+		if def == nil {
+			return fmt.Errorf("effect %d is nil", i)
+		}
+		rec := &raw.EffOldRecord{}
+		if err := def.ToRaw(w, rec); err != nil {
+			return fmt.Errorf("effect %d: %w", i, err)
+		}
+		dst.Records = append(dst.Records, rec)
+	}
+	return nil
+}

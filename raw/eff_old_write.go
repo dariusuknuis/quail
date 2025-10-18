@@ -46,23 +46,23 @@ func (eff *EffOld) Write(w io.Writer) error {
 			writeStr32(b.Label)
 
 			// 3x DagIndex
-			enc.Uint32(b.SubEffect[0].DagIndex)
-			enc.Uint32(b.SubEffect[1].DagIndex)
-			enc.Uint32(b.SubEffect[2].DagIndex)
+			enc.Int32(b.SubEffect[0].DagIndex)
+			enc.Int32(b.SubEffect[1].DagIndex)
+			enc.Int32(b.SubEffect[2].DagIndex)
 
 			// 3x EffectType
-			enc.Uint32(b.SubEffect[0].EffectType)
-			enc.Uint32(b.SubEffect[1].EffectType)
-			enc.Uint32(b.SubEffect[2].EffectType)
+			enc.Int32(b.SubEffect[0].EffectType)
+			enc.Int32(b.SubEffect[1].EffectType)
+			enc.Int32(b.SubEffect[2].EffectType)
 
 			// 12 extra sprites
 			for j := 0; j < 12; j++ {
-				writeStr32(b.ExtraSprites[j])
+				writeStr32(b.ExtraEffect[j].Blit)
 			}
 
 			// shared params
-			enc.Uint32(b.UnknownParam)
-			enc.Uint32(b.SoundRef)
+			enc.Int32(b.EffectMode)
+			enc.Int32(b.SoundRef)
 
 			// colors BGRA (4 bytes each, matches your read)
 			for s := 0; s < 3; s++ {
@@ -114,13 +114,34 @@ func (eff *EffOld) Write(w io.Writer) error {
 			enc.Float32(b.SubEffect[1].SpawnScale)
 			enc.Float32(b.SubEffect[2].SpawnScale)
 
-			// 51 unknown DWORDs
-			for j := 0; j < 51; j++ {
-				enc.Uint32(b.UnknownDW[j])
-			}
-			// 12 unknown floats
 			for j := 0; j < 12; j++ {
-				enc.Float32(b.UnknownF32[j])
+				enc.Uint8(b.ExtraEffect[j].ColorBGR[2])
+				enc.Uint8(b.ExtraEffect[j].ColorBGR[1])
+				enc.Uint8(b.ExtraEffect[j].ColorBGR[0])
+			}
+
+			for j := 0; j < 12; j++ {
+				enc.Int32(b.ExtraEffect[j].SpriteID)
+			}
+
+			for j := 0; j < 12; j++ {
+				enc.Int16(b.ExtraEffect[j].AngleRangeA)
+			}
+
+			for j := 0; j < 12; j++ {
+				enc.Int16(b.ExtraEffect[j].AngleRangeB)
+			}
+
+			for j := 0; j < 12; j++ {
+				enc.Float32(b.ExtraEffect[j].Radius)
+			}
+
+			for j := 0; j < 12; j++ {
+				enc.Int16(b.ExtraEffect[j].EffectType)
+			}
+
+			for j := 0; j < 12; j++ {
+				enc.Float32(b.ExtraEffect[j].Scale)
 			}
 		}
 	}
