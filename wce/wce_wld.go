@@ -7850,7 +7850,7 @@ func (e *ParticleCloudDef) Write(token *AsciiWriteToken) error {
 		fmt.Fprintf(w, "\tTAGINDEX %d\n", e.TagIndex)
 		fmt.Fprintf(w, "\tBLITTAG \"%s\"\n", e.BlitSpriteDefTag)
 		fmt.Fprintf(w, "\tPARTICLETYPE %d // 1: Single pixel, 2: Tails, 3 Blit?\n", e.ParticleType)
-		fmt.Fprintf(w, "\tMOVEMENT \"%s\" // SPHERE, PLANE, STREAM, NONE\n", e.SpawnType)
+		fmt.Fprintf(w, "\tMOVEMENT \"%s\" // BOX, SPHERE, PLANE, STREAM, DISK\n", e.SpawnType)
 		fmt.Fprintf(w, "\tSIZE %d // Number of particles to emit\n", e.Size)
 		fmt.Fprintf(w, "\tGRAVITY %0.8e\n", e.Gravity)
 		fmt.Fprintf(w, "\tSPAWNNORMAL %0.8e %0.8e %0.8e\n", e.SpawnNormal[0], e.SpawnNormal[1], e.SpawnNormal[2])
@@ -8367,7 +8367,7 @@ func (e *ParticleCloudDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 		wfParticleCloud.SpawnType = 2
 	case "STREAM":
 		wfParticleCloud.SpawnType = 3
-	case "NONE":
+	case "DISK":
 		wfParticleCloud.SpawnType = 4
 	default:
 		return 0, fmt.Errorf("unknown spawn type %s", e.SpawnType)
@@ -8444,7 +8444,7 @@ func (e *ParticleCloudDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldF
 	case 3:
 		e.SpawnType = "STREAM"
 	case 4:
-		e.SpawnType = "NONE"
+		e.SpawnType = "DISK"
 	default:
 		return fmt.Errorf("unknown movement type %d", frag.SpawnType)
 	}
