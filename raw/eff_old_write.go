@@ -121,7 +121,7 @@ func (eff *EffOld) Write(w io.Writer) error {
 			}
 
 			for j := 0; j < 12; j++ {
-				enc.Int32(b.ExtraEffect[j].SpriteID)
+				enc.Float32(b.ExtraEffect[j].AnimSpeedMultiplier)
 			}
 
 			for j := 0; j < 12; j++ {

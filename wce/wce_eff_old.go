@@ -49,14 +49,14 @@ type EffectOldSub struct {
 }
 
 type ExtraEffect struct {
-	Sprite      string
-	ColorBGR    [3]uint8
-	SpriteID    int32
-	AngleRangeA int16
-	AngleRangeB int16
-	Radius      float32
-	EffectType  int16
-	Scale       float32
+	Sprite              string
+	ColorBGR            [3]uint8
+	AnimSpeedMultiplier float32
+	AngleRangeA         int16
+	AngleRangeB         int16
+	Radius              float32
+	EffectType          int16
+	Scale               float32
 }
 
 // ===============================
@@ -117,7 +117,7 @@ func (e *EffectOld) Write(token *AsciiWriteToken) error {
 				fmt.Fprintf(w, "\t\tEXTRAEFFECT // %d\n", j)
 				fmt.Fprintf(w, "\t\t\tSPRITE \"%s\"\n", ee.Sprite)
 				fmt.Fprintf(w, "\t\t\tRGB %d %d %d \n", ee.ColorBGR[2], ee.ColorBGR[1], ee.ColorBGR[0])
-				fmt.Fprintf(w, "\t\t\tSPRITEID %d\n", ee.SpriteID)
+				fmt.Fprintf(w, "\t\t\tANIMSPEEDMULTIPLIER %0.8e\n", ee.AnimSpeedMultiplier)
 				fmt.Fprintf(w, "\t\t\tANGLERANGEA %d \n", ee.AngleRangeA)
 				fmt.Fprintf(w, "\t\t\tANGLERANGEB %d \n", ee.AngleRangeB)
 				fmt.Fprintf(w, "\t\t\tRADIUS %0.8e\n", ee.Radius)
@@ -320,13 +320,13 @@ func (e *EffectOld) Read(token *AsciiReadToken) error {
 				return fmt.Errorf("%s extra effect %d rgb: %w", which, s, err)
 			}
 
-			records, err = token.ReadProperty("SPRITEID", 1)
+			records, err = token.ReadProperty("ANIMSPEEDMULTIPLIER", 1)
 			if err != nil {
 				return err
 			}
-			err = parse(&ee.SpriteID, records[1])
+			err = parse(&ee.AnimSpeedMultiplier, records[1])
 			if err != nil {
-				return fmt.Errorf("%s extra effect %d sprite ID: %w", which, s, err)
+				return fmt.Errorf("%s extra effect %d animation speed multiplier: %w", which, s, err)
 			}
 
 			records, err = token.ReadProperty("ANGLERANGEA", 1)
@@ -429,7 +429,7 @@ func (e *EffectOld) ToRaw(wce *Wce, dst *raw.EffOldRecord) error {
 		for i := 0; i < len(dstB.ExtraEffect) && i < len(src.ExtraEffect); i++ {
 			dstB.ExtraEffect[i].Blit = src.ExtraEffect[i].Sprite
 			dstB.ExtraEffect[i].ColorBGR = src.ExtraEffect[i].ColorBGR
-			dstB.ExtraEffect[i].SpriteID = src.ExtraEffect[i].SpriteID
+			dstB.ExtraEffect[i].AnimSpeedMultiplier = src.ExtraEffect[i].AnimSpeedMultiplier
 			dstB.ExtraEffect[i].AngleRangeA = src.ExtraEffect[i].AngleRangeA
 			dstB.ExtraEffect[i].AngleRangeB = src.ExtraEffect[i].AngleRangeB
 			dstB.ExtraEffect[i].Radius = src.ExtraEffect[i].Radius
@@ -480,14 +480,14 @@ func (e *EffectOld) FromRaw(_ *Wce, src *raw.EffOldRecord) error {
 		for i := 0; i < 12; i++ {
 			s := srcB.ExtraEffect[i]
 			dstB.ExtraEffect[i] = ExtraEffect{
-				Sprite:      s.Blit,
-				ColorBGR:    s.ColorBGR,
-				SpriteID:    s.SpriteID,
-				AngleRangeA: s.AngleRangeA,
-				AngleRangeB: s.AngleRangeB,
-				Radius:      s.Radius,
-				EffectType:  s.EffectType,
-				Scale:       s.Scale,
+				Sprite:              s.Blit,
+				ColorBGR:            s.ColorBGR,
+				AnimSpeedMultiplier: s.AnimSpeedMultiplier,
+				AngleRangeA:         s.AngleRangeA,
+				AngleRangeB:         s.AngleRangeB,
+				Radius:              s.Radius,
+				EffectType:          s.EffectType,
+				Scale:               s.Scale,
 			}
 		}
 	}

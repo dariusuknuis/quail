@@ -65,14 +65,14 @@ type EffSubEffect struct {
 }
 
 type EffExtraEffect struct {
-	Blit        string // first 3 strings (one per sub-effect)
-	ColorBGR    [3]uint8
-	SpriteID    int32
-	AngleRangeA int16
-	AngleRangeB int16
-	Radius      float32
-	EffectType  int16
-	Scale       float32
+	Blit                string // first 3 strings (one per sub-effect)
+	ColorBGR            [3]uint8
+	AnimSpeedMultiplier float32
+	AngleRangeA         int16
+	AngleRangeB         int16
+	Radius              float32
+	EffectType          int16
+	Scale               float32
 }
 
 func (eff *EffOld) Identity() string {
@@ -172,7 +172,7 @@ func (eff *EffOld) Read(r io.ReadSeeker) error {
 			}
 
 			for j := 0; j < 12; j++ {
-				block.ExtraEffect[j].SpriteID = dec.Int32()
+				block.ExtraEffect[j].AnimSpeedMultiplier = dec.Float32()
 			}
 
 			for j := 0; j < 12; j++ {
