@@ -393,23 +393,23 @@ func (e *DMSpriteDef2) Write(token *AsciiWriteToken) error {
 		fmt.Fprintf(w, "\tCENTEROFFSET %0.8e %0.8e %0.8e\n", e.CenterOffset[0], e.CenterOffset[1], e.CenterOffset[2])
 		fmt.Fprintf(w, "\n")
 		fmt.Fprintf(w, "\tNUMVERTICES %d\n", len(e.Vertices))
-		for _, vert := range e.Vertices {
-			fmt.Fprintf(w, "\t\tVXYZ %0.8e %0.8e %0.8e\n", vert[0], vert[1], vert[2])
+		for i, vert := range e.Vertices {
+			fmt.Fprintf(w, "\t\tVXYZ %0.8e %0.8e %0.8e //%d\n", vert[0], vert[1], vert[2], i)
 		}
 		fmt.Fprintf(w, "\n")
 		fmt.Fprintf(w, "\tNUMUVS %d\n", len(e.UVs))
-		for _, uv := range e.UVs {
-			fmt.Fprintf(w, "\t\tUV %0.8e %0.8e\n", uv[0], uv[1])
+		for j, uv := range e.UVs {
+			fmt.Fprintf(w, "\t\tUV %0.8e %0.8e //%d\n", uv[0], uv[1], j)
 		}
 		fmt.Fprintf(w, "\n")
 		fmt.Fprintf(w, "\tNUMVERTEXNORMALS %d\n", len(e.VertexNormals))
-		for _, vn := range e.VertexNormals {
-			fmt.Fprintf(w, "\t\tNXYZ %0.8e %0.8e %0.8e\n", vn[0], vn[1], vn[2])
+		for k, vn := range e.VertexNormals {
+			fmt.Fprintf(w, "\t\tNXYZ %0.8e %0.8e %0.8e //%d\n", vn[0], vn[1], vn[2], k)
 		}
 		fmt.Fprintf(w, "\n")
 		fmt.Fprintf(w, "\tNUMVERTEXCOLORS %d\n", len(e.VertexColors))
-		for _, color := range e.VertexColors {
-			fmt.Fprintf(w, "\t\tRGBA %d %d %d %d\n", color[2], color[1], color[0], color[3])
+		for l, color := range e.VertexColors {
+			fmt.Fprintf(w, "\t\tRGBA %d %d %d %d //%d\n", color[2], color[1], color[0], color[3], l)
 		}
 		fmt.Fprintf(w, "\n")
 		fmt.Fprintf(w, "\n")

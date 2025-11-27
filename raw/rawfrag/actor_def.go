@@ -12,14 +12,14 @@ import (
 const (
 	ActorFlagHasCurrentAction  = 0x0001
 	ActorFlagHasLocation       = 0x0002
-	ActorFlagHasBoundingRadius = 0x0004
-	ActorFlagHasScaleFactor    = 0x0008
-	ActorFlagHasSound          = 0x0010
-	ActorFlagActive            = 0x0020
+	ActorFlagHasBoundingRadius = 0x0004 //not part of ActorDef
+	ActorFlagHasScaleFactor    = 0x0008 //not part of ActorDef
+	ActorFlagHasSound          = 0x0010 //not part of ActorDef
+	ActorFlagActive            = 0x0020 //not part of ActorDef
 	ActorFlagActiveGeometry    = 0x0040
 	ActorFlagSpriteVolumeOnly  = 0x0080
-	ActorFlagHaveDMRGBTrack    = 0x0100
-	ActorFlagUsesBoundingBox   = 0x0200
+	ActorFlagHaveDMRGBTrack    = 0x0100 //not part of ActorDef
+	ActorFlagUsesBoundingBox   = 0x0200 //not part of ActorDef
 )
 
 // WldFragActorDef is ActorDef in libeq, Static in openzone, ACTORDEF in wld
