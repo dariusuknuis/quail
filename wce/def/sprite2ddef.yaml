@@ -1,220 +1,246 @@
 name: "SPRITE2DDEF"
 hasTag: true
-note: "Wld Sprite 2d Def"
+note: "Wld Sprite 2D Definition"
+
 properties:
+
   - name: "SCALE"
-    note: ""
+    note: "Sprite scale (X, Y)"
     args:
-      - name: ""
+      - name: "x scale"
         note: ""
         format: "%0.8e"
-      - name: ""
+      - name: "y scale"
         note: ""
         format: "%0.8e"
+
   - name: "SPHERELISTTAG"
-    note: ""
+    note: "Referenced sphere list tag"
     args:
-      - name: ""
+      - name: "tag"
         note: ""
         format: "%s"
+
   - name: "DEPTHSCALE?"
-    note: ""
+    note: "Optional depth scale"
     args:
-      - name: ""
+      - name: "scale"
         note: ""
         format: "%0.8e"
+
   - name: "CENTEROFFSET?"
-    note: ""
+    note: "Optional center offset"
     args:
-      - name: ""
+      - name: "x"
         note: ""
         format: "%0.8e"
-      - name: ""
+      - name: "y"
         note: ""
         format: "%0.8e"
-      - name: ""
+      - name: "z"
         note: ""
         format: "%0.8e"
+
   - name: "BOUNDINGRADIUS?"
-    note: ""
+    note: "Optional bounding radius"
     args:
-      - name: ""
+      - name: "radius"
         note: ""
         format: "%0.8e"
+
   - name: "CURRENTFRAMEREF?"
-    note: ""
+    note: "Optional current frame reference"
     args:
-      - name: ""
+      - name: "frame"
         note: ""
         format: "%d"
+
   - name: "SLEEP?"
-    note: ""
+    note: "Optional sleep duration"
     args:
-      - name: ""
+      - name: "duration"
         note: ""
         format: "%d"
+
   - name: "NUMPITCHES"
-    note: ""
+    note: "Number of pitch levels"
     args:
-      - name: ""
+      - name: "count"
         note: ""
         format: "%d"
     properties:
+
       - name: "PITCH"
-        note: ""
+        note: "Pitch entry"
+
       - name: "PITCHCAP"
-        note: ""
+        note: "Pitch cap"
         args:
-          - name: ""
+          - name: "cap"
             note: ""
             format: "%d"
+
       - name: "TOPORBOTTOMVIEW"
-        note: ""
+        note: "Top or bottom view flag"
         args:
-          - name: ""
+          - name: "flag"
             note: ""
             format: "%d"
+
       - name: "NUMHEADINGS"
-        note: ""
+        note: "Number of heading levels"
         args:
-          - name: ""
+          - name: "count"
             note: ""
             format: "%d"
         properties:
+
           - name: "HEADING"
-            note: ""
+            note: "Heading entry"
+
           - name: "HEADINGCAP"
-            note: ""
+            note: "Heading cap"
             args:
-              - name: ""
+              - name: "cap"
                 note: ""
                 format: "%d"
+
           - name: "NUMFRAMES"
-            note: ""
+            note: "Number of frames"
             args:
-              - name: ""
+              - name: "count"
                 note: ""
                 format: "%d"
             properties:
+
               - name: "FRAME"
-                note: ""
+                note: "Frame tag"
                 args:
-                  - name: ""
+                  - name: "tag"
                     note: ""
                     format: "%s"
+
               - name: "NUMFILES"
-                note: ""
+                note: "Number of texture files"
                 args:
-                  - name: ""
+                  - name: "count"
                     note: ""
                     format: "%d"
                 properties:
+
                   - name: "FILE"
-                    note: ""
+                    note: "Texture file"
                     args:
-                      - name: ""
+                      - name: "file"
                         note: ""
                         format: "%s"
-  - name: RENDERMETHOD
-    note: ""
+
+  - name: "RENDERMETHOD"
+    note: "Rendering method"
     args:
-      - name: ""
+      - name: "method"
         note: ""
         format: "%s"
+
   - name: "RENDERINFO"
-    note: ""
-  - name: "PEN?"
-    note: ""
-    args:
-      - name: ""
-        note: ""
-        format: "%s"
-  - name: "BRIGHTNESS?"
-    note: ""
-    args:
-      - name: ""
-        note: ""
-        format: "%0.8e"
-  - name: "SCALEDAMBIENT?"
-    note: ""
-    args:
-      - name: ""
-        note: ""
-        format: "%0.8e"
-  - name: "SPRITE?"
-    note: ""
-    args:
-      - name: ""
-        note: ""
-        format: "%s"
-  - name: "UVORIGIN?"
-    note: ""
-    args:
-      - name: ""
-        note: ""
-        format: "%0.8e"
-      - name: ""
-        note: ""
-        format: "%0.8e"
-      - name: ""
-        note: ""
-        format: "%0.8e"
-  - name: "UAXIS?"
-    note: ""
-    args:
-      - name: ""
-        note: ""
-        format: "%0.8e"
-      - name: ""
-        note: ""
-        format: "%0.8e"
-      - name: ""
-        note: ""
-        format: "%0.8e"
-  - name: "VAXIS?"
-    note: ""
-    args:
-      - name: ""
-        note: ""
-        format: "%0.8e"
-      - name: ""
-        note: ""
-        format: "%0.8e"
-      - name: ""
-        note: ""
-        format: "%0.8e"
-  - name: "UVCOUNT"
-    note: ""
-    args:
-      - name: ""
-        note: ""
-        format: "%d"
+    note: "Render configuration block"
     properties:
-      - name: "UV"
-        note: ""
+
+      - name: "PEN?"
+        note: "Optional pen value"
         args:
-          - name: ""
+          - name: "pen"
+            note: ""
+            format: "%d"
+
+      - name: "BRIGHTNESS?"
+        note: "Optional brightness"
+        args:
+          - name: "amount"
             note: ""
             format: "%0.8e"
-          - name: ""
+
+      - name: "SCALEDAMBIENT?"
+        note: "Optional scaled ambient"
+        args:
+          - name: "amount"
             note: ""
             format: "%0.8e"
-  - name: "TWOSIDED"
-    note: ""
-    args:
-      - name: ""
-        note: ""
-        format: "%d"
+
+      - name: "SPRITE?"
+        note: "Optional sprite tag"
+        args:
+          - name: "tag"
+            note: ""
+            format: "%s"
+
+      - name: "UVORIGIN?"
+        note: "Optional UV origin"
+        args:
+          - name: "x"
+            note: ""
+            format: "%0.8e"
+          - name: "y"
+            note: ""
+            format: "%0.8e"
+          - name: "z"
+            note: ""
+            format: "%0.8e"
+
+      - name: "UAXIS?"
+        note: "Optional U axis"
+        args:
+          - name: "x"
+            note: ""
+            format: "%0.8e"
+          - name: "y"
+            note: ""
+            format: "%0.8e"
+          - name: "z"
+            note: ""
+            format: "%0.8e"
+
+      - name: "VAXIS?"
+        note: "Optional V axis"
+        args:
+          - name: "x"
+            note: ""
+            format: "%0.8e"
+          - name: "y"
+            note: ""
+            format: "%0.8e"
+          - name: "z"
+            note: ""
+            format: "%0.8e"
+
+      - name: "UVCOUNT"
+        note: "Number of UV entries"
+        args:
+          - name: "count"
+            note: ""
+            format: "%d"
+        properties:
+
+          - name: "UV"
+            note: "UV coordinate"
+            args:
+              - name: "u"
+                note: ""
+                format: "%0.8e"
+              - name: "v"
+                note: ""
+                format: "%0.8e"
+
+      - name: "TWOSIDED"
+        note: "Is sprite two sided"
+        args:
+          - name: "flag"
+            note: ""
+            format: "%d"
+
   - name: "HEXTENFLAG"
-    note: ""
+    note: "Hex 0x10 flag"
     args:
-      - name: ""
+      - name: "flag"
         note: ""
         format: "%d"
-
-
-
-
-
-
-

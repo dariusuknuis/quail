@@ -67,11 +67,11 @@ properties:
         note: "NULL if empty, 1 if set to true"
         format: "%d"
 
-  - name: "SPRITEVOLUMEONLY?"
+  - name: "SPRITEVOLUMEONLY"
     note: "Uses sprite volume?"
     args:
       - name: ""
-        note: "NULL empty"
+        note: "0: false, 1: true"
         format: "%d"
 
   - name: "DMRGBTRACK?"

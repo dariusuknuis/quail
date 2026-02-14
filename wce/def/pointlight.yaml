@@ -1,46 +1,61 @@
 name: "POINTLIGHT"
 hasTag: true
-note: "Wld Point Light"
+note: "Wld Point Light Definition"
+
 properties:
+
   - name: "LIGHT"
-    note: ""
+    note: "Referenced light definition tag"
     args:
-      - name: ""
-        note: ""
+      - name: "light tag"
+        note: "Light definition tag"
         format: "%s"
+
   - name: "STATIC"
-    note: ""
+    note: "Is this light static (0 or 1)"
     args:
-      - name: ""
-        note: ""
+      - name: "flag"
+        note: "0: dynamic, 1: static"
         format: "%d"
+
   - name: "STATICINFLUENCE"
-    note: ""
+    note: "Static influence flag"
     args:
-      - name: ""
-        note: ""
-        format: "%s"
-  - name: "HASREGIONS"
-    note: ""
-    args:
-      - name: ""
-        note: ""
+      - name: "flag"
+        note: "Static influence behavior"
         format: "%d"
+
+  - name: "DYNAMICINFLUENCE"
+    note: "Dynamic influence flag"
+    args:
+      - name: "flag"
+        note: "Dynamic influence behavior"
+        format: "%d"
+
   - name: "XYZ"
-    note: ""
+    note: "Light world position"
     args:
       - name: "x"
-        note: ""
+        note: "X coordinate"
         format: "%0.8e"
       - name: "y"
-        note: ""
+        note: "Y coordinate"
         format: "%0.8e"
       - name: "z"
-        note: ""
+        note: "Z coordinate"
         format: "%0.8e"
+
   - name: "RADIUSOFINFLUENCE"
-    note: ""
+    note: "Radius of light influence"
     args:
-      - name: ""
-        note: ""
+      - name: "radius"
+        note: "Influence radius"
         format: "%0.8e"
+
+  - name: "REGIONS?"
+    note: "Optional list of region indices affected by this light"
+    args:
+      - name: "region list"
+        note: "Count followed by region indices"
+        format: "%d..."
+        example: "3 5 7 9"

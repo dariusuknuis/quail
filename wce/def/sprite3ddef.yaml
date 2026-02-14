@@ -1,165 +1,190 @@
 name: "SPRITE3DDEF"
 hasTag: true
-note: "Wld 3d Sprite Definition"
+note: "Wld 3D Sprite Definition"
+
 properties:
+
+  - name: "ENABLEGOURAUD2"
+    note: "Enable gouraud shading flag"
+    args:
+      - name: "flag"
+        note: ""
+        format: "%d"
+
   - name: "CENTEROFFSET?"
-    note: ""
+    note: "Optional center offset"
     args:
-      - name: ""
-        note: ""
+      - name: "x"
         format: "%0.8e"
-      - name: ""
-        note: ""
+      - name: "y"
         format: "%0.8e"
-      - name: ""
-        note: ""
+      - name: "z"
         format: "%0.8e"
-  - name: "BOUNDINGRADIUS?"
-    note: ""
-    args:
-      - name: ""
-        note: ""
-        format: "%0.8e"
-  - name: "SPHERELIST"
-    note: ""
-    args:
-      - name: ""
-        note: ""
-        format: "%s"
+
   - name: "NUMVERTICES"
-    note: ""
+    note: "Number of vertices"
     args:
-      - name: ""
-        note: ""
+      - name: "count"
         format: "%d"
     properties:
       - name: "XYZ"
-        note: ""
+        note: "Vertex position"
         args:
-          - name: ""
-            note: ""
+          - name: "x"
             format: "%0.8e"
-          - name: ""
-            note: ""
+          - name: "y"
             format: "%0.8e"
-          - name: ""
-            note: ""
+          - name: "z"
             format: "%0.8e"
+
   - name: "NUMBSPNODES"
-    note: ""
+    note: "Number of BSP nodes"
     args:
-      - name: ""
-        note: ""
+      - name: "count"
         format: "%d"
     properties:
+
       - name: "BSPNODE"
-        note: ""
+        note: "BSP node entry"
+
+      - name: "NORMALABCD?"
+        note: "Optional plane normal (A,B,C,D)"
+        args:
+          - name: "a"
+            format: "%0.8e"
+          - name: "b"
+            format: "%0.8e"
+          - name: "c"
+            format: "%0.8e"
+          - name: "d"
+            format: "%0.8e"
+
       - name: "VERTEXLIST"
-        note: ""
+        note: "Vertex indices"
         args:
-          - name: ""
-            note: ""
+          - name: "count + indices"
             format: "%d..."
-            example: "1 1"
-  - name: "RENDERMETHOD"
-    note: ""
-    args:
-      - name: ""
-        note: ""
-        format: "%s"
-  - name: "RENDERINFO"
-    note: ""
-  - name: "PEN?"
-    note: ""
-    args:
-      - name: ""
-        note: ""
-        format: "%d"
-  - name: "BRIGHTNESS?"
-    note: ""
-    args:
-      - name: ""
-        note: ""
-        format: "%0.8e"
-  - name: "SCALEDAMBIENT?"
-    note: ""
-    args:
-      - name: ""
-        note: ""
-        format: "%0.8e"
-  - name: "SPRITE?"
-    note: ""
-    args:
-      - name: ""
-        note: ""
-        format: "%s"
-  - name: "UVORIGIN?"
-    note: ""
-    args:
-      - name: ""
-        note: ""
-        format: "%0.8e"
-      - name: ""
-        note: ""
-        format: "%0.8e"
-      - name: ""
-        note: ""
-        format: "%0.8e"
-  - name: "UAXIS?"
-    note: ""
-    args:
-      - name: ""
-        note: ""
-        format: "%0.8e"
-      - name: ""
-        note: ""
-        format: "%0.8e"
-      - name: ""
-        note: ""
-        format: "%0.8e"
-  - name: "VAXIS?"
-    note: ""
-    args:
-      - name: ""
-        note: ""
-        format: "%0.8e"
-      - name: ""
-        note: ""
-        format: "%0.8e"
-      - name: ""
-        note: ""
-        format: "%0.8e"
-  - name: "UVCOUNT"
-    note: ""
-    args:
-      - name: ""
-        note: ""
-        format: "%d"
-    properties:
-      - name: "UV"
-        note: ""
+            example: "3 0 1 2"
+
+      - name: "RENDERMETHOD"
+        note: "Render method for node"
         args:
-          - name: "u"
-            note: ""
+          - name: "method"
+            format: "%s"
+
+      - name: "RENDERINFO"
+        note: "Render configuration block"
+        properties:
+
+          - name: "PEN?"
+            args:
+              - name: "pen"
+                format: "%d"
+
+          - name: "BRIGHTNESS?"
+            args:
+              - name: "amount"
+                format: "%0.8e"
+
+          - name: "SCALEDAMBIENT?"
+            args:
+              - name: "amount"
+                format: "%0.8e"
+
+          - name: "SIMPLESPRITEINST"
+            note: "Simple sprite instance block"
+            properties:
+
+              - name: "SIMPLESPRITETAG?"
+                args:
+                  - name: "tag"
+                    format: "%s"
+
+              - name: "SIMPLESPRITETAGINDEX"
+                args:
+                  - name: "index"
+                    format: "%d"
+
+              - name: "SIMPLESPRITEHAVESKIPFRAMES"
+                args:
+                  - name: "flag"
+                    format: "%d"
+
+              - name: "SIMPLESPRITESKIPFRAMES"
+                args:
+                  - name: "flag"
+                    format: "%d"
+
+          - name: "UVORIGIN?"
+            args:
+              - name: "x"
+                format: "%0.8e"
+              - name: "y"
+                format: "%0.8e"
+              - name: "z"
+                format: "%0.8e"
+
+          - name: "UAXIS?"
+            args:
+              - name: "x"
+                format: "%0.8e"
+              - name: "y"
+                format: "%0.8e"
+              - name: "z"
+                format: "%0.8e"
+
+          - name: "VAXIS?"
+            args:
+              - name: "x"
+                format: "%0.8e"
+              - name: "y"
+                format: "%0.8e"
+              - name: "z"
+                format: "%0.8e"
+
+          - name: "NUMUVS?"
+            note: "Optional UV count"
+            args:
+              - name: "count"
+                format: "%d"
+            properties:
+              - name: "UV"
+                args:
+                  - name: "u"
+                    format: "%0.8e"
+                  - name: "v"
+                    format: "%0.8e"
+
+          - name: "TWOSIDED"
+            args:
+              - name: "flag"
+                format: "%d"
+
+      - name: "FRONTTREE"
+        args:
+          - name: "index"
+            format: "%d"
+
+      - name: "BACKTREE"
+        args:
+          - name: "index"
+            format: "%d"
+
+  - name: "SPHERELIST"
+    note: "Sphere list block"
+    properties:
+
+      - name: "DEFINITION"
+        args:
+          - name: "tag"
+            format: "%s"
+
+      - name: "SCALEFACTOR?"
+        args:
+          - name: "scale"
             format: "%0.8e"
-          - name: "v"
-            note: ""
-            format: "%0.8e"
-  - name: "TWOSIDED"
-    note: ""
+
+  - name: "BOUNDINGRADIUS?"
     args:
-      - name: ""
-        note: ""
-        format: "%d"
-  - name: "FRONTTREE"
-    note: ""
-    args:
-      - name: ""
-        note: ""
-        format: "%d"
-  - name: "BACKTREE"
-    note: ""
-    args:
-      - name: ""
-        note: ""
-        format: "%d"
+      - name: "radius"
+        format: "%0.8e"

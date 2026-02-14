@@ -1,223 +1,269 @@
 name: "PARTICLECLOUDDEF"
 hasTag: true
-note: "Wld Particle Cloud"
+note: "Wld Particle Cloud Definition"
+
 properties:
+
   - name: "TAGINDEX"
-    note: ""
+    note: "Index of tag variation"
     args:
-      - name: ""
-        note: ""
+      - name: "index"
         format: "%d"
+
   - name: "BLITTAG"
-    note: ""
+    note: "Referenced blit sprite definition tag"
     args:
-      - name: ""
-        note: ""
+      - name: "tag"
         format: "%s"
+
   - name: "PARTICLETYPE"
-    note: ""
+    note: "Particle rendering type (1=Single pixel, 2=Tails, 3=Blit)"
     args:
-      - name: ""
-        note: ""
+      - name: "type"
         format: "%d"
+
   - name: "MOVEMENT"
-    note: ""
+    note: "Spawn movement type (BOX, SPHERE, PLANE, STREAM, DISK)"
     args:
-      - name: ""
-        note: ""
+      - name: "type"
         format: "%s"
-  - name: "HIGHOPACITY"
-    note: ""
-    args:
-      - name: ""
-        note: ""
-        format: "%d"
-  - name: "FOLLOWITEM"
-    note: ""
-    args:
-      - name: ""
-        note: ""
-        format: "%d"
+
   - name: "SIZE"
-    note: ""
+    note: "Number of particles to emit"
     args:
-      - name: ""
-        note: ""
+      - name: "count"
         format: "%d"
-  - name: "GRAVITYMULTIPLIER"
-    note: ""
-    args:
-      - name: ""
-        note: ""
-        format: "%0.8e"
+
   - name: "GRAVITY"
-    note: ""
+    note: "Gravity scalar applied to particles"
     args:
-      - name: ""
-        note: ""
+      - name: "gravity"
         format: "%0.8e"
-      - name: ""
-        note: ""
+
+  - name: "SPAWNNORMAL"
+    note: "Initial spawn direction vector"
+    args:
+      - name: "x"
         format: "%0.8e"
-      - name: ""
-        note: ""
+      - name: "y"
         format: "%0.8e"
+      - name: "z"
+        format: "%0.8e"
+
   - name: "DURATION"
-    note: ""
+    note: "Duration of emitter"
     args:
-      - name: ""
-        note: ""
+      - name: "duration"
         format: "%d"
+
   - name: "SPAWNRADIUS"
-    note: ""
+    note: "Sphere spawn radius"
     args:
-      - name: ""
-        note: ""
+      - name: "radius"
         format: "%0.8e"
+
   - name: "SPAWNANGLE"
-    note: ""
+    note: "Cone spawn angle"
     args:
-      - name: ""
-        note: ""
+      - name: "angle"
         format: "%0.8e"
+
   - name: "LIFESPAN"
-    note: ""
+    note: "Particle lifespan"
     args:
-      - name: ""
-        note: ""
+      - name: "lifespan"
         format: "%d"
+
   - name: "SPAWNVELOCITYMULTIPLIER"
-    note: ""
+    note: "Multiplier applied to spawn velocity"
     args:
-      - name: ""
-        note: ""
+      - name: "multiplier"
         format: "%0.8e"
+
   - name: "SPAWNVELOCITY"
-    note: ""
+    note: "Initial velocity vector"
     args:
-      - name: ""
-        note: ""
+      - name: "x"
         format: "%0.8e"
-      - name: ""
-        note: ""
+      - name: "y"
         format: "%0.8e"
-      - name: ""
-        note: ""
+      - name: "z"
         format: "%0.8e"
+
   - name: "SPAWNRATE"
-    note: ""
+    note: "Particle spawn rate"
     args:
-      - name: ""
-        note: ""
+      - name: "rate"
         format: "%d"
+
   - name: "SPAWNSCALE"
-    note: ""
+    note: "Scale of spawned blit sprite"
     args:
-      - name: ""
-        note: ""
+      - name: "scale"
         format: "%0.8e"
+
   - name: "TINT"
-    note: ""
+    note: "RGBA tint color"
     args:
-      - name: ""
-        note: ""
+      - name: "r"
         format: "%d"
-      - name: ""
-        note: ""
+      - name: "g"
         format: "%d"
-      - name: ""
-        note: ""
+      - name: "b"
         format: "%d"
-      - name: ""
-        note: ""
+      - name: "a"
         format: "%d"
+
   - name: "SPAWNBOXMIN?"
-    note: ""
+    note: "Optional spawn box minimum bounds"
     args:
-      - name: ""
-        note: ""
+      - name: "x"
         format: "%0.8e"
-      - name: ""
-        note: ""
+      - name: "y"
         format: "%0.8e"
-      - name: ""
-        note: ""
+      - name: "z"
         format: "%0.8e"
+
   - name: "SPAWNBOXMAX?"
-    note: ""
+    note: "Optional spawn box maximum bounds"
     args:
-      - name: ""
-        note: ""
+      - name: "x"
         format: "%0.8e"
-      - name: ""
-        note: ""
+      - name: "y"
         format: "%0.8e"
-      - name: ""
-        note: ""
+      - name: "z"
         format: "%0.8e"
+
   - name: "BOXMIN?"
-    note: ""
+    note: "Optional bounding box minimum"
     args:
-      - name: ""
-        note: ""
+      - name: "x"
         format: "%0.8e"
-      - name: ""
-        note: ""
+      - name: "y"
         format: "%0.8e"
-      - name: ""
-        note: ""
+      - name: "z"
         format: "%0.8e"
+
   - name: "BOXMAX?"
-    note: ""
+    note: "Optional bounding box maximum"
     args:
-      - name: ""
-        note: ""
+      - name: "x"
         format: "%0.8e"
-      - name: ""
-        note: ""
+      - name: "y"
         format: "%0.8e"
-      - name: ""
-        note: ""
+      - name: "z"
         format: "%0.8e"
-  - name: "HEXEIGHTYFLAG"
-    note: ""
+
+  - name: "USESPRITE"
+    note: "Use blit sprite flag"
     args:
-      - name: ""
-        note: ""
+      - name: "flag"
         format: "%d"
-  - name: "HEXONEHUNDREDFLAG"
-    note: ""
+
+  - name: "FREE"
+    note: "Free movement flag"
     args:
-      - name: ""
-        note: ""
+      - name: "flag"
         format: "%d"
-  - name: "HEXFOURHUNDREDFLAG"
-    note: ""
+
+  - name: "COLLISION"
+    note: "Enable particle collision"
     args:
-      - name: ""
-        note: ""
+      - name: "flag"
         format: "%d"
-  - name: "HEXFOURTHOUSANDFLAG"
-    note: ""
+
+  - name: "RESPAWN"
+    note: "Respawn particles when expired"
     args:
-      - name: ""
-        note: ""
+      - name: "flag"
         format: "%d"
-  - name: "HEXEIGHTTHOUSANDFLAG"
-    note: ""
+
+  - name: "VIEWRELX"
+    note: "View relative X flag"
     args:
-      - name: ""
-        note: ""
+      - name: "flag"
         format: "%d"
-  - name: "HEXTENTHOUSANDFLAG"
-    note: ""
+
+  - name: "VIEWRELY"
+    note: "View relative Y flag"
     args:
-      - name: ""
-        note: ""
+      - name: "flag"
         format: "%d"
-  - name: "HEXTWENTYTHOUSANDFLAG"
-    note: ""
+
+  - name: "VIEWRELZ"
+    note: "View relative Z flag"
     args:
-      - name: ""
-        note: ""
+      - name: "flag"
+        format: "%d"
+
+  - name: "VIEWWARP"
+    note: "Warp relative to view"
+    args:
+      - name: "flag"
+        format: "%d"
+
+  - name: "BROWNIAN"
+    note: "Enable Brownian motion"
+    args:
+      - name: "flag"
+        format: "%d"
+
+  - name: "FADE"
+    note: "Enable particle fading"
+    args:
+      - name: "flag"
+        format: "%d"
+
+  - name: "BOUNDINGBOX"
+    note: "Enable bounding box"
+    args:
+      - name: "flag"
+        format: "%d"
+
+  - name: "UPDATEBBOX"
+    note: "Update bounding box dynamically"
+    args:
+      - name: "flag"
+        format: "%d"
+
+  - name: "POINTGRAVITY"
+    note: "Enable point gravity"
+    args:
+      - name: "flag"
+        format: "%d"
+
+  - name: "GRAVITYFLAG"
+    note: "Gravity behavior flag"
+    args:
+      - name: "flag"
+        format: "%d"
+
+  - name: "FREEDEF"
+    note: "Free definition flag"
+    args:
+      - name: "flag"
+        format: "%d"
+
+  - name: "OBJECTRELATIVE"
+    note: "Object relative positioning"
+    args:
+      - name: "flag"
+        format: "%d"
+
+  - name: "PARENTOBJRELATIVE"
+    note: "Parent object relative positioning"
+    args:
+      - name: "flag"
+        format: "%d"
+
+  - name: "SPAWNSCALERELATIVE"
+    note: "Spawn scale relative to parent"
+    args:
+      - name: "flag"
+        format: "%d"
+
+  - name: "HIDEWITHSPAWNOBJECT"
+    note: "Hide particles with spawn object"
+    args:
+      - name: "flag"
         format: "%d"
