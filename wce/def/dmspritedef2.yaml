@@ -1,7 +1,9 @@
 name: "DMSPRITEDEF2"
 hasTag: true
 note: "Wld DM sprite definition"
+
 properties:
+
   - name: "TAGINDEX"
     note: "The index of the tag"
     args:
@@ -102,7 +104,6 @@ properties:
             note: "Alpha"
             format: "%d"
 
-
   - name: "SKINASSIGNMENTGROUPS"
     note: "The skin assignment groups"
     args:
@@ -126,6 +127,13 @@ properties:
     args:
       - name: "track instance"
         note: "The track instance"
+        format: "%s"
+
+  - name: "DMRGBTRACK"
+    note: "The DMRGB track instance"
+    args:
+      - name: "track instance"
+        note: "The DMRGB track instance"
         format: "%s"
 
   - name: "POLYHEDRON"
@@ -166,7 +174,6 @@ properties:
             note: "Index 2 of triangle"
             format: "%d"
 
-
   - name: "NUMMESHOPS"
     note: "The number of mesh operations in the sprite"
     args:
@@ -177,20 +184,20 @@ properties:
       - name: "MESHOP"
         note: "A mesh operation"
         args:
-          - name: "arg 0"
-            note: "arg 0"
+          - name: "index1"
+            note: "Primary index value"
             format: "%d"
-          - name: "arg 1"
-            note: "arg 1"
+          - name: "index2"
+            note: "Secondary index value"
             format: "%d"
-          - name: "arg 2"
-            note: "arg 2"
+          - name: "offset"
+            note: "Offset value (used when type indicates float operation)"
             format: "%0.8e"
-          - name: "arg 3"
-            note: "arg 3"
+          - name: "param1"
+            note: "Auxiliary parameter"
             format: "%d"
-          - name: "arg 4"
-            note: "arg 4"
+          - name: "typefield"
+            note: "Mesh operation type identifier"
             format: "%d"
 
   - name: "FACEMATERIALGROUPS"
@@ -208,6 +215,19 @@ properties:
         note: "The size of the group"
         format: "%d..."
         example: "1 1 1"
+
+  - name: "PARAMS2"
+    note: "Additional parameter vector"
+    args:
+      - name: "x"
+        note: "Parameter x"
+        format: "%0.8e"
+      - name: "y"
+        note: "Parameter y"
+        format: "%0.8e"
+      - name: "z"
+        note: "Parameter z"
+        format: "%0.8e"
 
   - name: "BOUNDINGBOXMIN"
     note: "The minimum bounding box coordinates"
@@ -249,44 +269,44 @@ properties:
         note: "The FPS scale"
         format: "%d"
 
-  - name: "HEXONEFLAG"
-    note: "The hex one flag"
+  - name: "USECENTEROFFSET"
+    note: "If 0, center offset will be set to 0,0,0 in game"
     args:
       - name: "flag"
-        note: "The hex one flag"
+        note: "Use center offset flag"
         format: "%d"
 
-  - name: "HEXTWOFLAG"
-    note: "The hex two flag"
+  - name: "USEBOUNDINGRADIUS"
+    note: "If 0, bounding radius will default to 1.0 in game"
     args:
       - name: "flag"
-        note: "The hex two flag"
+        note: "Use bounding radius flag"
         format: "%d"
 
-  - name: "HEXFOURTHOUSANDFLAG"
-    note: "The hex four thousand flag"
+  - name: "USEPARAMS2"
+    note: "If 0, params2 will be set to 0,0,0 in game"
     args:
       - name: "flag"
-        note: "The hex four thousand flag"
+        note: "Use params2 flag"
         format: "%d"
 
-  - name: "HEXEIGHTTHOUSANDFLAG"
-    note: "The hex eight thousand flag"
+  - name: "USEBOUNDINGBOX"
+    note: "If 0, bounding box is calculated from object AABB at runtime"
     args:
       - name: "flag"
-        note: "The hex eight thousand flag"
+        note: "Use bounding box flag"
         format: "%d"
 
-  - name: "HEXTENTHOUSANDFLAG"
-    note: "The hex ten thousand flag"
+  - name: "USEVERTEXCOLORALPHA"
+    note: "If 0, vertex colors will only use RGB value, alpha ignored"
     args:
       - name: "flag"
-        note: "The hex ten thousand flag"
+        note: "Use vertex color alpha flag"
         format: "%d"
 
-  - name: "HEXTWENTYTHOUSANDFLAG"
-    note: "The hex twenty thousand flag"
+  - name: "SPRITEDEFPOLYHEDRON"
+    note: "Used in objects and terrain meshes to enable collision"
     args:
       - name: "flag"
-        note: "The hex twenty thousand flag"
+        note: "Sprite polyhedron flag"
         format: "%d"

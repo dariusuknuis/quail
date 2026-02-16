@@ -94,10 +94,10 @@ properties:
               - name: ""
                 note: "Minimum distance"
                 format: "%0.8e"
-  - name: "USEMODELCOLLIDER"
+  - name: "SPRITEVOLUMEONLY"
     note: "Ignored in RoF2. 0x80 flag. This gets ignored if ActorInst doesn't have it. Likely need to use hierarchysprite flag for things like boats"
     args:
-      - name: "use model collider"
+      - name: "sprite volume only"
         note: "0: no, 1: yes"
         format: "%d"
   - name: "USERDATA"

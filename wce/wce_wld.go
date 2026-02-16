@@ -434,27 +434,7 @@ func (e *DMSpriteDef2) Write(token *AsciiWriteToken) error {
 
 		fmt.Fprintf(w, "\tNUMMESHOPS %d\n", len(e.MeshOps))
 		for _, meshOp := range e.MeshOps {
-			switch meshOp.TypeField {
-			case 1: // SW
-				// MESHOP SW <Index1(face)> <Param1(face-vertex 0/1/2)> <Index2(target-vertex)>
-				fmt.Fprintf(w, "\t\tMESHOP SW %d %d %d\n", meshOp.Index1, meshOp.Param1, meshOp.Index2)
-
-			case 2: // FA
-				// MESHOP FA <Index1(face)>
-				fmt.Fprintf(w, "\t\tMESHOP FA %d\n", meshOp.Index1)
-
-			case 3: // VA
-				// MESHOP VA <Index1(vertex)>
-				fmt.Fprintf(w, "\t\tMESHOP VA %d\n", meshOp.Index1)
-
-			case 4: // EL
-				// MESHOP EL <Offset(float)>
-				fmt.Fprintf(w, "\t\tMESHOP EL %0.8e\n", meshOp.Offset)
-
-			default:
-				// Fallback (unknown type): print numeric legacy style so it round-trips
-				fmt.Fprintf(w, "\t\tMESHOP %d %d %0.8e %d %d\n", meshOp.Index1, meshOp.Index2, meshOp.Offset, meshOp.Param1, meshOp.TypeField)
-			}
+			fmt.Fprintf(w, "\tMESHOP %d %d %0.8f %d %d\n", meshOp.Index1, meshOp.Index2, meshOp.Offset, meshOp.Param1, meshOp.TypeField)
 		}
 		fmt.Fprintf(w, "\n")
 		fmt.Fprintf(w, "\t// FACEMATERIALGROUPS assigns materials per face\n")
@@ -707,86 +687,31 @@ func (e *DMSpriteDef2) Read(token *AsciiReadToken) error {
 	}
 
 	for i := 0; i < numMeshOps; i++ {
-		records, err = token.ReadProperty("MESHOP", -1)
+		meshOp := &MeshOp{}
+		records, err = token.ReadProperty("MESHOP", 5)
 		if err != nil {
 			return err
 		}
-		if len(records) < 2 {
-			return fmt.Errorf("mesh op %d: malformed line", i)
+		err = parse(&meshOp.Index1, records[1])
+		if err != nil {
+			return fmt.Errorf("mesh op %d index1: %w", i, err)
 		}
-
-		meshOp := &MeshOp{}
-		kind := records[1]
-
-		switch {
-		case strings.EqualFold(kind, "SW"):
-			// MESHOP SW <Index1(face)> <Param1(0..2)> <Index2(targetVertex)>
-			meshOp.TypeField = 1
-			if len(records) > 2 {
-				if err := parse(&meshOp.Index1, records[2]); err != nil {
-					return fmt.Errorf("mesh op %d SW index1: %w", i, err)
-				}
-			}
-			if len(records) > 3 {
-				if err := parse(&meshOp.Param1, records[3]); err != nil {
-					return fmt.Errorf("mesh op %d SW param1: %w", i, err)
-				}
-			}
-			if len(records) > 4 {
-				if err := parse(&meshOp.Index2, records[4]); err != nil {
-					return fmt.Errorf("mesh op %d SW index2: %w", i, err)
-				}
-			}
-
-		case strings.EqualFold(kind, "FA"):
-			// MESHOP FA <Index1(face)>
-			meshOp.TypeField = 2
-			if len(records) > 2 {
-				if err := parse(&meshOp.Index1, records[2]); err != nil {
-					return fmt.Errorf("mesh op %d FA index1: %w", i, err)
-				}
-			}
-
-		case strings.EqualFold(kind, "VA"):
-			// MESHOP VA <Index1(vertex)>
-			meshOp.TypeField = 3
-			if len(records) > 2 {
-				if err := parse(&meshOp.Index1, records[2]); err != nil {
-					return fmt.Errorf("mesh op %d VA index1: %w", i, err)
-				}
-			}
-
-		case strings.EqualFold(kind, "EL"):
-			// MESHOP EL <Offset>
-			meshOp.TypeField = 4
-			if len(records) > 2 {
-				if err := parse(&meshOp.Offset, records[2]); err != nil {
-					return fmt.Errorf("mesh op %d EL offset: %w", i, err)
-				}
-			}
-
-		default:
-			// Legacy numeric format: MESHOP <Index1> <Index2> <Offset> <Param1> <TypeField>
-			if len(records) < 6 {
-				return fmt.Errorf("mesh op %d: unknown kind %q and too few numeric args", i, kind)
-			}
-			if err := parse(&meshOp.Index1, records[1]); err != nil {
-				return fmt.Errorf("mesh op %d legacy index1: %w", i, err)
-			}
-			if err := parse(&meshOp.Index2, records[2]); err != nil {
-				return fmt.Errorf("mesh op %d legacy index2: %w", i, err)
-			}
-			if err := parse(&meshOp.Offset, records[3]); err != nil {
-				return fmt.Errorf("mesh op %d legacy offset: %w", i, err)
-			}
-			if err := parse(&meshOp.Param1, records[4]); err != nil {
-				return fmt.Errorf("mesh op %d legacy param1: %w", i, err)
-			}
-			if err := parse(&meshOp.TypeField, records[5]); err != nil {
-				return fmt.Errorf("mesh op %d legacy type: %w", i, err)
-			}
+		err = parse(&meshOp.Index2, records[2])
+		if err != nil {
+			return fmt.Errorf("mesh op %d index2: %w", i, err)
 		}
-
+		err = parse(&meshOp.Offset, records[3])
+		if err != nil {
+			return fmt.Errorf("mesh op %d offset: %w", i, err)
+		}
+		err = parse(&meshOp.Param1, records[4])
+		if err != nil {
+			return fmt.Errorf("mesh op %d param1: %w", i, err)
+		}
+		err = parse(&meshOp.TypeField, records[5])
+		if err != nil {
+			return fmt.Errorf("mesh op %d typefield: %w", i, err)
+		}
 		e.MeshOps = append(e.MeshOps, meshOp)
 	}
 
@@ -2836,7 +2761,7 @@ type ActorDef struct {
 	Unk1             uint32
 	Actions          []ActorAction
 	UserData         string
-	UseModelCollider int // 0x80 flag
+	SpriteVolumeOnly int // 0x80 flag
 }
 
 // ActorAction is a declaration of ACTION
@@ -2970,7 +2895,7 @@ func (e *ActorDef) Write(token *AsciiWriteToken) error {
 				fmt.Fprintf(w, "\t\t\t\t\tMINDISTANCE %0.8e\n", lod.MinDistance)
 			}
 		}
-		fmt.Fprintf(w, "\tUSEMODELCOLLIDER %d\n", e.UseModelCollider)
+		fmt.Fprintf(w, "\tSPRITEVOLUMEONLY %d\n", e.SpriteVolumeOnly)
 		fmt.Fprintf(w, "\tUSERDATA \"%s\"\n", e.UserData)
 		fmt.Fprintf(w, "\n")
 	}
@@ -3099,12 +3024,12 @@ func (e *ActorDef) Read(token *AsciiReadToken) error {
 		e.Actions = append(e.Actions, action)
 
 	}
-	records, err = token.ReadProperty("USEMODELCOLLIDER", 1)
+	records, err = token.ReadProperty("SPRITEVOLUMEONLY", 1)
 	if err != nil {
 		return err
 	}
 
-	err = parse(&e.UseModelCollider, records[1])
+	err = parse(&e.SpriteVolumeOnly, records[1])
 	if err != nil {
 		return fmt.Errorf("sprite volume only: %w", err)
 	}
@@ -3145,7 +3070,7 @@ func (e *ActorDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 		//actorDef.ActiveGeometry = e.ActiveGeometry.Uint32
 	}
 
-	if e.UseModelCollider > 0 {
+	if e.SpriteVolumeOnly > 0 {
 		actorDef.Flags |= rawfrag.ActorFlagSpriteVolumeOnly
 	}
 
@@ -3285,7 +3210,7 @@ func (e *ActorDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragActor
 	}
 
 	if helper.HasFlag(frag.Flags, rawfrag.ActorFlagSpriteVolumeOnly) {
-		e.UseModelCollider = 1
+		e.SpriteVolumeOnly = 1
 	}
 
 	if len(frag.Actions) != len(frag.SpriteRefs) {
@@ -3390,7 +3315,7 @@ type ActorInst struct {
 	SoundTag         NullString
 	Active           NullUint32
 	ActiveGeometry   int
-	UseModelCollider int
+	SpriteVolumeOnly int
 	DMRGBTrackTag    NullString
 	SphereTag        string
 	SphereRadius     float32
@@ -3449,7 +3374,7 @@ func (e *ActorInst) Write(token *AsciiWriteToken) error {
 		fmt.Fprintf(w, "\tSCALEFACTOR? %s\n", wcVal(e.Scale))
 		fmt.Fprintf(w, "\tSOUND? \"%s\"\n", wcVal(e.SoundTag))
 		fmt.Fprintf(w, "\tACTIVE? %s\n", wcVal(e.Active))
-		fmt.Fprintf(w, "\tSPRITEVOLUMEONLY? %s\n", wcVal(e.UseModelCollider))
+		fmt.Fprintf(w, "\tSPRITEVOLUMEONLY %s\n", e.SpriteVolumeOnly)
 		fmt.Fprintf(w, "\tDMRGBTRACK? \"%s\"\n", wcVal(e.DMRGBTrackTag))
 		fmt.Fprintf(w, "\tSPHERE \"%s\"\n", e.SphereTag)
 		fmt.Fprintf(w, "\tSPHERERADIUS %0.8e\n", e.SphereRadius)
@@ -3523,11 +3448,11 @@ func (e *ActorInst) Read(token *AsciiReadToken) error {
 		return fmt.Errorf("active: %w", err)
 	}
 
-	records, err = token.ReadProperty("SPRITEVOLUMEONLY?", 1)
+	records, err = token.ReadProperty("SPRITEVOLUMEONLY", 1)
 	if err != nil {
 		return err
 	}
-	err = parse(&e.UseModelCollider, records[1])
+	err = parse(&e.SpriteVolumeOnly, records[1])
 	if err != nil {
 		return fmt.Errorf("sprite volume only: %w", err)
 	}
@@ -3629,7 +3554,7 @@ func (e *ActorInst) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 		wfActorInst.Flags |= rawfrag.ActorFlagActiveGeometry
 	}
 
-	if e.UseModelCollider > 0 {
+	if e.SpriteVolumeOnly > 0 {
 		wfActorInst.Flags |= rawfrag.ActorFlagSpriteVolumeOnly
 	}
 
@@ -3757,7 +3682,7 @@ func (e *ActorInst) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragActo
 	}
 
 	if frag.Flags&rawfrag.ActorFlagSpriteVolumeOnly == rawfrag.ActorFlagSpriteVolumeOnly {
-		e.UseModelCollider = 1
+		e.SpriteVolumeOnly = 1
 	}
 
 	if frag.Flags&rawfrag.ActorFlagHaveDMRGBTrack == rawfrag.ActorFlagHaveDMRGBTrack {

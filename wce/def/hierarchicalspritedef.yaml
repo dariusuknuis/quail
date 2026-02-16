@@ -1,116 +1,139 @@
 name: "HIERARCHICALSPRITEDEF"
 hasTag: true
-note: "Wld  Hierarchical Sprite Def"
+note: "Wld Hierarchical Sprite Definition"
+
 properties:
+
   - name: "NUMDAGS"
-    note: ""
+    note: "Number of DAG nodes in the hierarchy"
     args:
-      - name: ""
-        note: ""
+      - name: "count"
+        note: "Number of DAG entries"
         format: "%d"
     properties:
+
       - name: "DAG"
-        note: ""
+        note: "A DAG entry"
+
       - name: "TAG"
-        note: ""
+        note: "The DAG node tag name"
         args:
-          - name: ""
-            note: ""
+          - name: "tag"
+            note: "DAG tag identifier"
             format: "%s"
+
       - name: "SPRITETAG"
-        note: ""
+        note: "Referenced sprite tag"
         args:
-          - name: ""
-            note: ""
+          - name: "sprite tag"
+            note: "Sprite definition tag"
             format: "%s"
+
       - name: "SPRITEINDEX"
-        note: ""
+        note: "Index of sprite tag reference"
         args:
-          - name: ""
-            note: ""
+          - name: "sprite index"
+            note: "Sprite tag index"
             format: "%d"
+
       - name: "TRACK"
-        note: ""
+        note: "Referenced track tag"
         args:
-          - name: ""
-            note: ""
+          - name: "track tag"
+            note: "Track definition tag"
             format: "%s"
+
       - name: "TRACKINDEX"
-        note: ""
+        note: "Index of track reference"
         args:
-          - name: ""
-            note: ""
-            format: "%s"
+          - name: "track index"
+            note: "Track index value"
+            format: "%d"
+
       - name: "SUBDAGLIST"
-        note: ""
+        note: "List of child DAG indices"
         args:
-          - name: ""
-            note: ""
+          - name: "subdag data"
+            note: "Count followed by subdag indices"
             format: "%d..."
-            example: "1 1"
+            example: "2 1 3"
+
   - name: "NUMATTACHEDSKINS"
-    note: ""
+    note: "Number of attached skins"
     args:
-      - name: ""
-        note: ""
+      - name: "count"
+        note: "Number of attached skins"
         format: "%d"
     properties:
+
       - name: "ATTACHEDSKIN"
-        note: ""
+        note: "Attached skin entry"
+
       - name: "DMSPRITE"
-        note: ""
+        note: "Referenced DMSPRITE tag"
         args:
-          - name: ""
-            note: ""
+          - name: "dmsprite tag"
+            note: "DMSPRITE definition tag"
             format: "%s"
+
       - name: "DMSPRITEINDEX"
-        note: ""
+        note: "Index of DMSPRITE reference"
         args:
-          - name: ""
-            note: ""
+          - name: "dmsprite index"
+            note: "DMSPRITE index value"
             format: "%d"
+
       - name: "LINKSKINUPDATESTODAGINDEX"
-        note: ""
+        note: "Index of DAG this skin updates"
         args:
-          - name: ""
-            note: ""
+          - name: "dag index"
+            note: "DAG index this skin attaches to"
             format: "%d"
+
   - name: "POLYHEDRON"
-    note: ""
+    note: "Collision polyhedron definition"
+
   - name: "SPRITE"
-    note: ""
+    note: "Reference to polyhedron tag or SPECIAL_COLLISION"
     args:
-      - name: ""
-        note: ""
+      - name: "polyhedron tag"
+        note: "Polyhedron definition tag"
         format: "%s"
+
   - name: "CENTEROFFSET?"
-    note: ""
+    note: "Optional center offset vector"
     args:
-      - name: ""
-        note: ""
+      - name: "x"
+        note: "Center offset X"
         format: "%0.8e"
-      - name: ""
-        note: ""
+      - name: "y"
+        note: "Center offset Y"
         format: "%0.8e"
-      - name: ""
-        note: ""
+      - name: "z"
+        note: "Center offset Z"
         format: "%0.8e"
+
   - name: "BOUNDINGRADIUS?"
-    note: ""
+    note: "Optional bounding radius"
     args:
-      - name: ""
-        note: ""
+      - name: "radius"
+        note: "Bounding sphere radius"
         format: "%0.8e"
-  - name: "HEXTWOHUNDREDFLAG"
-    note: "also known as HAVEATTACHEDSKINS"
-    description: "If you have an attached skin, it has to be 1. If your meshes are just attached to DAGs and not the HS_DEF directly, then it should be 0. Some items are attached skins, and some aren't"
+
+  - name: "HAVEATTACHEDSKINS"
+    note: "If 1, attached skins are present (0x200 flag)"
+    description: >
+      If you have an attached skin, it must be 1.
+      If meshes are attached only to DAGs and not directly to the HS_DEF,
+      this should be 0.
     args:
-      - name: ""
-        note: ""
+      - name: "flag"
+        note: "Attached skins enabled flag"
         format: "%d"
-  - name: "HEXTWENTYTHOUSANDFLAG"
-    note: "also known as DAGCOLLISONS"
+
+  - name: "DAGCOLLISIONS"
+    note: "Enable DAG-based collision (0x20000 flag)"
     args:
-      - name: ""
-        note: ""
+      - name: "flag"
+        note: "DAG collision flag"
         format: "%d"

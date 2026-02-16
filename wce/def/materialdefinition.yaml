@@ -1,25 +1,30 @@
 name: "MATERIALDEFINITION"
 hasTag: true
 note: "Wld Material"
+
 properties:
+
   - name: "TAGINDEX"
     note: "For tag variations, starts at 0, increases by 1"
     args:
       - name: "index"
         note: "Index of tag"
         format: "%d"
+
   - name: "VARIATION"
     note: "For variations"
     args:
       - name: "index"
         note: "Variation of tag"
         format: "%d"
+
   - name: "RENDERMETHOD"
     note: "Method for rendering"
     args:
       - name: "method"
         note: "Rendering method"
         format: "%s"
+
   - name: "RGBPEN"
     note: "RGB Colorizing"
     args:
@@ -35,48 +40,66 @@ properties:
       - name: "a"
         note: "Alpha"
         format: "%d"
+
   - name: "BRIGHTNESS"
     note: "Color brightness"
     args:
       - name: "amount"
         note: "Brightness amount"
         format: "%0.8e"
+
   - name: "SCALEDAMBIENT"
     note: "Scaled ambient amount"
     args:
       - name: "amount"
         note: "Scaled ambient amount"
         format: "%0.8e"
+
   - name: "SIMPLESPRITEINST"
     note: "Simple sprite instance section"
-  - name: "SIMPLESPRITETAG"
-    note: "Simple sprite instance tag"
-    args:
-      - name: "tag"
+    properties:
+
+      - name: "SIMPLESPRITETAG"
         note: "Simple sprite instance tag"
-        format: "%s"
-  - name: "SIMPLESPRITETAGINDEX"
-    note: ""
+        args:
+          - name: "tag"
+            note: "Simple sprite instance tag"
+            format: "%s"
+
+      - name: "SIMPLESPRITETAGINDEX"
+        note: "Index of simple sprite tag"
+        args:
+          - name: "index"
+            note: "Simple sprite tag index"
+            format: "%d"
+
+      - name: "SIMPLESPRITEHAVESKIPFRAMES"
+        note: "0x10 flag; enables SIMPLESPRITESKIPFRAMES flag to be evaluated"
+        args:
+          - name: "flag"
+            note: "0 or 1"
+            format: "%d"
+
+      - name: "SIMPLESPRITESKIPFRAMES"
+        note: "0x40 flag; used only if SIMPLESPRITEHAVESKIPFRAMES is set"
+        args:
+          - name: "flag"
+            note: "0 or 1"
+            format: "%d"
+
+  - name: "UVSHIFTPERMS?"
+    note: "Optional UV shift per millisecond values"
     args:
-      - name: ""
-        note: ""
-        format: "%d"
-  - name: "SIMPLESPRITEHEXFIFTYFLAG"
-    note: "Hex fifty flag"
-    args:
-      - name: "flag"
-        note: "Hex fifty flag"
-        format: "%d"
-  - name: "PAIRS?"
-    note: "Pairs of flags?"
-    args:
-      - name: "pairs"
-        note: "Pairs 0"
-        format: "%d..."
-        example: "1 2"
-  - name: "DOUBLESIDED"
+      - name: "u shift"
+        note: "U shift per ms"
+        format: "%0.8e"
+      - name: "v shift"
+        note: "V shift per ms"
+        format: "%0.8e"
+
+  - name: "TWOSIDED"
     note: "Is material double sided?"
     args:
-      - name: ""
+      - name: "flag"
         note: "0: False, 1: True"
         format: "%d"

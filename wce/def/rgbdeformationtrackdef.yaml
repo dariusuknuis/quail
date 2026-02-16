@@ -1,52 +1,58 @@
 name: "RGBDEFORMATIONTRACKDEF"
 hasTag: true
-note: "Wld RGB "
+note: "Wld RGB Deformation Track Definition"
+
 properties:
-  - name: "DATA1"
-    note: ""
-    args:
-      - name: ""
-        note: ""
-        format: "%d"
-  - name: "DATA2"
-    note: ""
-    args:
-      - name: ""
-        note: ""
-        format: "%d"
+
   - name: "SLEEP"
-    note: ""
+    note: "Sleep value between deformation frames"
     args:
-      - name: ""
-        note: ""
+      - name: "sleep"
+        note: "Frame delay"
         format: "%d"
+
   - name: "DATA4"
-    note: ""
+    note: "Unknown track parameter"
     args:
-      - name: ""
-        note: ""
+      - name: "value"
+        note: "Unknown data value"
         format: "%d"
-  - name: "RGBDEFORMATIONFRAME"
-    note: ""
-  - name: "NUMRGBAS"
-    note: ""
+
+  - name: "USEALPHA"
+    note: "Whether alpha channel is used (0 or 1)"
     args:
-      - name: ""
-        note: ""
+      - name: "flag"
+        note: "Use alpha flag"
+        format: "%d"
+
+  - name: "NUMRGBDEFORMATIONFRAMES"
+    note: "Number of RGB deformation frames"
+    args:
+      - name: "frame count"
+        note: "Number of frames"
         format: "%d"
     properties:
-      - name: "RGBA"
-        note: ""
+
+      - name: "NUMRGBAS"
+        note: "Number of RGBA entries in this frame"
         args:
-          - name: ""
-            note: ""
+          - name: "count"
+            note: "RGBA count"
             format: "%d"
-          - name: ""
-            note: ""
-            format: "%d"
-          - name: ""
-            note: ""
-            format: "%d"
-          - name: ""
-            note: ""
-            format: "%d"
+        properties:
+
+          - name: "RGBA"
+            note: "RGBA color entry"
+            args:
+              - name: "r"
+                note: "Red"
+                format: "%d"
+              - name: "g"
+                note: "Green"
+                format: "%d"
+              - name: "b"
+                note: "Blue"
+                format: "%d"
+              - name: "a"
+                note: "Alpha"
+                format: "%d"
