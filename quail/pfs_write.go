@@ -102,6 +102,9 @@ func (e *Quail) S3DExport(fileVersion uint32, pfsVersion int, path string) error
 
 	isSomethingWritten := false
 	if e.Wld != nil {
+		base := strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
+		e.Wld.FileName = base + ".wld"
+
 		buf := &bytes.Buffer{}
 
 		err := e.Wld.WriteWldRaw(buf)
