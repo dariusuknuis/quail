@@ -30,12 +30,20 @@ properties:
         note: "NULL if skipped, sleep value in ms"
         format: "%d"
 
-  - name: "SKIPFRAMES"
-    note: "Are frames skipped"
+  - name: "HAVESKIPFRAMES"
+    note: "0x10 flag; enables SKIPFRAMES flag to be evaluated"
     args:
-      - name: ""
-        note: "number of frames to skip"
+      - name: "flag"
+        note: "0 or 1"
         format: "%d"
+
+  - name: "SKIPFRAMES"
+    note: "0x40 flag; used only if HAVESKIPFRAMES is set"
+    args:
+      - name: "flag"
+        note: "0 or 1"
+        format: "%d"
+
 
   - name: "NUMCOLORS"
     note: "Number of colors"

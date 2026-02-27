@@ -157,13 +157,14 @@ func traverseMarkdownProp(buf *os.File, prop Property, tabCount int) error {
 		buf.WriteString(commentBuf + "\n")
 	}
 	buf.WriteString(propBuf + "\n")
-	if len(prop.Properties) > 0 {
-		if len(prop.Args) != 1 {
-			return fmt.Errorf("when an array of properties, count should be declared as first arg")
-		}
-		if prop.Args[0].Format != "%d" {
-			return fmt.Errorf("parse %s: when an array of properties, format of arg 1 should be %%d", prop.Name)
-		}
+	isArray := len(prop.Properties) > 0 &&
+		len(prop.Args) == 1 &&
+		prop.Args[0].Format == "%d"
+
+	isSection := len(prop.Properties) > 0 &&
+		len(prop.Args) == 0
+	if len(prop.Properties) > 0 && !isArray && !isSection {
+		return fmt.Errorf("nested property %s must be either array (single %%d arg) or section (no args)", prop.Name)
 	}
 	for _, prop2 := range prop.Properties {
 		err := traverseMarkdownProp(buf, prop2, tabCount+1)

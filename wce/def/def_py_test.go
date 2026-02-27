@@ -149,40 +149,69 @@ func initPyProperties(tabIndex int, props []Property, scope string, hasTag bool)
 		if len(prop.Properties) == 0 {
 			continue
 		}
+
 		propName := strings.TrimSuffix(prop.Name, "?")
-		propName = strings.ToLower(propName)
-		if strings.HasPrefix(propName, "num") {
-			propName = strings.TrimPrefix(propName, "num")
+		propNameLower := strings.ToLower(propName)
+
+		isArray := len(prop.Args) == 1 &&
+			prop.Args[0].Format == "%d"
+
+		isSection := len(prop.Args) == 0
+
+		if isArray {
+			if strings.HasPrefix(propNameLower, "num") {
+				propNameLower = strings.TrimPrefix(propNameLower, "num")
+			}
+
+			out += fmt.Sprintf("%sself.%s = []\n",
+				strings.Repeat("\t", tabIndex),
+				propNameLower,
+			)
 		}
 
-		propKey := fmt.Sprintf("self.%s", propName)
-		if scope != "self" {
-			//propKey = fmt.Sprintf("self.%s", propName)
-			//tabIndex++
+		if isSection {
+			out += fmt.Sprintf("%sself.%s = self.%s()\n",
+				strings.Repeat("\t", tabIndex),
+				propNameLower,
+				propNameLower,
+			)
 		}
-
-		out += fmt.Sprintf("%s%s = [] #%s %d\n", strings.Repeat("\t", tabIndex), propKey, scope, tabIndex)
-		if scope != "self" {
-			//tabIndex--
-		}
-		hasTag = false
-
 	}
 
 	for _, prop := range props {
 		if len(prop.Properties) == 0 {
 			continue
 		}
+
 		propName := strings.TrimSuffix(prop.Name, "?")
-		propName = strings.ToLower(propName)
-		if strings.HasPrefix(propName, "num") {
-			propName = strings.TrimPrefix(propName, "num")
+		propNameLower := strings.ToLower(propName)
+
+		isArray := len(prop.Args) == 1 &&
+			prop.Args[0].Format == "%d"
+
+		if isArray {
+
+			elementName := strings.ToLower(prop.Properties[0].Name)
+
+			out += "\n"
+			out += fmt.Sprintf("%sclass %s:\n",
+				strings.Repeat("\t", tabIndex-1),
+				elementName,
+			)
+
+			out += initPyProperties(tabIndex+1, prop.Properties, elementName, false)
+
+			continue
 		}
 
-		scope = propName
+		// normal section
 		out += "\n"
-		out += fmt.Sprintf("%sclass %s:\n", strings.Repeat("\t", tabIndex-1), propName[:len(propName)-1])
-		out += initPyProperties(tabIndex+1, prop.Properties, scope, false)
+		out += fmt.Sprintf("%sclass %s:\n",
+			strings.Repeat("\t", tabIndex-1),
+			propNameLower,
+		)
+
+		out += initPyProperties(tabIndex+1, prop.Properties, propNameLower, false)
 	}
 
 	return out
@@ -230,6 +259,13 @@ func traversePyProp(propInitBuf *bytes.Buffer, decInitBuf *bytes.Buffer, initRea
 
 	isNullable := strings.HasSuffix(prop.Name, "?")
 	trimName := strings.TrimSuffix(prop.Name, "?")
+
+	isArray := len(prop.Properties) > 0 &&
+		len(prop.Args) == 1 &&
+		prop.Args[0].Format == "%d"
+
+	isSection := len(prop.Properties) > 0 &&
+		len(prop.Args) == 0
 
 	isManyArg := false
 	if len(prop.Args) > 0 {
@@ -334,65 +370,165 @@ func traversePyProp(propInitBuf *bytes.Buffer, decInitBuf *bytes.Buffer, initRea
 
 	initReaderBuf.WriteString("\n")
 
-	if len(prop.Properties) > 0 {
-		if len(prop.Args) != 1 {
-			return fmt.Errorf("when an array of properties, count should be declared as first arg")
-		}
-		if prop.Args[0].Format != "%d" {
-			return fmt.Errorf("parse %s: when an array of properties, format of arg 1 should be %%d", prop.Name)
-		}
-	}
 	decInitBuf.WriteString(initBuf)
 	propInitBuf.WriteString(propBuf)
 
-	lastScope := ""
-	for i, prop2 := range prop.Properties {
-		prop2Name := strings.TrimSuffix(prop2.Name, "?")
-		prop2Name = strings.ToLower(prop2Name)
-		if i == 0 {
-			decInitBuf.WriteString(fmt.Sprintf("%sself.%ss = []\n", strings.Repeat("\t", initTabCount), prop2Name))
-		}
-		if i == len(prop.Properties)-1 {
-			decInitBuf.Write(propInitBuf.Bytes())
-			propInitBuf.Reset()
-		}
-		if i == 0 {
-			decInitBuf.WriteString(fmt.Sprintf("%sclass %s:\n", strings.Repeat("\t", decTabCount), prop2Name))
-			decInitBuf.WriteString(fmt.Sprintf("%s\tdef __init__(self):\n", strings.Repeat("\t", decTabCount)))
+	if isArray {
 
-			lastScope = scope
-			scope = prop2Name + tabCode(initTabCount)
-			scopeTmp := scope
-			if scope != "self" {
-				scopeTmp = scopeTmp[0 : len(scopeTmp)-1]
+		lastScope := scope
+
+		// container name from NUMXXXX (e.g. NUMFRAMES -> frames)
+		containerName := strings.ToLower(trimName)
+		if strings.HasPrefix(containerName, "num") {
+			containerName = strings.TrimPrefix(containerName, "num")
+		}
+
+		// element name from first child property (e.g. FRAME)
+		elementName := strings.ToLower(prop.Properties[0].Name)
+
+		// __init__: create empty list
+		decInitBuf.WriteString(fmt.Sprintf(
+			"%sself.%s = []\n",
+			strings.Repeat("\t", initTabCount),
+			containerName,
+		))
+
+		// define nested element class at CLASS scope (not inside __init__)
+		// propInitBuf.WriteString(fmt.Sprintf(
+		// 	"\tclass %s:\n",
+		// 	elementName,
+		// ))
+		// propInitBuf.WriteString(fmt.Sprintf(
+		// 	"\t\tdef __init__(self):\n",
+		// ))
+
+		// reset list during read
+		initReaderBuf.WriteString(fmt.Sprintf(
+			"%s%s.%s = []\n",
+			strings.Repeat("\t", initTabCount),
+			lastScope,
+			containerName,
+		))
+
+		// loop count (NUMXXXX already parsed into lowercase trimName)
+		initReaderBuf.WriteString(fmt.Sprintf(
+			"%sfor %s in range(%s):\n",
+			strings.Repeat("\t", initTabCount),
+			tabCode(initTabCount),
+			strings.ToLower(trimName),
+		))
+
+		// instantiate nested element properly
+		parentVar := scope
+		if strings.Contains(parentVar, ".") {
+			parts := strings.Split(parentVar, ".")
+			parentVar = parts[len(parts)-1]
+		}
+
+		initReaderBuf.WriteString(fmt.Sprintf(
+			"%s\t%s = type(%s).%s()\n",
+			strings.Repeat("\t", initTabCount),
+			elementName+tabCode(initTabCount),
+			parentVar,
+			elementName,
+		))
+
+		// write count
+		writeBuf.WriteString(fmt.Sprintf(
+			"%sw.write(f\"%s%s \\\"{len(%s.%s)}\\\"\\n\")\n",
+			strings.Repeat("\t", initTabCount),
+			strings.Repeat("\\t", initTabCount-1),
+			prop.Name,
+			lastScope,
+			containerName,
+		))
+
+		// write loop
+		writeBuf.WriteString(fmt.Sprintf(
+			"%sfor %s in %s.%s:\n",
+			strings.Repeat("\t", initTabCount),
+			elementName+tabCode(initTabCount),
+			lastScope,
+			containerName,
+		))
+
+		// recurse into child properties
+		for _, prop2 := range prop.Properties {
+			err := traversePyProp(
+				propInitBuf,
+				decInitBuf,
+				initReaderBuf,
+				initWriterBuf,
+				writeBuf,
+				prop2,
+				elementName+tabCode(initTabCount),
+				initTabCount+1,
+				decTabCount+1,
+				treeScope,
+			)
+			if err != nil {
+				return err
 			}
-
-			initReaderBuf.WriteString(fmt.Sprintf("%s%s.%ss = []\n", strings.Repeat("\t", initTabCount), lastScope, prop2Name))
-			initReaderBuf.WriteString(fmt.Sprintf("%sfor %s in range(%s):\n", strings.Repeat("\t", initTabCount), tabCode(initTabCount), strings.ToLower(trimName)))
-			initReaderBuf.WriteString(fmt.Sprintf("%s\t%s = %s()\n", strings.Repeat("\t", initTabCount), prop2Name+tabCode(initTabCount), treeScope[:len(treeScope)-1]))
-
-			writeBuf.WriteString(fmt.Sprintf("%sw.write(f\"%s%s \\\"{len(%s.%ss)}\\\"\\n\")\n", strings.Repeat("\t", initTabCount), strings.Repeat("\\t", initTabCount-1), prop.Name, lastScope, strings.ToLower(prop2Name)))
-			writeBuf.WriteString(fmt.Sprintf("%sfor %s in %s.%ss:\n", strings.Repeat("\t", initTabCount), scope, lastScope, prop2Name))
-		}
-		propInitBuf.WriteString("\n")
-		err := traversePyProp(propInitBuf, decInitBuf, initReaderBuf, initWriterBuf, writeBuf, prop2, scope, initTabCount+1, decTabCount+1, treeScope)
-		if err != nil {
-			return err
 		}
 
-		if i == len(prop.Properties)-1 {
-			scopeTmp := scope
-			if scope != "self" {
-				scopeTmp = scopeTmp[0 : len(scopeTmp)-1]
+		// append element to container
+		initReaderBuf.WriteString(fmt.Sprintf(
+			"%s\t%s.%s.append(%s)\n",
+			strings.Repeat("\t", initTabCount),
+			lastScope,
+			containerName,
+			elementName+tabCode(initTabCount),
+		))
+	}
+
+	if isSection {
+
+		sectionName := strings.ToLower(trimName)
+
+		// create section instance in __init__
+		decInitBuf.WriteString(fmt.Sprintf(
+			"%sself.%s = self.%s()\n",
+			strings.Repeat("\t", initTabCount),
+			sectionName,
+			trimName,
+		))
+
+		// define class
+		decInitBuf.WriteString(fmt.Sprintf(
+			"%sclass %s:\n",
+			strings.Repeat("\t", decTabCount),
+			trimName,
+		))
+		decInitBuf.WriteString(fmt.Sprintf(
+			"%s\tdef __init__(self):\n",
+			strings.Repeat("\t", decTabCount),
+		))
+
+		// read header
+		// initReaderBuf.WriteString(fmt.Sprintf(
+		// 	"%sproperty(r, \"%s\", 0)\n",
+		// 	strings.Repeat("\t", initTabCount),
+		// 	prop.Name,
+		// ))
+
+		// recurse WITHOUT extra indentation offset
+		for _, prop2 := range prop.Properties {
+			err := traversePyProp(
+				propInitBuf,
+				decInitBuf,
+				initReaderBuf,
+				initWriterBuf,
+				writeBuf,
+				prop2,
+				"self."+sectionName,
+				initTabCount,
+				decTabCount+1,
+				treeScope,
+			)
+			if err != nil {
+				return err
 			}
-			propInitBuf.WriteString(fmt.Sprintf("\n%s%ss:list[%s]\n", strings.Repeat("\t", decTabCount), scopeTmp, scopeTmp))
-			lastScopeTmp := lastScope
-			if lastScope != "self" {
-				lastScopeTmp = lastScopeTmp[0 : len(lastScopeTmp)-1]
-			}
-			initReaderBuf.WriteString(fmt.Sprintf("%s\t%s.%ss.append(%s)\n", strings.Repeat("\t", initTabCount), lastScope, scopeTmp, scope))
 		}
-
 	}
 	return nil
 }

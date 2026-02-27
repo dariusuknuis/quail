@@ -9,21 +9,21 @@ contract:
 	@-rm test/*.py
 
 	@go test -run ^TestWceGenMarkdown github.com/xackery/quail/wce/def
-	@mv test/latest.md ../eqemu-docs-v2/docs/client/wcemu/latest.md
+#	@mv test/latest.md ../eqemu-docs-v2/docs/client/wcemu/latest.md
 
 	@go test -run ^TestWceGenTypescript github.com/xackery/quail/wce/def
-	@mv test/*.ts ../wce-vscode/src/definition
+#	@mv test/*.ts ../wce-vscode/src/definition
 
 	@go test -run ^TestWceGenPython github.com/xackery/quail/wce/def
-	@mv test/*.py ../quail-addon/wce
+	@mv test/*.py /c/Users/dariu/Documents/quail-addon/wce
 
 	@mkdir -p ../wce-vscode/test/read
 	@-rm -rf ../wce-vscode/test/read/*
 	@cp test/*.wce ../wce-vscode/test/read
 
-	@mkdir -p ../quail-addon/test/read
-	@-rm -rf ../quail-addon/test/read/*
-	@cp test/*.wce ../quail-addon/test/read
+	@mkdir -p /c/Users/dariu/Documents/quail-addon/test/read
+	@-rm -rf /c/Users/dariu/Documents/quail-addon/test/read/*
+	@cp test/*.wce /c/Users/dariu/Documents/quail-addon/test/read
 
 	@-rm test/*.wce
 
