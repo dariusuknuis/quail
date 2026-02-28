@@ -15,15 +15,15 @@ contract:
 #	@mv test/*.ts ../wce-vscode/src/definition
 
 	@go test -run ^TestWceGenPython github.com/xackery/quail/wce/def
-	@mv test/*.py /c/Users/dariu/Documents/quail-addon/wce
+	@mv test/*.py /c/Users/dariu/Documents/GitHub_Repos/quail-addon/wce
 
 	@mkdir -p ../wce-vscode/test/read
 	@-rm -rf ../wce-vscode/test/read/*
 	@cp test/*.wce ../wce-vscode/test/read
 
-	@mkdir -p /c/Users/dariu/Documents/quail-addon/test/read
-	@-rm -rf /c/Users/dariu/Documents/quail-addon/test/read/*
-	@cp test/*.wce /c/Users/dariu/Documents/quail-addon/test/read
+	@mkdir -p /c/Users/dariu/Documents/GitHub_Repos/quail-addon/test/read
+	@-rm -rf /c/Users/dariu/Documents/GitHub_Repos/quail-addon/test/read/*
+	@cp test/*.wce /c/Users/dariu/Documents/GitHub_Repos/quail-addon/test/read
 
 	@-rm test/*.wce
 
