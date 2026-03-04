@@ -3374,7 +3374,7 @@ func (e *ActorInst) Write(token *AsciiWriteToken) error {
 		fmt.Fprintf(w, "\tSCALEFACTOR? %s\n", wcVal(e.Scale))
 		fmt.Fprintf(w, "\tSOUND? \"%s\"\n", wcVal(e.SoundTag))
 		fmt.Fprintf(w, "\tACTIVE? %s\n", wcVal(e.Active))
-		fmt.Fprintf(w, "\tSPRITEVOLUMEONLY %s\n", e.SpriteVolumeOnly)
+		fmt.Fprintf(w, "\tSPRITEVOLUMEONLY %d\n", e.SpriteVolumeOnly)
 		fmt.Fprintf(w, "\tDMRGBTRACK? \"%s\"\n", wcVal(e.DMRGBTrackTag))
 		fmt.Fprintf(w, "\tSPHERE \"%s\"\n", e.SphereTag)
 		fmt.Fprintf(w, "\tSPHERERADIUS %0.8e\n", e.SphereRadius)
