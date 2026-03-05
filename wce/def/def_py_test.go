@@ -292,7 +292,7 @@ func traversePyProp(propInitBuf *bytes.Buffer, decInitBuf *bytes.Buffer, initRea
 			initReaderBuf.WriteString(fmt.Sprintf("%srecords = property(r, \"%s\", %d)\n", strings.Repeat("\t", initTabCount), prop.Name, argLen))
 			if len(prop.Properties) == 0 {
 				initReaderBuf.WriteString(fmt.Sprintf("%s%s.%s = ", strings.Repeat("\t", initTabCount), scope, strings.ToLower(trimName)))
-				writeBuf.WriteString(fmt.Sprintf("%sw.write(f\"%s%s \\\"{%s.%s}\\\"\\n\")\n", strings.Repeat("\t", initTabCount), strings.Repeat("\\t", initTabCount-1), prop.Name, scope, strings.ToLower(trimName)))
+				writeBuf.WriteString(fmt.Sprintf("%sw.write(f\"%s%s \\\"{%s.%s}\\\"\\n\")\n", strings.Repeat("\t", initTabCount), strings.Repeat("\\t", decTabCount), prop.Name, scope, strings.ToLower(trimName)))
 			} else {
 				initReaderBuf.WriteString(fmt.Sprintf("%s%s = ", strings.Repeat("\t", initTabCount), strings.ToLower(trimName)))
 			}
@@ -333,7 +333,20 @@ func traversePyProp(propInitBuf *bytes.Buffer, decInitBuf *bytes.Buffer, initRea
 						initReaderBuf.WriteString(fmt.Sprintf("%s(records[%d])", base, i+1))
 					}
 				} else {
-					initReaderBuf.WriteString(fmt.Sprintf("%s(records[%d])\n", base, i+1))
+					if isNullable {
+						initReaderBuf.WriteString(fmt.Sprintf(
+							"%s(records[%d]) if records[%d] != \"NULL\" else None\n",
+							base,
+							i+1,
+							i+1,
+						))
+					} else {
+						initReaderBuf.WriteString(fmt.Sprintf(
+							"%s(records[%d])\n",
+							base,
+							i+1,
+						))
+					}
 				}
 				if len(prop.Args) > i+1 {
 					propBuf += ", "
@@ -345,7 +358,7 @@ func traversePyProp(propInitBuf *bytes.Buffer, decInitBuf *bytes.Buffer, initRea
 			initReaderBuf.WriteString(fmt.Sprintf("%srecords = property(r, \"%s\", -1)\n", strings.Repeat("\t", initTabCount), prop.Name))
 			if len(prop.Properties) == 0 {
 				initReaderBuf.WriteString(fmt.Sprintf("%s%s.%s = ", strings.Repeat("\t", initTabCount), scope, strings.ToLower(trimName)))
-				writeBuf.WriteString(fmt.Sprintf("%sw.write(f\"%s \\\"{%s.%s}\\\"\\n\")\n", strings.Repeat("\t", initTabCount), prop.Name, scope, strings.ToLower(trimName)))
+				writeBuf.WriteString(fmt.Sprintf("%sw.write(f\"%s%s \\\"{%s.%s}\\\"\\n\")\n", strings.Repeat("\t", initTabCount), strings.Repeat("\\t", decTabCount), prop.Name, scope, strings.ToLower(trimName)))
 			} else {
 				initReaderBuf.WriteString(fmt.Sprintf("%s%s = ", strings.Repeat("\t", initTabCount), strings.ToLower(trimName)))
 			}
@@ -365,7 +378,7 @@ func traversePyProp(propInitBuf *bytes.Buffer, decInitBuf *bytes.Buffer, initRea
 		initBuf += "\n"
 	} else { // no argument parse
 		initReaderBuf.WriteString(fmt.Sprintf("%sproperty(r, \"%s\", 0)\n", strings.Repeat("\t", initTabCount), prop.Name))
-		writeBuf.WriteString(fmt.Sprintf("%sw.write(f\"%s%s\\n\")\n", strings.Repeat("\t", initTabCount), strings.Repeat("\\t", initTabCount-1), prop.Name))
+		writeBuf.WriteString(fmt.Sprintf("%sw.write(f\"%s%s\\n\")\n", strings.Repeat("\t", initTabCount), strings.Repeat("\\t", decTabCount), prop.Name))
 	}
 
 	initReaderBuf.WriteString("\n")
@@ -411,19 +424,28 @@ func traversePyProp(propInitBuf *bytes.Buffer, decInitBuf *bytes.Buffer, initRea
 		))
 
 		// loop count (NUMXXXX already parsed into lowercase trimName)
-		initReaderBuf.WriteString(fmt.Sprintf(
-			"%sfor %s in range(%s):\n",
-			strings.Repeat("\t", initTabCount),
-			tabCode(initTabCount),
-			strings.ToLower(trimName),
-		))
+		if isNullable {
+			initReaderBuf.WriteString(fmt.Sprintf(
+				"%sfor %s in range(%s or 0):\n",
+				strings.Repeat("\t", initTabCount),
+				tabCode(initTabCount),
+				strings.ToLower(trimName),
+			))
+		} else {
+			initReaderBuf.WriteString(fmt.Sprintf(
+				"%sfor %s in range(%s):\n",
+				strings.Repeat("\t", initTabCount),
+				tabCode(initTabCount),
+				strings.ToLower(trimName),
+			))
+		}
 
 		// instantiate nested element properly
 		parentVar := scope
-		if strings.Contains(parentVar, ".") {
-			parts := strings.Split(parentVar, ".")
-			parentVar = parts[len(parts)-1]
-		}
+		// if strings.Contains(parentVar, ".") {
+		// 	parts := strings.Split(parentVar, ".")
+		// 	parentVar = parts[len(parts)-1]
+		// }
 
 		initReaderBuf.WriteString(fmt.Sprintf(
 			"%s\t%s = type(%s).%s()\n",
@@ -437,7 +459,7 @@ func traversePyProp(propInitBuf *bytes.Buffer, decInitBuf *bytes.Buffer, initRea
 		writeBuf.WriteString(fmt.Sprintf(
 			"%sw.write(f\"%s%s \\\"{len(%s.%s)}\\\"\\n\")\n",
 			strings.Repeat("\t", initTabCount),
-			strings.Repeat("\\t", initTabCount-1),
+			strings.Repeat("\\t", decTabCount),
 			prop.Name,
 			lastScope,
 			containerName,
@@ -520,7 +542,7 @@ func traversePyProp(propInitBuf *bytes.Buffer, decInitBuf *bytes.Buffer, initRea
 				initWriterBuf,
 				writeBuf,
 				prop2,
-				"self."+sectionName,
+				scope+"."+sectionName,
 				initTabCount,
 				decTabCount+1,
 				treeScope,

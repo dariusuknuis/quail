@@ -30,13 +30,13 @@ properties:
         format: "%0.8e"
       - name: "x-rot"
         note: "The x rotation"
-        format: "%d"
+        format: "%0.8e"
       - name: "y-rot"
         note: "The y rotation"
-        format: "%d"
+        format: "%0.8e"
       - name: "z-rot"
         note: "The z rotation"
-        format: "%d"
+        format: "%0.8e"
 
   - name: "BOUNDINGRADIUS?"
     note: "Radius around the actor instance for bounds"
@@ -109,6 +109,6 @@ properties:
     args:
       - name: "unk2"
         note: "Unknown property 2"
-        format: "%d"
+        format: "%s"
 
 
