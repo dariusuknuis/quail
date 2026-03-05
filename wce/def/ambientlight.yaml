@@ -7,7 +7,7 @@ properties:
     args:
       - name: ""
         note: ""
-        format: "%0.8e"
+        format: "%s"
   - name: "REGIONLIST"
     note: ""
     args:
