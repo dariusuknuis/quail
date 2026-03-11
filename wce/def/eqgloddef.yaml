@@ -1,0 +1,30 @@
+name: "EQGLODDEF"
+hasTag: true
+note: "EQG LOD Definition"
+properties:
+  - name: "NUMLODS"
+    note: ""
+    args:
+      - name: ""
+        note: ""
+        format: "%d"
+    properties:
+      - name: "LOD"
+        note: ""
+        args:
+          - name: ""
+            note: ""
+            format: "%s"
+        properties:
+        - name: "CATEGORY"
+          note: ""
+          args:
+            - name: ""
+              note: ""
+              format: "%s"
+        - name: "DISTANCE"
+          note: ""
+          args:
+            - name: ""
+              note: ""
+              format: "%0.8e"
