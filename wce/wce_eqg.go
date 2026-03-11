@@ -1,13 +1,9 @@
 package wce
 
 import (
-	"bytes"
-	"encoding/binary"
 	"fmt"
-	"io"
 	"strings"
 
-	"github.com/xackery/quail/helper"
 	"github.com/xackery/quail/raw"
 )
 
@@ -2709,19 +2705,10 @@ func (e *EqgZonDef) Write(token *AsciiWriteToken) error {
 			fmt.Fprintf(w, "\t\t\tTRANSLATION %0.8e %0.8e %0.8e\n", instance.Translation[0], instance.Translation[1], instance.Translation[2])
 			fmt.Fprintf(w, "\t\t\tROTATION %0.8e %0.8e %0.8e\n", instance.Rotation[0], instance.Rotation[1], instance.Rotation[2])
 			fmt.Fprintf(w, "\t\t\tSCALE %0.8e\n", instance.Scale)
-			buf := bytes.Buffer{}
+			fmt.Fprintf(w, "\t\t\tNUMLITS %d\n", len(instance.Lits))
 			for _, lit := range instance.Lits {
-
-				err = binary.Write(&buf, binary.LittleEndian, lit)
-				if err != nil {
-					return fmt.Errorf("write lit: %w", err)
-				}
+				fmt.Fprintf(w, "\t\t\t\tLIT %d\n", lit)
 			}
-			litBase64, err := helper.GzipBase64Encode(buf.Bytes())
-			if err != nil {
-				return fmt.Errorf("base64 encode lits: %w", err)
-			}
-			fmt.Fprintf(w, "\t\t\tLITGZIP %d \"%s\"\n", len(instance.Lits), litBase64)
 		}
 
 		fmt.Fprintf(w, "\tNUMAREAS %d\n", len(e.Areas))
@@ -2830,44 +2817,28 @@ func (e *EqgZonDef) Read(token *AsciiReadToken) error {
 			return fmt.Errorf("instance %d scale: %w", i, err)
 		}
 
-		records, err := token.ReadProperty("LITGZIP", 2)
+		records, err = token.ReadProperty("NUMLITS", 1)
 		if err != nil {
-			return fmt.Errorf("instance %d litgzip: %w", i, err)
+			return fmt.Errorf("instance %d numlits: %w", i, err)
 		}
 		numLits := 0
 		err = parse(&numLits, records[1])
 		if err != nil {
-			return fmt.Errorf("instance %d litgzip num lits: %w", i, err)
-		}
-		litGzip := records[2]
-
-		if litGzip == "2" {
-			numLits = 0
-			litGzip = ""
+			return fmt.Errorf("instance %d numlits: %w", i, err)
 		}
 
-		if numLits > 0 {
-			litData, err := helper.GzipBase64Decode(litGzip)
+		for j := 0; j < numLits; j++ {
+			records, err = token.ReadProperty("LIT", 1)
 			if err != nil {
-				return fmt.Errorf("instance %d litgzip decode: %w", i, err)
+				return fmt.Errorf("instance %d lit %d: %w", i, j, err)
 			}
 
-			buf := bytes.NewBuffer(litData)
-			obj.Lits = []uint32{}
-			for {
-				var lit uint32
-				err = binary.Read(buf, binary.LittleEndian, &lit)
-				if err != nil {
-					if err == io.EOF {
-						break
-					}
-				}
-
-				obj.Lits = append(obj.Lits, lit)
+			var lit uint32
+			err = parse(&lit, records[1])
+			if err != nil {
+				return fmt.Errorf("instance %d lit %d: %w", i, j, err)
 			}
-		}
-		if len(obj.Lits) != numLits {
-			return fmt.Errorf("instance %d litgzip mismatch: expected %d, got %d", i, numLits, len(obj.Lits))
+			obj.Lits = append(obj.Lits, lit)
 		}
 
 		e.Instances = append(e.Instances, obj)

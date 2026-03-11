@@ -70,14 +70,18 @@ properties:
           - name: ""
             note: ""
             format: "%0.8e"
-      - name: "LITGZIP"
+      - name: "NUMLITS"
         args:
-          - name: "num of gzip entries"
+          - name: "num of lit entries"
             note: ""
             format: "%d"
-          - name: "gzipped data"
+        properties:
+          - name: "LIT"
             note: ""
-            format: "%s"
+            args:
+              - name: ""
+                note: ""
+                format: "%d"
   - name: "NUMAREAS"
     note: ""
     args:
