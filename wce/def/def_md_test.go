@@ -24,6 +24,7 @@ var (
 		&wce.EqgLayDef{},
 		&wce.EqgMdsDef{},
 		&wce.EqgModDef{},
+		&wce.EqgLodDef{},
 		&wce.EqgParticlePointDef{},
 		&wce.EqgParticleRenderDef{},
 		&wce.EqgTerDef{},

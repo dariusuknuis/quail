@@ -2545,7 +2545,8 @@ func (e *EqgLodDef) Write(token *AsciiWriteToken) error {
 		fmt.Fprintf(w, "%s \"%s\"\n", e.Definition(), e.Tag)
 		fmt.Fprintf(w, "\tNUMLODS %d\n", len(e.Lods))
 		for _, lod := range e.Lods {
-			fmt.Fprintf(w, "\t\tLOD \"%s\"\n", lod.ObjectName)
+			fmt.Fprintf(w, "\t\tLOD\n")
+			fmt.Fprintf(w, "\t\t\tTAG \"%s\"\n", lod.ObjectName)
 			fmt.Fprintf(w, "\t\t\tCATEGORY \"%s\"\n", lod.Category)
 			fmt.Fprintf(w, "\t\t\tDISTANCE \"%0.8e\"\n", lod.Distance)
 		}
@@ -2573,9 +2574,11 @@ func (e *EqgLodDef) Read(token *AsciiReadToken) error {
 	for i := 0; i < numEntries; i++ {
 		lod := &LodEntry{}
 
-		records, err = token.ReadProperty("LOD", 1)
+		_, err = token.ReadProperty("LOD", 0)
+
+		records, err = token.ReadProperty("TAG", 1)
 		if err != nil {
-			return fmt.Errorf("entry %d name: %w", i, err)
+			return fmt.Errorf("entry %d tag: %w", i, err)
 		}
 
 		lod.ObjectName = records[1]

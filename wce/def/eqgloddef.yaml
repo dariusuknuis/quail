@@ -11,11 +11,13 @@ properties:
     properties:
       - name: "LOD"
         note: ""
-        args:
-          - name: ""
-            note: ""
-            format: "%s"
         properties:
+        - name: "TAG"
+          note: ""
+          args:
+            - name: ""
+              note: ""
+              format: "%s"
         - name: "CATEGORY"
           note: ""
           args:
