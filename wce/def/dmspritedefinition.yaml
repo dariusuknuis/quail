@@ -43,13 +43,13 @@ properties:
     args:
       - name: "params1"
         note: "params1"
-        format: "%d"
+        format: "%0.8e"
       - name: "params1"
         note: "params1"
-        format: "%d"
+        format: "%0.8e"
       - name: "params1"
         note: "params1"
-        format: "%d"
+        format: "%0.8e"
   - name: "NUMVERTICES"
     note: "The number of vertices in the sprite"
     args:
