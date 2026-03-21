@@ -208,7 +208,7 @@ func (mds *Mds) Read(r io.ReadSeeker) error {
 						BoneIndex: dec.Int32(),
 						Value:     dec.Float32(),
 					}
-					if j < int(count) {
+					if j >= int(count) {
 						continue
 					}
 					model.Vertices[i].Weights = append(model.Vertices[i].Weights, weight)
