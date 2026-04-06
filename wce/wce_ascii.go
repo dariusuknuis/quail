@@ -203,7 +203,7 @@ func (wce *Wce) writeAsciiData(path string) error {
 	for _, track := range wce.TrackInstances {
 		err = track.Write(token)
 		if err != nil {
-			return fmt.Errorf("track %s_%d: %w", track.Tag, track.TagIndex, err)
+			return fmt.Errorf("track %s: %w", track.Tag, err)
 		}
 	}
 

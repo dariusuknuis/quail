@@ -273,7 +273,6 @@ type DMSpriteDef2 struct {
 	folders              []string // when writing, this is the folder the file is in
 	fragID               int32
 	Tag                  string
-	TagIndex             int
 	DmTrackTag           string
 	DMRGBTrackTag        string
 	Params2              [3]float32
@@ -389,7 +388,6 @@ func (e *DMSpriteDef2) Write(token *AsciiWriteToken) error {
 		}
 
 		fmt.Fprintf(w, "%s \"%s\"\n", e.Definition(), e.Tag)
-		fmt.Fprintf(w, "\tTAGINDEX %d\n", e.TagIndex)
 		fmt.Fprintf(w, "\tCENTEROFFSET %0.8e %0.8e %0.8e\n", e.CenterOffset[0], e.CenterOffset[1], e.CenterOffset[2])
 		fmt.Fprintf(w, "\n")
 		fmt.Fprintf(w, "\tNUMVERTICES %d\n", len(e.Vertices))
@@ -434,7 +432,7 @@ func (e *DMSpriteDef2) Write(token *AsciiWriteToken) error {
 
 		fmt.Fprintf(w, "\tNUMMESHOPS %d\n", len(e.MeshOps))
 		for _, meshOp := range e.MeshOps {
-			fmt.Fprintf(w, "\tMESHOP %d %d %0.8f %d %d\n", meshOp.Index1, meshOp.Index2, meshOp.Offset, meshOp.Param1, meshOp.TypeField)
+			fmt.Fprintf(w, "\t\tMESHOP %d %d %0.8f %d %d\n", meshOp.Index1, meshOp.Index2, meshOp.Offset, meshOp.Param1, meshOp.TypeField)
 		}
 		fmt.Fprintf(w, "\n")
 		fmt.Fprintf(w, "\t// FACEMATERIALGROUPS assigns materials per face\n")
@@ -475,16 +473,7 @@ func (e *DMSpriteDef2) Write(token *AsciiWriteToken) error {
 func (e *DMSpriteDef2) Read(token *AsciiReadToken) error {
 	e.folders = append(e.folders, token.folder)
 
-	records, err := token.ReadProperty("TAGINDEX", 1)
-	if err != nil {
-		return err
-	}
-	err = parse(&e.TagIndex, records[1])
-	if err != nil {
-		return fmt.Errorf("tag index: %w", err)
-	}
-
-	records, err = token.ReadProperty("CENTEROFFSET", 3)
+	records, err := token.ReadProperty("CENTEROFFSET", 3)
 	if err != nil {
 		return err
 	}
@@ -992,7 +981,7 @@ func (e *DMSpriteDef2) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 		dmSpriteDef.Flags |= 0x10000
 	}
 
-	dmSpriteDef.SetNameRef(rawWld.NameAdd(e.Tag))
+	dmSpriteDef.SetNameRef(rawWld.NameAdd(baseTag(e.Tag)))
 
 	/* for i, frag := range rawWld.Fragments {
 		_, ok := frag.(*rawfrag.WldFragBMInfo)
@@ -1070,8 +1059,7 @@ func (e *DMSpriteDef2) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragD
 		return fmt.Errorf("frag is not dmspritedef2 (wrong fragcode?)")
 	}
 
-	e.Tag = rawWld.Name(frag.NameRef())
-	e.TagIndex = wce.NextTagIndex(e.Tag)
+	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()))
 
 	if frag.MaterialPaletteRef > 0 {
 		if len(rawWld.Fragments) < int(frag.MaterialPaletteRef) {
@@ -1247,7 +1235,6 @@ type DMSpriteDef struct {
 	folders              []string // when writing, this is the folder the file is in
 	fragID               int32
 	Tag                  string
-	TagIndex             int
 	Fragment1            int16
 	MaterialPaletteTag   string
 	Fragment3            uint32
@@ -1307,7 +1294,6 @@ func (e *DMSpriteDef) Write(token *AsciiWriteToken) error {
 		}
 
 		fmt.Fprintf(w, "%s \"%s\"\n", e.Definition(), e.Tag)
-		fmt.Fprintf(w, "\tTAGINDEX %d\n", e.TagIndex)
 		fmt.Fprintf(w, "\tFRAGMENT1 %d\n", e.Fragment1)
 		fmt.Fprintf(w, "\tMATERIALPALETTE \"%s\"\n", e.MaterialPaletteTag)
 		fmt.Fprintf(w, "\tFRAGMENT3 %d\n", e.Fragment3)
@@ -1384,16 +1370,7 @@ func (e *DMSpriteDef) Write(token *AsciiWriteToken) error {
 func (e *DMSpriteDef) Read(token *AsciiReadToken) error {
 	e.folders = append(e.folders, token.folder)
 
-	records, err := token.ReadProperty("TAGINDEX", 1)
-	if err != nil {
-		return err
-	}
-	err = parse(&e.TagIndex, records[1])
-	if err != nil {
-		return fmt.Errorf("tag index: %w", err)
-	}
-
-	records, err = token.ReadProperty("FRAGMENT1", 1)
+	records, err := token.ReadProperty("FRAGMENT1", 1)
 	if err != nil {
 		return err
 	}
@@ -1766,7 +1743,7 @@ func (e *DMSpriteDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 		CenterOffset:       [3]float32{e.Center.Float32Slice3[0], e.Center.Float32Slice3[1], e.Center.Float32Slice3[2]},
 		Params1:            [3]float32{e.Params1.Float32Slice3[0], e.Params1.Float32Slice3[1], e.Params1.Float32Slice3[2]},
 	}
-	wfDMSpriteDef.SetNameRef(rawWld.NameAdd(e.Tag))
+	wfDMSpriteDef.SetNameRef(rawWld.NameAdd(baseTag(e.Tag)))
 	wfDMSpriteDef.Fragment1 = e.Fragment1
 	wfDMSpriteDef.Fragment3 = e.Fragment3
 	wfDMSpriteDef.Vertices = e.Vertices
@@ -1823,8 +1800,8 @@ func (e *DMSpriteDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragDM
 	if frag == nil {
 		return fmt.Errorf("frag is not dmspritedef (wrong fragcode?)")
 	}
-	e.Tag = rawWld.Name(frag.NameRef())
-	e.TagIndex = wce.NextTagIndex(e.Tag)
+	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()))
+
 	e.Fragment1 = frag.Fragment1
 	if frag.MaterialPaletteRef > 0 {
 		if len(rawWld.Fragments) < int(frag.MaterialPaletteRef) {
@@ -1962,7 +1939,7 @@ func (e *MaterialPalette) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 		wfPalette.MaterialRefs = append(wfPalette.MaterialRefs, uint32(matRef))
 	}
 
-	wfPalette.SetNameRef(rawWld.NameAdd(e.Tag))
+	wfPalette.SetNameRef(rawWld.NameAdd(baseTag(e.Tag)))
 	rawWld.Fragments = append(rawWld.Fragments, wfPalette)
 	e.fragID = int32(len(rawWld.Fragments))
 
@@ -1974,7 +1951,8 @@ func (e *MaterialPalette) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFr
 		return fmt.Errorf("frag is not materialpalette (wrong fragcode?)")
 	}
 
-	e.Tag = rawWld.Name(frag.NameRef())
+	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()))
+
 	e.flags = frag.Flags
 	for _, materialRef := range frag.MaterialRefs {
 		if len(rawWld.Fragments) < int(materialRef) {
@@ -1995,14 +1973,12 @@ type MaterialDef struct {
 	folders                    []string // when writing, this is the folder the file is in
 	fragID                     int32
 	Tag                        string
-	TagIndex                   int
 	Variation                  int
 	RenderMethod               string
 	RGBPen                     [4]uint8
 	Brightness                 float32
 	ScaledAmbient              float32
 	SimpleSpriteTag            string
-	SimpleSpriteTagIndex       int
 	SimpleSpriteHaveSkipFrames int //0x10 flag, lets 0x40 be read.
 	SimpleSpriteSkipFrames     int //0x40 flag
 	UShiftPerMs                NullFloat32
@@ -2028,7 +2004,7 @@ func (e *MaterialDef) Write(token *AsciiWriteToken) error {
 
 		if e.SimpleSpriteTag != "" {
 
-			simpleSprite := token.wce.ByTagWithIndex(e.SimpleSpriteTag, e.SimpleSpriteTagIndex)
+			simpleSprite := token.wce.ByTag(e.SimpleSpriteTag)
 			if simpleSprite == nil {
 				return fmt.Errorf("simple sprite %s not found", e.SimpleSpriteTag)
 			}
@@ -2039,7 +2015,6 @@ func (e *MaterialDef) Write(token *AsciiWriteToken) error {
 		}
 
 		fmt.Fprintf(w, "%s \"%s\"\n", e.Definition(), e.Tag)
-		fmt.Fprintf(w, "\tTAGINDEX %d\n", e.TagIndex)
 		fmt.Fprintf(w, "\tVARIATION %d\n", e.Variation)
 		fmt.Fprintf(w, "\tRENDERMETHOD \"%s\"\n", e.RenderMethod)
 		fmt.Fprintf(w, "\tRGBPEN %d %d %d %d\n", e.RGBPen[0], e.RGBPen[1], e.RGBPen[2], e.RGBPen[3])
@@ -2047,7 +2022,6 @@ func (e *MaterialDef) Write(token *AsciiWriteToken) error {
 		fmt.Fprintf(w, "\tSCALEDAMBIENT %0.8e\n", e.ScaledAmbient)
 		fmt.Fprintf(w, "\tSIMPLESPRITEINST\n")
 		fmt.Fprintf(w, "\t\tSIMPLESPRITETAG \"%s\"\n", e.SimpleSpriteTag)
-		fmt.Fprintf(w, "\t\tSIMPLESPRITETAGINDEX %d\n", e.SimpleSpriteTagIndex)
 		fmt.Fprintf(w, "\t\tSIMPLESPRITEHAVESKIPFRAMES %d\n", e.SimpleSpriteHaveSkipFrames)
 		fmt.Fprintf(w, "\t\tSIMPLESPRITESKIPFRAMES %d\n", e.SimpleSpriteSkipFrames)
 		fmt.Fprintf(w, "\tUVSHIFTPERMS? %s %s\n", wcVal(e.UShiftPerMs), wcVal(e.VShiftPerMs))
@@ -2062,16 +2036,7 @@ func (e *MaterialDef) Write(token *AsciiWriteToken) error {
 func (e *MaterialDef) Read(token *AsciiReadToken) error {
 	e.folders = append(e.folders, token.folder)
 
-	records, err := token.ReadProperty("TAGINDEX", 1)
-	if err != nil {
-		return err
-	}
-	err = parse(&e.TagIndex, records[1])
-	if err != nil {
-		return fmt.Errorf("tag index: %w", err)
-	}
-
-	records, err = token.ReadProperty("VARIATION", 1)
+	records, err := token.ReadProperty("VARIATION", 1)
 	if err != nil {
 		return err
 	}
@@ -2123,15 +2088,6 @@ func (e *MaterialDef) Read(token *AsciiReadToken) error {
 		return err
 	}
 	e.SimpleSpriteTag = records[1]
-
-	records, err = token.ReadProperty("SIMPLESPRITETAGINDEX", 1)
-	if err != nil {
-		return err
-	}
-	err = parse(&e.SimpleSpriteTagIndex, records[1])
-	if err != nil {
-		return fmt.Errorf("simple sprite tag index: %w", err)
-	}
 
 	records, err = token.ReadProperty("SIMPLESPRITEHAVESKIPFRAMES", 1)
 	if err != nil {
@@ -2205,7 +2161,7 @@ func (e *MaterialDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 	}
 
 	if e.SimpleSpriteTag != "" {
-		spriteDef := wce.ByTagWithIndex(e.SimpleSpriteTag, e.SimpleSpriteTagIndex)
+		spriteDef := wce.ByTag(e.SimpleSpriteTag)
 		if spriteDef == nil {
 			return -1, fmt.Errorf("simple sprite %s not found", e.SimpleSpriteTag)
 		}
@@ -2234,7 +2190,7 @@ func (e *MaterialDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 		wfMaterialDef.SimpleSpriteRef = uint32(spriteRef)
 	}
 
-	wfMaterialDef.SetNameRef(rawWld.NameAdd(e.Tag))
+	wfMaterialDef.SetNameRef(rawWld.NameAdd(baseTag(e.Tag)))
 
 	rawWld.Fragments = append(rawWld.Fragments, wfMaterialDef)
 	e.fragID = int32(len(rawWld.Fragments))
@@ -2269,11 +2225,9 @@ func (e *MaterialDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragMa
 			e.SimpleSpriteSkipFrames = 1
 		}
 
-		e.SimpleSpriteTag = rawWld.Name(spriteDef.NameRef())
-		e.SimpleSpriteTagIndex = wce.tagIndexes[rawWld.Name(spriteDef.NameRef())]
+		e.SimpleSpriteTag = wce.NextIndexedTag(rawWld.Name(spriteDef.NameRef()))
 	}
-	e.Tag = rawWld.Name(frag.NameRef())
-	e.TagIndex = wce.NextTagIndex(e.Tag)
+	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()))
 	e.RenderMethod = helper.RenderMethodStr(frag.RenderMethod)
 	e.RGBPen = frag.RGBPen
 	e.Brightness = frag.Brightness
@@ -2462,7 +2416,7 @@ func (e *BlitSpriteDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 		wfBlitSpriteDef.Flags |= 0x100
 	}
 
-	wfBlitSpriteDef.SetNameRef(rawWld.NameAdd(e.Tag))
+	wfBlitSpriteDef.SetNameRef(rawWld.NameAdd(baseTag(e.Tag)))
 
 	rawWld.Fragments = append(rawWld.Fragments, wfBlitSpriteDef)
 	e.fragID = int32(len(rawWld.Fragments))
@@ -2475,7 +2429,7 @@ func (e *BlitSpriteDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFrag
 		return fmt.Errorf("frag is not blitspritedef (wrong fragcode?)")
 	}
 
-	e.Tag = rawWld.Name(frag.NameRef())
+	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()))
 	if frag.SpriteInstanceRef > 0 {
 		if len(rawWld.Fragments) < int(frag.SpriteInstanceRef) {
 			return fmt.Errorf("sprite ref %d out of bounds", frag.SpriteInstanceRef)
@@ -2508,7 +2462,6 @@ type SimpleSpriteDef struct {
 	folders            []string // when writing, this is the folder the file is in
 	fragID             int32
 	Tag                string
-	TagIndex           int
 	Variation          int
 	SkipFrames         uint16
 	Sleep              NullUint32
@@ -2537,7 +2490,6 @@ func (e *SimpleSpriteDef) Write(token *AsciiWriteToken) error {
 		}
 
 		fmt.Fprintf(w, "%s \"%s\"\n", e.Definition(), e.Tag)
-		fmt.Fprintf(w, "\tTAGINDEX %d\n", e.TagIndex)
 		fmt.Fprintf(w, "\tVARIATION %d\n", e.Variation)
 		fmt.Fprintf(w, "\tSKIPFRAMES %d\n", e.SkipFrames)
 		fmt.Fprintf(w, "\tSLEEP? %s\n", wcVal(e.Sleep))
@@ -2563,16 +2515,7 @@ func (e *SimpleSpriteDef) Write(token *AsciiWriteToken) error {
 func (e *SimpleSpriteDef) Read(token *AsciiReadToken) error {
 	e.folders = append(e.folders, token.folder)
 
-	records, err := token.ReadProperty("TAGINDEX", 1)
-	if err != nil {
-		return err
-	}
-	err = parse(&e.TagIndex, records[1])
-	if err != nil {
-		return fmt.Errorf("tag index: %w", err)
-	}
-
-	records, err = token.ReadProperty("VARIATION", 1)
+	records, err := token.ReadProperty("VARIATION", 1)
 	if err != nil {
 		return fmt.Errorf("VARIATION: %w", err)
 	}
@@ -2687,7 +2630,7 @@ func (e *SimpleSpriteDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 	if len(e.SimpleSpriteFrames) > 0 {
 		for _, frame := range e.SimpleSpriteFrames {
 			wfBMInfo := &rawfrag.WldFragBMInfo{}
-			nameRef := rawWld.NameAdd(frame.TextureTag)
+			nameRef := rawWld.NameAdd(baseTag(frame.TextureTag))
 			wfBMInfo.SetNameRef(nameRef)
 			for _, texFile := range frame.TextureFiles {
 				wfBMInfo.TextureNames = append(wfBMInfo.TextureNames, texFile+"\x00")
@@ -2697,7 +2640,7 @@ func (e *SimpleSpriteDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 		}
 	}
 
-	wfSimpleSpriteDef.SetNameRef(rawWld.NameAdd(e.Tag))
+	wfSimpleSpriteDef.SetNameRef(rawWld.NameAdd(baseTag(e.Tag)))
 
 	rawWld.Fragments = append(rawWld.Fragments, wfSimpleSpriteDef)
 	e.fragID = int32(len(rawWld.Fragments))
@@ -2708,8 +2651,7 @@ func (e *SimpleSpriteDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFr
 	if frag == nil {
 		return fmt.Errorf("frag is not simplespritedef (wrong fragcode?)")
 	}
-	e.Tag = rawWld.Name(frag.NameRef())
-	e.TagIndex = wce.NextTagIndex(e.Tag)
+	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()))
 	if frag.Flags&0x40 != 0 {
 		e.SkipFrames = 1
 	}
@@ -2772,10 +2714,9 @@ type ActorAction struct {
 
 // ActorLevelOfDetail is a declaration of LEVELOFDETAIL
 type ActorLevelOfDetail struct {
-	SpriteTag      string
-	SpriteTagIndex int
-	SpriteFlags    uint32
-	MinDistance    float32
+	SpriteTag   string
+	SpriteFlags uint32
+	MinDistance float32
 }
 
 func (e *ActorDef) Definition() string {
@@ -2891,7 +2832,6 @@ func (e *ActorDef) Write(token *AsciiWriteToken) error {
 			for _, lod := range action.LevelOfDetails {
 				fmt.Fprintf(w, "\t\t\t\tLEVELOFDETAIL\n")
 				fmt.Fprintf(w, "\t\t\t\t\tSPRITE \"%s\"\n", lod.SpriteTag)
-				fmt.Fprintf(w, "\t\t\t\t\tSPRITEINDEX %d\n", lod.SpriteTagIndex)
 				fmt.Fprintf(w, "\t\t\t\t\tMINDISTANCE %0.8e\n", lod.MinDistance)
 			}
 		}
@@ -2998,15 +2938,6 @@ func (e *ActorDef) Read(token *AsciiReadToken) error {
 				return err
 			}
 			lod.SpriteTag = records[1]
-
-			records, err = token.ReadProperty("SPRITEINDEX", 1)
-			if err != nil {
-				return err
-			}
-			err = parse(&lod.SpriteTagIndex, records[1])
-			if err != nil {
-				return fmt.Errorf("sprite index: %w", err)
-			}
 
 			records, err = token.ReadProperty("MINDISTANCE", 1)
 			if err != nil {
@@ -3180,7 +3111,7 @@ func (e *ActorDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 	}
 
 	actorDef.CallbackNameRef = rawWld.NameAdd(e.Callback)
-	actorDef.SetNameRef(rawWld.NameAdd(e.Tag))
+	actorDef.SetNameRef(rawWld.NameAdd(baseTag(e.Tag)))
 
 	rawWld.Fragments = append(rawWld.Fragments, actorDef)
 	e.fragID = int32(len(rawWld.Fragments))
@@ -3192,7 +3123,7 @@ func (e *ActorDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragActor
 		return fmt.Errorf("frag is not actordef (wrong fragcode?)")
 	}
 
-	e.Tag = rawWld.Name(frag.NameRef())
+	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()))
 	e.Callback = rawWld.Name(frag.CallbackNameRef)
 	e.BoundsRef = frag.BoundsRef
 	e.Unk1 = frag.Unk1
@@ -3595,7 +3526,7 @@ func (e *ActorInst) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 		sphere := &rawfrag.WldFragSphere{
 			Radius: e.SphereRadius,
 		}
-		sphere.SetNameRef(rawWld.NameAdd(e.SphereTag))
+		sphere.SetNameRef(rawWld.NameAdd(baseTag(e.SphereTag)))
 
 		rawWld.Fragments = append(rawWld.Fragments, sphere)
 		wfActorInst.SphereRef = uint32(len(rawWld.Fragments))
@@ -3643,7 +3574,7 @@ func (e *ActorInst) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragActo
 		sphereRadius = sphereDef.Radius
 	}
 
-	e.Tag = rawWld.Name(frag.NameRef())
+	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()))
 	e.DefinitionTag = actorDefTag
 	e.SphereRadius = sphereRadius
 	e.UserData = frag.UserData
@@ -3865,7 +3796,7 @@ func (e *LightDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 	var err error
 
 	wfLightDef := &rawfrag.WldFragLightDef{}
-	wfLightDef.SetNameRef(rawWld.NameAdd(e.Tag))
+	wfLightDef.SetNameRef(rawWld.NameAdd(baseTag(e.Tag)))
 
 	if e.CurrentFrame.Valid {
 		wfLightDef.Flags |= 0x01
@@ -3903,7 +3834,7 @@ func (e *LightDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragLight
 	}
 	e.folders = []string{"ZONE"}
 
-	e.Tag = rawWld.Name(frag.NameRef())
+	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()))
 	e.LightLevels = frag.LightLevels
 	e.Colors = frag.Colors
 	if frag.Flags&0x01 == 0x01 {
@@ -4107,7 +4038,7 @@ func (e *PointLight) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 		Location: e.Location,
 		Radius:   e.Radius,
 	}
-	light.SetNameRef(rawWld.NameAdd(e.Tag))
+	light.SetNameRef(rawWld.NameAdd(baseTag(e.Tag)))
 
 	if e.Static == 1 {
 		light.Flags |= 0x20
@@ -4137,7 +4068,7 @@ func (e *PointLight) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragPoi
 		return fmt.Errorf("frag is not pointlight (wrong fragcode?)")
 	}
 
-	e.Tag = rawWld.Name(frag.NameRef())
+	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()))
 	if frag.LightRef > 0 {
 		if len(rawWld.Fragments) < int(frag.LightRef) {
 			return fmt.Errorf("light ref %d not found", frag.LightRef)
@@ -4204,7 +4135,6 @@ type BSPNode struct {
 	Brightness                 NullFloat32
 	ScaledAmbient              NullFloat32
 	SimpleSpriteTag            NullString
-	SimpleSpriteTagIndex       int
 	SimpleSpriteHaveSkipFrames int //0x10 sprite flag, lets 0x40 be read.
 	SimpleSpriteSkipFrames     int //0x40 sprite flag
 	UvOrigin                   NullFloat32Slice3
@@ -4256,7 +4186,6 @@ func (e *Sprite3DDef) Write(token *AsciiWriteToken) error {
 			fmt.Fprintf(w, "\t\t\t\tSCALEDAMBIENT? %s\n", wcVal(node.ScaledAmbient))
 			fmt.Fprintf(w, "\t\t\t\tSIMPLESPRITEINST\n")
 			fmt.Fprintf(w, "\t\t\t\t\tSIMPLESPRITETAG? \"%s\"\n", wcVal(node.SimpleSpriteTag))
-			fmt.Fprintf(w, "\t\t\t\t\tSIMPLESPRITETAGINDEX %d\n", node.SimpleSpriteTagIndex)
 			fmt.Fprintf(w, "\t\t\t\t\tSIMPLESPRITEHAVESKIPFRAMES %d\n", node.SimpleSpriteHaveSkipFrames)
 			fmt.Fprintf(w, "\t\t\t\t\tSIMPLESPRITESKIPFRAMES %d\n", node.SimpleSpriteSkipFrames)
 			fmt.Fprintf(w, "\t\t\t\tUVORIGIN? %s\n", wcVal(node.UvOrigin))
@@ -4422,15 +4351,6 @@ func (e *Sprite3DDef) Read(token *AsciiReadToken) error {
 		err = parse(&node.SimpleSpriteTag, records[1])
 		if err != nil {
 			return fmt.Errorf("render sprite: %w", err)
-		}
-
-		records, err = token.ReadProperty("SIMPLESPRITETAGINDEX", 1)
-		if err != nil {
-			return err
-		}
-		err = parse(&node.SimpleSpriteTagIndex, records[1])
-		if err != nil {
-			return fmt.Errorf("simple sprite tag index: %w", err)
 		}
 
 		records, err = token.ReadProperty("SIMPLESPRITEHAVESKIPFRAMES", 1)
@@ -4617,7 +4537,7 @@ func (e *Sprite3DDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 
 			if node.SimpleSpriteTag.Valid {
 				bnode.RenderFlags |= 0x08
-				spriteDef := wce.ByTagWithIndex(node.SimpleSpriteTag.String, node.SimpleSpriteTagIndex)
+				spriteDef := wce.ByTag(node.SimpleSpriteTag.String)
 				if spriteDef == nil {
 					return -1, fmt.Errorf("simple sprite %s not found", node.SimpleSpriteTag.String)
 				}
@@ -4700,7 +4620,7 @@ func (e *Sprite3DDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 		wfSprite3DDef.SphereListRef = uint32(sphereListRef)
 	}
 
-	wfSprite3DDef.SetNameRef(rawWld.NameAdd(e.Tag))
+	wfSprite3DDef.SetNameRef(rawWld.NameAdd(baseTag(e.Tag)))
 
 	rawWld.Fragments = append(rawWld.Fragments, wfSprite3DDef)
 	e.fragID = int32(len(rawWld.Fragments))
@@ -4724,7 +4644,7 @@ func (e *Sprite3DDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragSp
 		e.SphereListTag = rawWld.Name(sphereList.NameRef())
 	}
 
-	e.Tag = rawWld.Name(frag.NameRef())
+	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()))
 	e.Vertices = frag.Vertices
 
 	if frag.Flags&0x01 == 0x01 {
@@ -4787,8 +4707,7 @@ func (e *Sprite3DDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragSp
 				node.SimpleSpriteSkipFrames = 1
 			}
 
-			node.SimpleSpriteTag.String = rawWld.Name(spriteDef.NameRef())
-			node.SimpleSpriteTagIndex = wce.tagIndexes[rawWld.Name(spriteDef.NameRef())]
+			node.SimpleSpriteTag.String = wce.NextIndexedTag(rawWld.Name(spriteDef.NameRef()))
 		}
 
 		if bspNode.RenderFlags&0x10 == 0x10 {
@@ -5003,7 +4922,7 @@ func (e *PolyhedronDefinition) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 		Vertices:       e.Vertices,
 		Faces:          e.Faces,
 	}
-	wfPolyhedronDef.SetNameRef(rawWld.NameAdd(e.Tag))
+	wfPolyhedronDef.SetNameRef(rawWld.NameAdd(baseTag(e.Tag)))
 
 	if e.HexOneFlag > 0 {
 		wfPolyhedronDef.Flags |= 0x01
@@ -5015,7 +4934,7 @@ func (e *PolyhedronDefinition) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 }
 
 func (e *PolyhedronDefinition) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragPolyhedronDef) error {
-	e.Tag = rawWld.Name(frag.NameRef())
+	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()))
 	e.BoundingRadius = frag.BoundingRadius
 	e.ScaleFactor = frag.ScaleFactor
 	e.Vertices = frag.Vertices
@@ -5126,7 +5045,7 @@ func (e *SphereListDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 		wfSphereListDef.Scale = e.Scale.Float32
 	}
 
-	wfSphereListDef.SetNameRef(rawWld.NameAdd(e.Tag))
+	wfSphereListDef.SetNameRef(rawWld.NameAdd(baseTag(e.Tag)))
 
 	rawWld.Fragments = append(rawWld.Fragments, wfSphereListDef)
 	e.fragID = int32(len(rawWld.Fragments))
@@ -5138,7 +5057,7 @@ func (e *SphereListDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFrag
 		return fmt.Errorf("frag is not spherelistdef (wrong fragcode?)")
 	}
 
-	e.Tag = rawWld.Name(frag.NameRef())
+	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()))
 	e.BoundingRadius = frag.Radius
 
 	if frag.Flags&0x01 == 0x01 {
@@ -5152,16 +5071,14 @@ func (e *SphereListDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFrag
 }
 
 type TrackInstance struct {
-	folders        []string // when writing, this is the folder the file is in
-	fragID         int32
-	animation      string
-	Tag            string
-	TagIndex       int
-	SpriteTag      string
-	SpriteTagIndex int
-	Interpolate    int
-	Reverse        int
-	Sleep          NullUint32
+	folders     []string // when writing, this is the folder the file is in
+	fragID      int32
+	animation   string
+	Tag         string
+	SpriteTag   string
+	Interpolate int
+	Reverse     int
+	Sleep       NullUint32
 }
 
 func (e *TrackInstance) Definition() string {
@@ -5188,20 +5105,18 @@ func (e *TrackInstance) Write(token *AsciiWriteToken) error {
 		}
 
 		if e.SpriteTag != "" {
-			trackDef := token.wce.ByTagWithIndex(e.SpriteTag, e.SpriteTagIndex)
+			trackDef := token.wce.ByTag(e.SpriteTag)
 			if trackDef == nil {
-				return fmt.Errorf("track %s%d refers to trackdef %s%d but it does not exist", e.Tag, e.TagIndex, e.SpriteTag, e.SpriteTagIndex)
+				return fmt.Errorf("track %s refers to trackdef %s but it does not exist", e.Tag, e.SpriteTag)
 			}
 			err = trackDef.Write(token)
 			if err != nil {
-				return fmt.Errorf("trackdef %s%d write: %w", e.SpriteTag, e.SpriteTagIndex, err)
+				return fmt.Errorf("trackdef %s write: %w", e.SpriteTag, err)
 			}
 		}
 
 		fmt.Fprintf(w, "%s \"%s\"\n", e.Definition(), e.Tag)
-		fmt.Fprintf(w, "\tTAGINDEX %d\n", e.TagIndex)
 		fmt.Fprintf(w, "\tSPRITE \"%s\"\n", e.SpriteTag)
-		fmt.Fprintf(w, "\tSPRITEINDEX %d\n", e.SpriteTagIndex)
 		fmt.Fprintf(w, "\tINTERPOLATE %d // deprecated\n", e.Interpolate)
 		fmt.Fprintf(w, "\tREVERSE %d // deprecated \n", e.Reverse)
 		fmt.Fprintf(w, "\tSLEEP? %s\n", wcVal(e.Sleep))
@@ -5213,29 +5128,12 @@ func (e *TrackInstance) Write(token *AsciiWriteToken) error {
 
 func (e *TrackInstance) Read(token *AsciiReadToken) error {
 	e.folders = append(e.folders, token.folder)
-	records, err := token.ReadProperty("TAGINDEX", 1)
-	if err != nil {
-		return err
-	}
-	err = parse(&e.TagIndex, records[1])
-	if err != nil {
-		return fmt.Errorf("tag index: %w", err)
-	}
 
-	records, err = token.ReadProperty("SPRITE", 1)
+	records, err := token.ReadProperty("SPRITE", 1)
 	if err != nil {
 		return err
 	}
 	e.SpriteTag = records[1]
-
-	records, err = token.ReadProperty("SPRITEINDEX", 1)
-	if err != nil {
-		return err
-	}
-	err = parse(&e.SpriteTagIndex, records[1])
-	if err != nil {
-		return fmt.Errorf("sprite tag index: %w", err)
-	}
 
 	records, err = token.ReadProperty("INTERPOLATE", 1)
 	if err != nil {
@@ -5278,7 +5176,7 @@ func (e *TrackInstance) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 		return -1, fmt.Errorf("track instance %s has no sprite", e.Tag)
 	}
 
-	trackDefFrag := wce.ByTagWithIndex(e.SpriteTag, e.SpriteTagIndex)
+	trackDefFrag := wce.ByTag(e.SpriteTag)
 	if trackDefFrag == nil {
 		return -1, fmt.Errorf("track instance %s refers to trackdef %s but it does not exist", e.Tag, e.SpriteTag)
 	}
@@ -5293,7 +5191,7 @@ func (e *TrackInstance) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 		return -1, fmt.Errorf("track instance %s refers to trackdef %s but it failed to convert: %w", e.Tag, e.SpriteTag, err)
 	}
 
-	wfTrack.SetNameRef(rawWld.NameAdd(e.Tag))
+	wfTrack.SetNameRef(rawWld.NameAdd(baseTag(e.Tag)))
 	wfTrack.TrackRef = int32(trackDefRef)
 	if e.Sleep.Valid {
 		wfTrack.Flags |= 0x01
@@ -5325,8 +5223,7 @@ func (e *TrackInstance) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFrag
 		return fmt.Errorf("trackdef ref %d not found", frag.TrackRef)
 	}
 
-	e.Tag = rawWld.Name(frag.NameRef())
-	e.TagIndex = wce.NextTagIndex(e.Tag)
+	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()))
 
 	if wce.isObj {
 		e.animation = ""
@@ -5336,8 +5233,7 @@ func (e *TrackInstance) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFrag
 		e.animation = ""
 	}
 
-	e.SpriteTag = rawWld.Name(trackDef.NameRef())
-	e.SpriteTagIndex = wce.tagIndexes[e.SpriteTag]
+	e.Tag = wce.NextIndexedTag(rawWld.Name(trackDef.NameRef()))
 
 	if frag.Flags&0x01 == 0x01 {
 		e.Sleep.Valid = true
@@ -5358,7 +5254,6 @@ type TrackDef struct {
 	fragID       int32
 	animation    string
 	Tag          string
-	TagIndex     int
 	Frames       []*Frame
 	LegacyFrames []*LegacyFrame
 }
@@ -5400,7 +5295,6 @@ func (e *TrackDef) Write(token *AsciiWriteToken) error {
 		}
 
 		fmt.Fprintf(w, "%s \"%s\"\n", e.Definition(), e.Tag)
-		fmt.Fprintf(w, "\tTAGINDEX %d\n", e.TagIndex)
 		fmt.Fprintf(w, "\tNUMFRAMES %d // Format: FRAME [scale x-loc y-loc z-loc w-rot x-rot y-rot z-rot]\n", len(e.Frames))
 		for _, frame := range e.Frames {
 			fmt.Fprintf(w, "\t\tFRAME %d %d %d %d ", frame.XYZScale, frame.XYZ[0], frame.XYZ[1], frame.XYZ[2])
@@ -5419,16 +5313,8 @@ func (e *TrackDef) Write(token *AsciiWriteToken) error {
 
 func (e *TrackDef) Read(token *AsciiReadToken) error {
 	e.folders = append(e.folders, token.folder)
-	records, err := token.ReadProperty("TAGINDEX", 1)
-	if err != nil {
-		return err
-	}
-	err = parse(&e.TagIndex, records[1])
-	if err != nil {
-		return fmt.Errorf("tag index: %w", err)
-	}
 
-	records, err = token.ReadProperty("NUMFRAMES", 1)
+	records, err := token.ReadProperty("NUMFRAMES", 1)
 	if err != nil {
 		return err
 	}
@@ -5555,7 +5441,7 @@ func (e *TrackDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 		wfTrack.FrameTransforms = append(wfTrack.FrameTransforms, wfFrame)
 	}
 
-	wfTrack.SetNameRef(rawWld.NameAdd(e.Tag))
+	wfTrack.SetNameRef(rawWld.NameAdd(baseTag(e.Tag)))
 	rawWld.Fragments = append(rawWld.Fragments, wfTrack)
 	e.fragID = int32(len(rawWld.Fragments))
 	return int32(len(rawWld.Fragments)), nil
@@ -5566,8 +5452,7 @@ func (e *TrackDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragTrack
 		return fmt.Errorf("frag is not trackdef (wrong fragcode?)")
 	}
 
-	e.Tag = rawWld.Name(frag.NameRef())
-	e.TagIndex = wce.NextTagIndex(e.Tag)
+	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()))
 
 	if wce.isObj {
 		e.animation = ""
@@ -5628,17 +5513,14 @@ type HierarchicalSpriteDef struct {
 }
 
 type Dag struct {
-	Tag            string
-	Track          string
-	TrackIndex     int
-	SubDags        []uint32
-	SpriteTag      string
-	SpriteTagIndex int
+	Tag       string
+	Track     string
+	SubDags   []uint32
+	SpriteTag string
 }
 
 type AttachedSkin struct {
 	DMSpriteTag               string
-	DMSpriteTagIndex          int
 	LinkSkinUpdatesToDagIndex uint32
 }
 
@@ -5660,20 +5542,20 @@ func (e *HierarchicalSpriteDef) Write(token *AsciiWriteToken) error {
 		for _, dag := range e.Dags {
 			if dag.Track != "" {
 
-				trackDef := token.wce.ByTagWithIndex(dag.Track, dag.TrackIndex)
+				trackDef := token.wce.ByTag(dag.Track)
 				if trackDef == nil {
-					return fmt.Errorf("track %s_%d not found", dag.Track, dag.TrackIndex)
+					return fmt.Errorf("track %s not found", dag.Track)
 				}
 
 				err = trackDef.Write(token)
 				if err != nil {
-					return fmt.Errorf("track %s_%d: %w", dag.Track, dag.TrackIndex, err)
+					return fmt.Errorf("track %s: %w", dag.Track, err)
 				}
 			}
 			if dag.SpriteTag != "" {
-				spriteDef := token.wce.ByTagWithIndex(dag.SpriteTag, dag.SpriteTagIndex)
+				spriteDef := token.wce.ByTag(dag.SpriteTag)
 				if spriteDef == nil {
-					return fmt.Errorf("sprite %s_%d not found", dag.SpriteTag, dag.SpriteTagIndex)
+					return fmt.Errorf("sprite %s not found", dag.SpriteTag)
 				}
 
 				if token.TagIsWritten(dag.SpriteTag) {
@@ -5682,7 +5564,7 @@ func (e *HierarchicalSpriteDef) Write(token *AsciiWriteToken) error {
 
 				err = spriteDef.Write(token)
 				if err != nil {
-					return fmt.Errorf("sprite %s_%d: %w", dag.SpriteTag, dag.SpriteTagIndex, err)
+					return fmt.Errorf("sprite %s: %w", dag.SpriteTag, err)
 				}
 				token.TagSetIsWritten(dag.SpriteTag)
 			}
@@ -5693,7 +5575,7 @@ func (e *HierarchicalSpriteDef) Write(token *AsciiWriteToken) error {
 				continue
 			}
 
-			dmSprite := token.wce.ByTagWithIndex(skin.DMSpriteTag, skin.DMSpriteTagIndex)
+			dmSprite := token.wce.ByTag(skin.DMSpriteTag)
 			err = dmSprite.Write(token)
 			if err != nil {
 				return fmt.Errorf("dmsprite %s: %w", skin.DMSpriteTag, err)
@@ -5718,9 +5600,7 @@ func (e *HierarchicalSpriteDef) Write(token *AsciiWriteToken) error {
 			fmt.Fprintf(w, "\t\tDAG // %d\n", i)
 			fmt.Fprintf(w, "\t\t\tTAG \"%s\"\n", dag.Tag)
 			fmt.Fprintf(w, "\t\t\tSPRITETAG \"%s\"\n", dag.SpriteTag)
-			fmt.Fprintf(w, "\t\t\tSPRITEINDEX %d\n", dag.SpriteTagIndex)
 			fmt.Fprintf(w, "\t\t\tTRACK \"%s\"\n", dag.Track)
-			fmt.Fprintf(w, "\t\t\tTRACKINDEX %d\n", dag.TrackIndex)
 			fmt.Fprintf(w, "\t\t\tSUBDAGLIST %d", len(dag.SubDags))
 			for _, subDag := range dag.SubDags {
 				fmt.Fprintf(w, " %d", subDag)
@@ -5733,7 +5613,6 @@ func (e *HierarchicalSpriteDef) Write(token *AsciiWriteToken) error {
 		for _, skin := range e.AttachedSkins {
 			fmt.Fprintf(w, "\t\tATTACHEDSKIN\n")
 			fmt.Fprintf(w, "\t\t\tDMSPRITE \"%s\"\n", skin.DMSpriteTag)
-			fmt.Fprintf(w, "\t\t\tDMSPRITEINDEX %d\n", skin.DMSpriteTagIndex)
 			fmt.Fprintf(w, "\t\t\tLINKSKINUPDATESTODAGINDEX %d\n", skin.LinkSkinUpdatesToDagIndex)
 		}
 		fmt.Fprintf(w, "\n")
@@ -5783,29 +5662,11 @@ func (e *HierarchicalSpriteDef) Read(token *AsciiReadToken) error {
 		}
 		dag.SpriteTag = records[1]
 
-		records, err = token.ReadProperty("SPRITEINDEX", 1)
-		if err != nil {
-			return err
-		}
-		err = parse(&dag.SpriteTagIndex, records[1])
-		if err != nil {
-			return fmt.Errorf("sprite index: %w", err)
-		}
-
 		records, err = token.ReadProperty("TRACK", 1)
 		if err != nil {
 			return err
 		}
 		dag.Track = records[1]
-
-		records, err = token.ReadProperty("TRACKINDEX", 1)
-		if err != nil {
-			return err
-		}
-		err = parse(&dag.TrackIndex, records[1])
-		if err != nil {
-			return fmt.Errorf("track index: %w", err)
-		}
 
 		records, err = token.ReadProperty("SUBDAGLIST", -1)
 		if err != nil {
@@ -5852,15 +5713,6 @@ func (e *HierarchicalSpriteDef) Read(token *AsciiReadToken) error {
 			return err
 		}
 		skin.DMSpriteTag = records[1]
-
-		records, err = token.ReadProperty("DMSPRITEINDEX", 1)
-		if err != nil {
-			return err
-		}
-		err = parse(&skin.DMSpriteTagIndex, records[1])
-		if err != nil {
-			return fmt.Errorf("dmsprite index: %w", err)
-		}
 
 		records, err = token.ReadProperty("LINKSKINUPDATESTODAGINDEX", 1)
 		if err != nil {
@@ -5993,7 +5845,7 @@ func (e *HierarchicalSpriteDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) 
 		wfDag := &rawfrag.WldFragDag{}
 
 		if dag.SpriteTag != "" {
-			spriteDefFrag := wce.ByTagWithIndex(dag.SpriteTag, dag.SpriteTagIndex)
+			spriteDefFrag := wce.ByTag(dag.SpriteTag)
 			if spriteDefFrag == nil {
 				return -1, fmt.Errorf("sprite instance not found: %s", dag.SpriteTag)
 			}
@@ -6099,7 +5951,7 @@ func (e *HierarchicalSpriteDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) 
 			continue
 		}
 
-		spriteDefFrag := wce.ByTagWithIndex(skin.DMSpriteTag, skin.DMSpriteTagIndex)
+		spriteDefFrag := wce.ByTag(skin.DMSpriteTag)
 		if spriteDefFrag == nil {
 			return -1, fmt.Errorf("skin sprite def not found: %s", skin.DMSpriteTag)
 		}
@@ -6146,9 +5998,9 @@ func (e *HierarchicalSpriteDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) 
 	for i, dag := range e.Dags {
 		wfDag := wfHierarchicalSpriteDef.Dags[i]
 
-		trackFrag := wce.ByTagWithIndex(dag.Track, dag.TrackIndex)
+		trackFrag := wce.ByTag(dag.Track)
 		if trackFrag == nil {
-			return -1, fmt.Errorf("track not found: %s index %d", dag.Track, dag.TrackIndex)
+			return -1, fmt.Errorf("track not found: %s", dag.Track)
 		}
 
 		track, ok := trackFrag.(*TrackInstance)
@@ -6170,9 +6022,9 @@ func (e *HierarchicalSpriteDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) 
 
 	for i, dag := range e.Dags {
 		wfDag := wfHierarchicalSpriteDef.Dags[i]
-		wfDag.SetNameRef(rawWld.NameAdd(dag.Tag))
+		wfDag.SetNameRef(rawWld.NameAdd(baseTag(dag.Tag)))
 	}
-	wfHierarchicalSpriteDef.SetNameRef(rawWld.NameAdd(e.Tag))
+	wfHierarchicalSpriteDef.SetNameRef(rawWld.NameAdd(baseTag(e.Tag)))
 
 	for _, wfDMSprite := range dmSpriteInstances {
 		rawWld.Fragments = append(rawWld.Fragments, wfDMSprite)
@@ -6216,7 +6068,7 @@ func (e *HierarchicalSpriteDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag
 	if frag.CollisionVolumeRef == 4294967293 {
 		e.PolyhedronTag = "SPECIAL_COLLISION"
 	}
-	e.Tag = rawWld.Name(frag.NameRef())
+	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()))
 	if frag.Flags&0x01 != 0 {
 		e.CenterOffset.Valid = true
 		e.CenterOffset.Float32Slice3 = frag.CenterOffset
@@ -6298,12 +6150,10 @@ func (e *HierarchicalSpriteDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag
 		} */
 
 		dag := Dag{
-			Tag:            rawWld.Name(dag.NameRef()),
-			Track:          rawWld.Name(srcTrack.NameRef()),
-			TrackIndex:     wce.tagIndexes[rawWld.Name(srcTrack.NameRef())],
-			SubDags:        dag.SubDags,
-			SpriteTag:      spriteTag,
-			SpriteTagIndex: wce.tagIndexes[spriteTag],
+			Tag:       rawWld.Name(dag.NameRef()),
+			Track:     rawWld.Name(srcTrack.NameRef()),
+			SubDags:   dag.SubDags,
+			SpriteTag: spriteTag,
 		}
 
 		e.Dags = append(e.Dags, dag)
@@ -6339,7 +6189,6 @@ func (e *HierarchicalSpriteDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag
 
 		skin := AttachedSkin{
 			DMSpriteTag:               dmSpriteTag,
-			DMSpriteTagIndex:          wce.tagIndexes[rawWld.Name(dmSprite.NameRef())],
 			LinkSkinUpdatesToDagIndex: frag.LinkSkinUpdatesToDagIndexes[i],
 		}
 
@@ -6491,7 +6340,7 @@ func (e *WorldTree) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 		wfWorldTree.Nodes = append(wfWorldTree.Nodes, wfNode)
 	}
 
-	wfWorldTree.SetNameRef(rawWld.NameAdd(e.Tag))
+	wfWorldTree.SetNameRef(rawWld.NameAdd(baseTag(e.Tag)))
 
 	rawWld.Fragments = append(rawWld.Fragments, wfWorldTree)
 	e.fragID = int32(len(rawWld.Fragments))
@@ -7190,7 +7039,7 @@ func (e *Region) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 		}
 		wfRegion.MeshReference = int32(spriteRef)
 	}
-	wfRegion.SetNameRef(rawWld.NameAdd(e.Tag))
+	wfRegion.SetNameRef(rawWld.NameAdd(baseTag(e.Tag)))
 
 	rawWld.Fragments = append(rawWld.Fragments, wfRegion)
 	e.fragID = int32(len(rawWld.Fragments))
@@ -7203,7 +7052,7 @@ func (e *Region) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragRegion)
 	}
 
 	e.VisTree = &VisTree{}
-	e.Tag = rawWld.Name(frag.NameRef())
+	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()))
 	e.RegionVertices = frag.RegionVertices
 	e.Sphere = frag.Sphere
 	e.ReverbVolume = frag.ReverbVolume
@@ -7382,7 +7231,7 @@ func (e *AmbientLight) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 		wfAmbientLight.LightRef = int32(len(rawWld.Fragments))
 	}
 
-	wfAmbientLight.SetNameRef(rawWld.NameAdd(e.Tag))
+	wfAmbientLight.SetNameRef(rawWld.NameAdd(baseTag(e.Tag)))
 
 	rawWld.Fragments = append(rawWld.Fragments, wfAmbientLight)
 	e.fragID = int32(len(rawWld.Fragments))
@@ -7416,7 +7265,7 @@ func (e *AmbientLight) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragA
 		lightTag = rawWld.Name(lightDef.NameRef())
 	}
 
-	e.Tag = rawWld.Name(frag.NameRef())
+	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()))
 	e.LightTag = lightTag
 	e.LightFlags = lightFlags
 	e.Regions = frag.Regions
@@ -7503,7 +7352,7 @@ func (e *Zone) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 		Regions:  e.Regions,
 		UserData: e.UserData,
 	}
-	wfZone.SetNameRef(rawWld.NameAdd(e.Tag))
+	wfZone.SetNameRef(rawWld.NameAdd(baseTag(e.Tag)))
 
 	rawWld.Fragments = append(rawWld.Fragments, wfZone)
 	e.fragID = int32(len(rawWld.Fragments))
@@ -7515,7 +7364,7 @@ func (e *Zone) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragZone) err
 		return fmt.Errorf("frag is not zone (wrong fragcode?)")
 	}
 
-	e.Tag = rawWld.Name(frag.NameRef())
+	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()))
 	e.Regions = frag.Regions
 	e.UserData = frag.UserData
 	return nil
@@ -7665,7 +7514,7 @@ func (e *RGBTrackDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 		wfRGBTrack.Flags |= 0x1
 	}
 
-	wfRGBTrack.SetNameRef(rawWld.NameAdd(e.Tag))
+	wfRGBTrack.SetNameRef(rawWld.NameAdd(baseTag(e.Tag)))
 
 	rawWld.Fragments = append(rawWld.Fragments, wfRGBTrack)
 	e.fragID = int32(len(rawWld.Fragments))
@@ -7677,7 +7526,7 @@ func (e *RGBTrackDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragDm
 		return fmt.Errorf("frag is not rgb track def (wrong fragcode?)")
 	}
 
-	e.Tag = rawWld.Name(frag.NameRef())
+	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()))
 	e.Sleep = frag.Sleep
 	e.Data4 = frag.Data4
 
@@ -7705,7 +7554,6 @@ type ParticleCloudDef struct {
 	folders                 []string // when writing, this is the folder the file is in
 	fragID                  int32
 	Tag                     string
-	TagIndex                int
 	BlitSpriteDefTag        string
 	ParticleType            uint32
 	SpawnType               string
@@ -7772,7 +7620,6 @@ func (e *ParticleCloudDef) Write(token *AsciiWriteToken) error {
 		}
 
 		fmt.Fprintf(w, "%s \"%s\"\n", e.Definition(), e.Tag)
-		fmt.Fprintf(w, "\tTAGINDEX %d\n", e.TagIndex)
 		fmt.Fprintf(w, "\tBLITTAG \"%s\"\n", e.BlitSpriteDefTag)
 		fmt.Fprintf(w, "\tPARTICLETYPE %d // 1: Single pixel, 2: Tails, 3 Blit?\n", e.ParticleType)
 		fmt.Fprintf(w, "\tMOVEMENT \"%s\" // BOX, SPHERE, PLANE, STREAM, DISK\n", e.SpawnType)
@@ -7820,16 +7667,7 @@ func (e *ParticleCloudDef) Write(token *AsciiWriteToken) error {
 func (e *ParticleCloudDef) Read(token *AsciiReadToken) error {
 	e.folders = append(e.folders, token.folder)
 
-	records, err := token.ReadProperty("TAGINDEX", 1)
-	if err != nil {
-		return err
-	}
-	err = parse(&e.TagIndex, records[1])
-	if err != nil {
-		return fmt.Errorf("tag index: %w", err)
-	}
-
-	records, err = token.ReadProperty("BLITTAG", 1)
+	records, err := token.ReadProperty("BLITTAG", 1)
 	if err != nil {
 		return err
 	}
@@ -8339,7 +8177,7 @@ func (e *ParticleCloudDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 
 		wfParticleCloud.BlitSpriteRef = blitSpriteDefRef
 
-		wfParticleCloud.SetNameRef(rawWld.NameAdd(e.Tag))
+		wfParticleCloud.SetNameRef(rawWld.NameAdd(baseTag(e.Tag)))
 	}
 
 	rawWld.Fragments = append(rawWld.Fragments, wfParticleCloud)
@@ -8352,8 +8190,7 @@ func (e *ParticleCloudDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldF
 		return fmt.Errorf("frag is not particle cloud def (wrong fragcode?)")
 	}
 
-	e.Tag = rawWld.Name(frag.NameRef())
-	e.TagIndex = wce.NextTagIndex(e.Tag)
+	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()))
 	if len(rawWld.Fragments) < int(frag.BlitSpriteRef) {
 		return fmt.Errorf("blit sprite def ref %d out of bounds", frag.BlitSpriteRef)
 	}
@@ -8921,7 +8758,7 @@ func (e *Sprite2DDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 			if len(heading.Sprite2DFrames) > 0 {
 				for _, frame := range heading.Sprite2DFrames {
 					wfBMInfo := &rawfrag.WldFragBMInfo{}
-					nameRef := rawWld.NameAdd(frame.TextureTag)
+					nameRef := rawWld.NameAdd(baseTag(frame.TextureTag))
 					wfBMInfo.SetNameRef(nameRef)
 					for _, texFile := range frame.TextureFiles {
 						wfBMInfo.TextureNames = append(wfBMInfo.TextureNames, texFile+"\x00")
@@ -8988,7 +8825,7 @@ func (e *Sprite2DDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 		wfSprite2D.Flags |= 0x10
 	}
 
-	wfSprite2D.SetNameRef(rawWld.NameAdd(e.Tag))
+	wfSprite2D.SetNameRef(rawWld.NameAdd(baseTag(e.Tag)))
 
 	rawWld.Fragments = append(rawWld.Fragments, wfSprite2D)
 	e.fragID = int32(len(rawWld.Fragments))
@@ -9000,7 +8837,7 @@ func (e *Sprite2DDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragSp
 		return fmt.Errorf("frag is not sprite 2d def (wrong fragcode?)")
 	}
 
-	e.Tag = rawWld.Name(frag.NameRef())
+	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()))
 
 	if frag.SphereListRef > 0 {
 		if len(rawWld.Fragments) < int(frag.SphereListRef) {
@@ -9357,7 +9194,7 @@ func (e *DMTrackDef2) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 		wfTrack2.Frames = append(wfTrack2.Frames, frames)
 	}
 
-	wfTrack2.SetNameRef(rawWld.NameAdd(e.Tag))
+	wfTrack2.SetNameRef(rawWld.NameAdd(baseTag(e.Tag)))
 	// flags?
 	rawWld.Fragments = append(rawWld.Fragments, wfTrack2)
 	e.fragID = int32(len(rawWld.Fragments))
@@ -9370,7 +9207,7 @@ func (e *DMTrackDef2) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragDm
 		return fmt.Errorf("frag is not trackdef (wrong fragcode?)")
 	}
 
-	e.Tag = rawWld.Name(frag.NameRef())
+	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()))
 	e.Sleep = frag.Sleep
 	e.Param2 = frag.Param2
 	e.FPScale = frag.Scale
@@ -9535,7 +9372,7 @@ func (e *DirectionalLight) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 		Normal:   e.Normal,
 		Regions:  e.Regions,
 	}
-	light.SetNameRef(rawWld.NameAdd(e.Tag))
+	light.SetNameRef(rawWld.NameAdd(baseTag(e.Tag)))
 
 	if e.Static == 1 {
 		light.Flags |= 0x20
@@ -9551,7 +9388,7 @@ func (e *DirectionalLight) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldF
 		return fmt.Errorf("frag is not directional light (wrong fragcode?)")
 	}
 
-	e.Tag = rawWld.Name(frag.NameRef())
+	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()))
 	if frag.LightRef > 0 {
 		if len(rawWld.Fragments) < int(frag.LightRef) {
 			return fmt.Errorf("light ref %d not found", frag.LightRef)
