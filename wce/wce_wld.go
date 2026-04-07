@@ -1083,11 +1083,11 @@ func (e *DMSpriteDef2) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragD
 		if len(rawWld.Fragments) < int(dmTrack.TrackRef) {
 			return fmt.Errorf("dmtrack name ref %d out of bounds", dmTrack.TrackRef)
 		}
-		dmTrackDef, ok := rawWld.Fragments[dmTrack.TrackRef].(*rawfrag.WldFragDmTrackDef2)
+		dmTrackDef, ok := wce.fragToIndexedTags[dmTrack.TrackRef]
 		if !ok {
 			return fmt.Errorf("dmtrackdef2 name ref %d not valid", dmTrack.TrackRef)
 		}
-		e.DmTrackTag = rawWld.Name(dmTrackDef.NameRef())
+		e.DmTrackTag = dmTrackDef
 	}
 
 	if frag.Fragment3Ref != 0 {
@@ -1101,11 +1101,11 @@ func (e *DMSpriteDef2) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragD
 		if len(rawWld.Fragments) < int(dmRGBTrack.TrackRef) {
 			return fmt.Errorf("dmrgbtrackdef ref %d not found", dmRGBTrack.TrackRef)
 		}
-		dmRGBTrackDef, ok := rawWld.Fragments[dmRGBTrack.TrackRef].(*rawfrag.WldFragDmRGBTrackDef)
+		dmRGBTrackDef, ok := wce.fragToIndexedTags[dmRGBTrack.TrackRef]
 		if !ok {
 			return fmt.Errorf("dmrgbtrackdef ref %d not found", dmRGBTrack.TrackRef)
 		}
-		e.DMRGBTrackTag = rawWld.Name(dmRGBTrackDef.NameRef())
+		e.DMRGBTrackTag = dmRGBTrackDef
 	}
 
 	if frag.Fragment4Ref != 0 {
@@ -1113,7 +1113,7 @@ func (e *DMSpriteDef2) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragD
 			e.PolyhedronTag = "NEGATIVE_TWO"
 		} else {
 			if len(rawWld.Fragments) < int(frag.Fragment4Ref) {
-				return fmt.Errorf("fragment4 (bminfo) ref %d out of bounds", frag.Fragment4Ref)
+				return fmt.Errorf("fragment4 (polygon) ref %d out of bounds", frag.Fragment4Ref)
 			}
 			frag4 := rawWld.Fragments[frag.Fragment4Ref]
 			switch frag4Def := frag4.(type) {
@@ -1739,7 +1739,7 @@ func (e *DMSpriteDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 	}
 
 	wfDMSpriteDef := &rawfrag.WldFragDMSpriteDef{
-		MaterialPaletteRef: uint32(materialPaletteRef),
+		MaterialPaletteRef: int32(materialPaletteRef),
 		CenterOffset:       [3]float32{e.Center.Float32Slice3[0], e.Center.Float32Slice3[1], e.Center.Float32Slice3[2]},
 		Params1:            [3]float32{e.Params1.Float32Slice3[0], e.Params1.Float32Slice3[1], e.Params1.Float32Slice3[2]},
 	}
@@ -1807,11 +1807,11 @@ func (e *DMSpriteDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragDM
 		if len(rawWld.Fragments) < int(frag.MaterialPaletteRef) {
 			return fmt.Errorf("materialpalette ref %d out of bounds", frag.MaterialPaletteRef)
 		}
-		materialPalette, ok := rawWld.Fragments[frag.MaterialPaletteRef].(*rawfrag.WldFragMaterialPalette)
+		materialPalette, ok := wce.fragToIndexedTags[frag.MaterialPaletteRef]
 		if !ok {
 			return fmt.Errorf("materialpalette ref %d not found", frag.MaterialPaletteRef)
 		}
-		e.MaterialPaletteTag = rawWld.Name(materialPalette.NameRef())
+		e.MaterialPaletteTag = materialPalette
 	}
 	e.Fragment3 = frag.Fragment3
 	e.Vertices = frag.Vertices
@@ -1936,7 +1936,7 @@ func (e *MaterialPalette) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 			return -1, fmt.Errorf("material %s to raw: %w", mat, err)
 		}
 
-		wfPalette.MaterialRefs = append(wfPalette.MaterialRefs, uint32(matRef))
+		wfPalette.MaterialRefs = append(wfPalette.MaterialRefs, int32(matRef))
 	}
 
 	wfPalette.SetNameRef(rawWld.NameAdd(baseTag(e.Tag)))
@@ -1958,11 +1958,11 @@ func (e *MaterialPalette) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFr
 		if len(rawWld.Fragments) < int(materialRef) {
 			return fmt.Errorf("material ref %d not found", materialRef)
 		}
-		material, ok := rawWld.Fragments[materialRef].(*rawfrag.WldFragMaterialDef)
+		material, ok := wce.fragToIndexedTags[materialRef]
 		if !ok {
 			return fmt.Errorf("invalid materialdef fragment at offset %d", materialRef)
 		}
-		e.Materials = append(e.Materials, rawWld.Name(material.NameRef()))
+		e.Materials = append(e.Materials, material)
 	}
 
 	return nil
@@ -2173,7 +2173,7 @@ func (e *MaterialDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 
 		wfSprite := &rawfrag.WldFragSimpleSprite{
 			//NameRef:   rawWld.NameAdd(m.SimpleSpriteTag),
-			SpriteRef: uint32(spriteDefRef),
+			SpriteRef: int32(spriteDefRef),
 		}
 
 		if e.SimpleSpriteHaveSkipFrames > 0 {
@@ -2187,7 +2187,7 @@ func (e *MaterialDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 
 		spriteRef := int16(len(rawWld.Fragments))
 
-		wfMaterialDef.SimpleSpriteRef = uint32(spriteRef)
+		wfMaterialDef.SimpleSpriteRef = int32(spriteRef)
 	}
 
 	wfMaterialDef.SetNameRef(rawWld.NameAdd(baseTag(e.Tag)))
@@ -2214,7 +2214,7 @@ func (e *MaterialDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragMa
 		if len(rawWld.Fragments) < int(simpleSprite.SpriteRef) {
 			return fmt.Errorf("sprite ref %d out of bounds", simpleSprite.SpriteRef)
 		}
-		spriteDef, ok := rawWld.Fragments[simpleSprite.SpriteRef].(*rawfrag.WldFragSimpleSpriteDef)
+		spriteDef, ok := wce.fragToIndexedTags[simpleSprite.SpriteRef]
 		if !ok {
 			return fmt.Errorf("material's simple sprite ref %d not found", simpleSprite.SpriteRef)
 		}
@@ -2225,7 +2225,7 @@ func (e *MaterialDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragMa
 			e.SimpleSpriteSkipFrames = 1
 		}
 
-		e.SimpleSpriteTag = wce.NextIndexedTag(rawWld.Name(spriteDef.NameRef()), e.fragID)
+		e.SimpleSpriteTag = spriteDef
 	}
 	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()), e.fragID)
 	e.RenderMethod = helper.RenderMethodStr(frag.RenderMethod)
@@ -2268,13 +2268,13 @@ func (e *MaterialDef) variationParseFromRaw(wce *Wce, frag *rawfrag.WldFragMater
 			}
 
 			// Get the referenced MaterialDef
-			materialDef, ok := rawWld.Fragments[materialRef].(*rawfrag.WldFragMaterialDef)
+			materialDef, ok := wce.fragToIndexedTags[materialRef]
 			if !ok {
 				return 0, fmt.Errorf("invalid materialdef fragment at offset %d", materialRef)
 			}
 
 			// Check if the tag matches
-			if e.Tag == rawWld.Name(materialDef.NameRef()) {
+			if e.Tag == materialDef {
 				return 0, nil // Exit early if a match is found
 			}
 		}
@@ -2400,7 +2400,7 @@ func (e *BlitSpriteDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 
 	wfSprite := &rawfrag.WldFragSimpleSprite{
 		//NameRef:   rawWld.NameAdd(m.SimpleSpriteTag),
-		SpriteRef: uint32(spriteDefRef),
+		SpriteRef: int32(spriteDefRef),
 	}
 
 	rawWld.Fragments = append(rawWld.Fragments, wfSprite)
@@ -2444,12 +2444,12 @@ func (e *BlitSpriteDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFrag
 			return fmt.Errorf("sprite ref %d out of bounds", spriteInst.SpriteRef)
 		}
 
-		spriteDef, ok := rawWld.Fragments[spriteInst.SpriteRef].(*rawfrag.WldFragSimpleSpriteDef)
+		spriteDef, ok := wce.fragToIndexedTags[spriteInst.SpriteRef]
 		if !ok {
 			return fmt.Errorf("spritedef ref %d not found", spriteInst.SpriteRef)
 		}
 
-		e.SpriteTag = rawWld.Name(spriteDef.NameRef())
+		e.SpriteTag = spriteDef
 	}
 
 	e.RenderMethod = helper.RenderMethodStr(frag.RenderMethod)
@@ -2636,7 +2636,7 @@ func (e *SimpleSpriteDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 				wfBMInfo.TextureNames = append(wfBMInfo.TextureNames, texFile+"\x00")
 			}
 			rawWld.Fragments = append(rawWld.Fragments, wfBMInfo)
-			wfSimpleSpriteDef.BitmapRefs = append(wfSimpleSpriteDef.BitmapRefs, uint32(len(rawWld.Fragments)))
+			wfSimpleSpriteDef.BitmapRefs = append(wfSimpleSpriteDef.BitmapRefs, int32(len(rawWld.Fragments)))
 		}
 	}
 
