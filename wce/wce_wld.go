@@ -873,7 +873,7 @@ func (e *DMSpriteDef2) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 	}
 
 	dmSpriteDef := &rawfrag.WldFragDmSpriteDef2{
-		MaterialPaletteRef:   uint32(materialPaletteRef),
+		MaterialPaletteRef:   int32(materialPaletteRef),
 		CenterOffset:         e.CenterOffset,
 		Params2:              e.Params2,
 		BoundingRadius:       e.BoundingRadius,
@@ -1059,17 +1059,17 @@ func (e *DMSpriteDef2) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragD
 		return fmt.Errorf("frag is not dmspritedef2 (wrong fragcode?)")
 	}
 
-	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()))
+	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()), e.fragID)
 
 	if frag.MaterialPaletteRef > 0 {
 		if len(rawWld.Fragments) < int(frag.MaterialPaletteRef) {
 			return fmt.Errorf("materialpalette ref %d out of bounds", frag.MaterialPaletteRef)
 		}
-		materialPalette, ok := rawWld.Fragments[frag.MaterialPaletteRef].(*rawfrag.WldFragMaterialPalette)
+		materialPalette, ok := wce.fragToIndexedTags[frag.MaterialPaletteRef]
 		if !ok {
 			return fmt.Errorf("materialpalette ref %d not found", frag.MaterialPaletteRef)
 		}
-		e.MaterialPaletteTag = rawWld.Name(materialPalette.NameRef())
+		e.MaterialPaletteTag = materialPalette
 	}
 
 	if frag.DMTrackRef != 0 {
@@ -1800,7 +1800,7 @@ func (e *DMSpriteDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragDM
 	if frag == nil {
 		return fmt.Errorf("frag is not dmspritedef (wrong fragcode?)")
 	}
-	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()))
+	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()), e.fragID)
 
 	e.Fragment1 = frag.Fragment1
 	if frag.MaterialPaletteRef > 0 {
@@ -1951,7 +1951,7 @@ func (e *MaterialPalette) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFr
 		return fmt.Errorf("frag is not materialpalette (wrong fragcode?)")
 	}
 
-	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()))
+	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()), e.fragID)
 
 	e.flags = frag.Flags
 	for _, materialRef := range frag.MaterialRefs {
@@ -2225,9 +2225,9 @@ func (e *MaterialDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragMa
 			e.SimpleSpriteSkipFrames = 1
 		}
 
-		e.SimpleSpriteTag = wce.NextIndexedTag(rawWld.Name(spriteDef.NameRef()))
+		e.SimpleSpriteTag = wce.NextIndexedTag(rawWld.Name(spriteDef.NameRef()), e.fragID)
 	}
-	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()))
+	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()), e.fragID)
 	e.RenderMethod = helper.RenderMethodStr(frag.RenderMethod)
 	e.RGBPen = frag.RGBPen
 	e.Brightness = frag.Brightness
@@ -2429,7 +2429,7 @@ func (e *BlitSpriteDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFrag
 		return fmt.Errorf("frag is not blitspritedef (wrong fragcode?)")
 	}
 
-	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()))
+	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()), e.fragID)
 	if frag.SpriteInstanceRef > 0 {
 		if len(rawWld.Fragments) < int(frag.SpriteInstanceRef) {
 			return fmt.Errorf("sprite ref %d out of bounds", frag.SpriteInstanceRef)
@@ -2651,7 +2651,7 @@ func (e *SimpleSpriteDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFr
 	if frag == nil {
 		return fmt.Errorf("frag is not simplespritedef (wrong fragcode?)")
 	}
-	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()))
+	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()), e.fragID)
 	if frag.Flags&0x40 != 0 {
 		e.SkipFrames = 1
 	}
@@ -3123,7 +3123,7 @@ func (e *ActorDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragActor
 		return fmt.Errorf("frag is not actordef (wrong fragcode?)")
 	}
 
-	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()))
+	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()), e.fragID)
 	e.Callback = rawWld.Name(frag.CallbackNameRef)
 	e.BoundsRef = frag.BoundsRef
 	e.Unk1 = frag.Unk1
@@ -3574,7 +3574,7 @@ func (e *ActorInst) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragActo
 		sphereRadius = sphereDef.Radius
 	}
 
-	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()))
+	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()), e.fragID)
 	e.DefinitionTag = actorDefTag
 	e.SphereRadius = sphereRadius
 	e.UserData = frag.UserData
@@ -3834,7 +3834,7 @@ func (e *LightDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragLight
 	}
 	e.folders = []string{"ZONE"}
 
-	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()))
+	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()), e.fragID)
 	e.LightLevels = frag.LightLevels
 	e.Colors = frag.Colors
 	if frag.Flags&0x01 == 0x01 {
@@ -4068,7 +4068,7 @@ func (e *PointLight) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragPoi
 		return fmt.Errorf("frag is not pointlight (wrong fragcode?)")
 	}
 
-	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()))
+	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()), e.fragID)
 	if frag.LightRef > 0 {
 		if len(rawWld.Fragments) < int(frag.LightRef) {
 			return fmt.Errorf("light ref %d not found", frag.LightRef)
@@ -4644,7 +4644,7 @@ func (e *Sprite3DDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragSp
 		e.SphereListTag = rawWld.Name(sphereList.NameRef())
 	}
 
-	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()))
+	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()), e.fragID)
 	e.Vertices = frag.Vertices
 
 	if frag.Flags&0x01 == 0x01 {
@@ -4707,7 +4707,7 @@ func (e *Sprite3DDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragSp
 				node.SimpleSpriteSkipFrames = 1
 			}
 
-			node.SimpleSpriteTag.String = wce.NextIndexedTag(rawWld.Name(spriteDef.NameRef()))
+			node.SimpleSpriteTag.String = wce.NextIndexedTag(rawWld.Name(spriteDef.NameRef()), e.fragID)
 		}
 
 		if bspNode.RenderFlags&0x10 == 0x10 {
@@ -4934,7 +4934,7 @@ func (e *PolyhedronDefinition) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 }
 
 func (e *PolyhedronDefinition) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragPolyhedronDef) error {
-	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()))
+	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()), e.fragID)
 	e.BoundingRadius = frag.BoundingRadius
 	e.ScaleFactor = frag.ScaleFactor
 	e.Vertices = frag.Vertices
@@ -5057,7 +5057,7 @@ func (e *SphereListDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFrag
 		return fmt.Errorf("frag is not spherelistdef (wrong fragcode?)")
 	}
 
-	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()))
+	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()), e.fragID)
 	e.BoundingRadius = frag.Radius
 
 	if frag.Flags&0x01 == 0x01 {
@@ -5223,7 +5223,7 @@ func (e *TrackInstance) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFrag
 		return fmt.Errorf("trackdef ref %d not found", frag.TrackRef)
 	}
 
-	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()))
+	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()), e.fragID)
 
 	if wce.isObj {
 		e.animation = ""
@@ -5233,7 +5233,7 @@ func (e *TrackInstance) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFrag
 		e.animation = ""
 	}
 
-	e.Tag = wce.NextIndexedTag(rawWld.Name(trackDef.NameRef()))
+	e.Tag = wce.NextIndexedTag(rawWld.Name(trackDef.NameRef()), e.fragID)
 
 	if frag.Flags&0x01 == 0x01 {
 		e.Sleep.Valid = true
@@ -5452,7 +5452,7 @@ func (e *TrackDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragTrack
 		return fmt.Errorf("frag is not trackdef (wrong fragcode?)")
 	}
 
-	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()))
+	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()), e.fragID)
 
 	if wce.isObj {
 		e.animation = ""
@@ -6068,7 +6068,7 @@ func (e *HierarchicalSpriteDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag
 	if frag.CollisionVolumeRef == 4294967293 {
 		e.PolyhedronTag = "SPECIAL_COLLISION"
 	}
-	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()))
+	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()), e.fragID)
 	if frag.Flags&0x01 != 0 {
 		e.CenterOffset.Valid = true
 		e.CenterOffset.Float32Slice3 = frag.CenterOffset
@@ -7052,7 +7052,7 @@ func (e *Region) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragRegion)
 	}
 
 	e.VisTree = &VisTree{}
-	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()))
+	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()), e.fragID)
 	e.RegionVertices = frag.RegionVertices
 	e.Sphere = frag.Sphere
 	e.ReverbVolume = frag.ReverbVolume
@@ -7265,7 +7265,7 @@ func (e *AmbientLight) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragA
 		lightTag = rawWld.Name(lightDef.NameRef())
 	}
 
-	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()))
+	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()), e.fragID)
 	e.LightTag = lightTag
 	e.LightFlags = lightFlags
 	e.Regions = frag.Regions
@@ -7364,7 +7364,7 @@ func (e *Zone) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragZone) err
 		return fmt.Errorf("frag is not zone (wrong fragcode?)")
 	}
 
-	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()))
+	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()), e.fragID)
 	e.Regions = frag.Regions
 	e.UserData = frag.UserData
 	return nil
@@ -7526,7 +7526,7 @@ func (e *RGBTrackDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragDm
 		return fmt.Errorf("frag is not rgb track def (wrong fragcode?)")
 	}
 
-	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()))
+	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()), e.fragID)
 	e.Sleep = frag.Sleep
 	e.Data4 = frag.Data4
 
@@ -8190,7 +8190,7 @@ func (e *ParticleCloudDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldF
 		return fmt.Errorf("frag is not particle cloud def (wrong fragcode?)")
 	}
 
-	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()))
+	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()), e.fragID)
 	if len(rawWld.Fragments) < int(frag.BlitSpriteRef) {
 		return fmt.Errorf("blit sprite def ref %d out of bounds", frag.BlitSpriteRef)
 	}
@@ -8837,7 +8837,7 @@ func (e *Sprite2DDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragSp
 		return fmt.Errorf("frag is not sprite 2d def (wrong fragcode?)")
 	}
 
-	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()))
+	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()), e.fragID)
 
 	if frag.SphereListRef > 0 {
 		if len(rawWld.Fragments) < int(frag.SphereListRef) {
@@ -9207,7 +9207,7 @@ func (e *DMTrackDef2) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragDm
 		return fmt.Errorf("frag is not trackdef (wrong fragcode?)")
 	}
 
-	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()))
+	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()), e.fragID)
 	e.Sleep = frag.Sleep
 	e.Param2 = frag.Param2
 	e.FPScale = frag.Scale
@@ -9388,7 +9388,7 @@ func (e *DirectionalLight) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldF
 		return fmt.Errorf("frag is not directional light (wrong fragcode?)")
 	}
 
-	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()))
+	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()), e.fragID)
 	if frag.LightRef > 0 {
 		if len(rawWld.Fragments) < int(frag.LightRef) {
 			return fmt.Errorf("light ref %d not found", frag.LightRef)

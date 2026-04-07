@@ -20,7 +20,8 @@ type Wce struct {
 	isChr                  bool   // true when a _chr suffix is found in path
 	maxMaterialHeads       map[string]int
 	maxMaterialTextures    map[string]int
-	indexedTags            map[string]struct{} // used when parsing to keep track of indexes
+	indexedTags            map[string]int32 // used when parsing to keep track of indexes
+	fragToIndexedTags      map[int32]string // used for reverse lookup of above
 	FileName               string
 	WorldDef               *WorldDef
 	GlobalAmbientLightDef  *GlobalAmbientLightDef
@@ -331,14 +332,15 @@ func (wce *Wce) ByTag(tag string) WldDefinitioner {
 // }
 
 // NextTagIndex returns the next available index for a tag
-func (wce *Wce) NextIndexedTag(tag string) string {
+func (wce *Wce) NextIndexedTag(tag string, fragID int32) string {
 	if tag == "" {
 		return ""
 	}
 
 	// If base doesn't exist → use it
 	if _, exists := wce.indexedTags[tag]; !exists {
-		wce.indexedTags[tag] = struct{}{}
+		wce.indexedTags[tag] = fragID
+		wce.fragToIndexedTags[fragID] = tag
 		return tag
 	}
 
@@ -346,7 +348,8 @@ func (wce *Wce) NextIndexedTag(tag string) string {
 	for i := 1; ; i++ {
 		newTag := fmt.Sprintf("%s.%03d", tag, i)
 		if _, exists := wce.indexedTags[newTag]; !exists {
-			wce.indexedTags[newTag] = struct{}{}
+			wce.indexedTags[newTag] = fragID
+			wce.fragToIndexedTags[fragID] = newTag
 			return newTag
 		}
 	}
@@ -355,7 +358,8 @@ func (wce *Wce) NextIndexedTag(tag string) string {
 func (wce *Wce) reset() {
 	wce.GlobalAmbientLightDef = nil
 	wce.lastReadFolder = ""
-	wce.indexedTags = make(map[string]struct{})
+	wce.indexedTags = make(map[string]int32)
+	wce.fragToIndexedTags = make(map[int32]string)
 	wce.SimpleSpriteDefs = []*SimpleSpriteDef{}
 	wce.MaterialDefs = []*MaterialDef{}
 	wce.variationMaterialDefs = make(map[string][]*MaterialDef)
