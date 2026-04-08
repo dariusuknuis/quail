@@ -4,13 +4,6 @@ note: "Wld DM sprite definition"
 
 properties:
 
-  - name: "TAGINDEX"
-    note: "The index of the tag"
-    args:
-      - name: "index"
-        note: "The index of the tag"
-        format: "%d"
-
   - name: "CENTEROFFSET"
     note: "The center offset of the sprite"
     args:

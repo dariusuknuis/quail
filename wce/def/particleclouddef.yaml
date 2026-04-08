@@ -4,12 +4,6 @@ note: "Wld Particle Cloud Definition"
 
 properties:
 
-  - name: "TAGINDEX"
-    note: "Index of tag variation"
-    args:
-      - name: "index"
-        format: "%d"
-
   - name: "BLITTAG"
     note: "Referenced blit sprite definition tag"
     args:

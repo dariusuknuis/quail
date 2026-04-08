@@ -2,24 +2,12 @@ name: "TRACKINSTANCE"
 hasTag: true
 note: "Wld Track"
 properties:
-  - name: "TAGINDEX"
-    note: ""
-    args:
-      - name: ""
-        note: ""
-        format: "%d"
   - name: "SPRITE"
     note: ""
     args:
       - name: ""
         note: ""
         format: "%s"
-  - name: "SPRITEINDEX"
-    note: ""
-    args:
-      - name: ""
-        note: ""
-        format: "%d"
   - name: "INTERPOLATE"
     note: "deprecated, ignored in RoF2"
     args:

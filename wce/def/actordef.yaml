@@ -82,12 +82,6 @@ properties:
               - name: "tag"
                 note: "sprite tag"
                 format: "%s"
-          - name: "SPRITEINDEX"
-            note: "Sprite index"
-            args:
-              - name: "index"
-                note: "Sprite index"
-                format: "%d"
           - name: "MINDISTANCE"
             note: "Minimum distance to render LOD"
             args:
