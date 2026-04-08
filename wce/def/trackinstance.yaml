@@ -2,7 +2,7 @@ name: "TRACKINSTANCE"
 hasTag: true
 note: "Wld Track"
 properties:
-  - name: "DEFINITION"
+  - name: "TRACKDEF"
     note: ""
     args:
       - name: ""

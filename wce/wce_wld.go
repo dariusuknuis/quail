@@ -5105,7 +5105,7 @@ func (e *TrackInstance) Write(token *AsciiWriteToken) error {
 		}
 
 		fmt.Fprintf(w, "%s \"%s\"\n", e.Definition(), e.Tag)
-		fmt.Fprintf(w, "\tDEFINITION \"%s\"\n", e.Def)
+		fmt.Fprintf(w, "\tTRACKDEF \"%s\"\n", e.Def)
 		fmt.Fprintf(w, "\tINTERPOLATE %d // deprecated\n", e.Interpolate)
 		fmt.Fprintf(w, "\tREVERSE %d // deprecated \n", e.Reverse)
 		fmt.Fprintf(w, "\tSLEEP? %s\n", wcVal(e.Sleep))
@@ -5118,7 +5118,7 @@ func (e *TrackInstance) Write(token *AsciiWriteToken) error {
 func (e *TrackInstance) Read(token *AsciiReadToken) error {
 	e.folders = append(e.folders, token.folder)
 
-	records, err := token.ReadProperty("DEFINITION", 1)
+	records, err := token.ReadProperty("TRACKDEF", 1)
 	if err != nil {
 		return err
 	}
