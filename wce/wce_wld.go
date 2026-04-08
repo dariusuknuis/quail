@@ -1115,23 +1115,18 @@ func (e *DMSpriteDef2) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragD
 			if len(rawWld.Fragments) < int(frag.Fragment4Ref) {
 				return fmt.Errorf("fragment4 (polygon) ref %d out of bounds", frag.Fragment4Ref)
 			}
-			frag4 := rawWld.Fragments[frag.Fragment4Ref]
-			switch frag4Def := frag4.(type) {
-			case *rawfrag.WldFragPolyhedron:
-				if len(rawWld.Fragments) < int(frag4Def.FragmentRef) {
-					return fmt.Errorf("fragment4 (polygon) ref %d out of bounds", frag4Def.FragmentRef)
-				}
-
-				frag4 = rawWld.Fragments[frag4Def.FragmentRef]
-				switch frag4Def := frag4.(type) {
-				case *rawfrag.WldFragPolyhedronDef:
-					e.PolyhedronTag = rawWld.Name(frag4Def.NameRef())
-				default:
-					return fmt.Errorf("fragment4 wanted polyhedrondef, got unknown type %T", frag4)
-				}
-			default:
-				return fmt.Errorf("fragment4 unknown type %T", frag4)
+			frag4, ok := rawWld.Fragments[frag.Fragment4Ref].(*rawfrag.WldFragPolyhedron)
+			if !ok {
+				return fmt.Errorf("fragment4 (polygon) ref %d not found", frag.Fragment4Ref)
 			}
+			if len(rawWld.Fragments) < int(frag4.FragmentRef) {
+				return fmt.Errorf("fragment4 (polygon) def ref %d not found", frag4.FragmentRef)
+			}
+			frag4Def, ok := wce.fragToIndexedTags[frag4.FragmentRef]
+			if !ok {
+				return fmt.Errorf("fragment4 (polygon) def ref %d not found", frag4.FragmentRef)
+			}
+			e.PolyhedronTag = frag4Def
 		}
 
 	}
@@ -6043,18 +6038,13 @@ func (e *HierarchicalSpriteDef) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag
 		switch collision := rawWld.Fragments[frag.CollisionVolumeRef].(type) {
 		case *rawfrag.WldFragPolyhedron:
 			if len(rawWld.Fragments) < int(collision.FragmentRef) {
-				return fmt.Errorf("collision def ref %d not found", collision.FragmentRef)
+				return fmt.Errorf("collision def ref %d out of range", collision.FragmentRef)
 			}
-			collisionFragDef := rawWld.Fragments[collision.FragmentRef]
-			if collisionFragDef == nil {
-				return fmt.Errorf("collision def ref %d not found", collision.FragmentRef)
-			}
-
-			collisionDef, ok := collisionFragDef.(*rawfrag.WldFragPolyhedronDef)
+			collisionFragDef, ok := wce.fragToIndexedTags[collision.FragmentRef]
 			if !ok {
-				return fmt.Errorf("collision def ref type incorrect: %T", collisionFragDef)
+				return fmt.Errorf("collision def ref %d not found", collision.FragmentRef)
 			}
-			e.PolyhedronTag = rawWld.Name(collisionDef.NameRef())
+			e.PolyhedronTag = collisionFragDef
 		default:
 			return fmt.Errorf("unknown collision volume ref %d (%s)", frag.CollisionVolumeRef, raw.FragName(collision.FragCode()))
 		}
@@ -8783,7 +8773,7 @@ func (e *Sprite2DDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 
 	if e.SpriteTag.Valid {
 		wfSprite2D.RenderFlags |= 0x08
-		wfSprite2D.RenderSimpleSpriteReference = uint32(rawWld.NameAdd(e.SpriteTag.String))
+		wfSprite2D.RenderSimpleSpriteReference = int32(rawWld.NameAdd(e.SpriteTag.String))
 	}
 
 	if e.UvOrigin.Valid {
@@ -8808,7 +8798,7 @@ func (e *Sprite2DDef) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 		if err != nil {
 			return 0, fmt.Errorf("sphere list to raw: %w", err)
 		}
-		wfSprite2D.SphereListRef = uint32(sphereListRef)
+		wfSprite2D.SphereListRef = int32(sphereListRef)
 	}
 
 	if e.TwoSided != 0 {
