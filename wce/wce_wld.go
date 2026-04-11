@@ -1987,7 +1987,43 @@ func (e *MaterialDef) Definition() string {
 
 func (e *MaterialDef) Write(token *AsciiWriteToken) error {
 	for _, folder := range e.folders {
-		err := token.SetWriter(folder)
+
+		var filename string
+		if e.Variation == 1 {
+			tag := e.Tag
+			lowerFolder := strings.ToLower(folder)
+
+			if strings.HasPrefix(tag, "CHR_EYE") {
+				// All eye materials go into one file
+				filename = fmt.Sprintf("%s/material_sets/chr_eye", folder)
+
+			} else if strings.HasPrefix(tag, "CLK") && len(tag) >= 5 {
+				// Cloaks use first 5 characters
+				filename = fmt.Sprintf("%s/material_sets/%s",
+					folder,
+					strings.ToLower(tag[:5]),
+				)
+
+			} else if len(tag) >= 8 {
+				// Use 6th, 7th, 8th characters (index 5:8)
+				index := tag[5:8]
+
+				filename = fmt.Sprintf("%s/material_sets/%s_alt%s",
+					folder,
+					lowerFolder,
+					index,
+				)
+
+			} else {
+				// Safety fallback
+				filename = folder
+			}
+
+		} else {
+			filename = folder
+		}
+
+		err := token.SetWriter(filename)
 		if err != nil {
 			return err
 		}
@@ -2475,7 +2511,62 @@ func (e *SimpleSpriteDef) Definition() string {
 
 func (e *SimpleSpriteDef) Write(token *AsciiWriteToken) error {
 	for _, folder := range e.folders {
-		err := token.SetWriter(folder)
+
+		var materialTag string
+		for _, mat := range token.wce.MaterialDefs {
+			if mat.SimpleSpriteTag != e.Tag {
+				continue
+			}
+
+			// ensure it's in the same folder context
+			for _, f := range mat.folders {
+				if f == folder {
+					materialTag = mat.Tag
+					break
+				}
+			}
+
+			if materialTag != "" {
+				break
+			}
+		}
+
+		var filename string
+		if e.Variation == 1 {
+			tag := materialTag
+			lowerFolder := strings.ToLower(folder)
+
+			if strings.HasPrefix(tag, "CHR_EYE") {
+				// All eye materials go into one file
+				filename = fmt.Sprintf("%s/material_sets/chr_eye", folder)
+
+			} else if strings.HasPrefix(tag, "CLK") && len(tag) >= 5 {
+				// Cloaks use first 5 characters
+				filename = fmt.Sprintf("%s/material_sets/%s",
+					folder,
+					strings.ToLower(tag[:5]),
+				)
+
+			} else if len(tag) >= 8 {
+				// Use 6th, 7th, 8th characters (index 5:8)
+				index := tag[5:8]
+
+				filename = fmt.Sprintf("%s/material_sets/%s_alt%s",
+					folder,
+					lowerFolder,
+					index,
+				)
+
+			} else {
+				// Safety fallback
+				filename = folder
+			}
+
+		} else {
+			filename = folder
+		}
+
+		err := token.SetWriter(filename)
 		if err != nil {
 			return err
 		}

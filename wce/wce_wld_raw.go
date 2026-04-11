@@ -679,6 +679,21 @@ func setRootFolder(foldersByFrag map[int][]string, folder string, node *tree.Nod
 							}
 						}
 					}
+				} else if strings.HasPrefix(prefix, "CHR_EYE") {
+					for _, potentialNode := range nodes {
+						if potentialNode.FragType != "MaterialPalette" {
+							continue
+						}
+
+						for _, childNode := range potentialNode.Children {
+							if strings.HasPrefix(childNode.Tag, prefix) {
+								folderToAdd := potentialNode.Tag[:3]
+								foldersByFrag[int(node.FragID)] = appendUnique(foldersByFrag[int(node.FragID)], folderToAdd)
+								addChildrenFolder(foldersByFrag, folderToAdd, node)
+								break
+							}
+						}
+					}
 				} else {
 					// Use the returned prefix directly as the folder
 					folder = prefix

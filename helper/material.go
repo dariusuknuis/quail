@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
 )
 
 // MaterialTagParse checks if the material tag represents a variation material and returns a prefix if applicable.
@@ -18,6 +19,20 @@ func MaterialTagParse(isChr bool, tag string) (string, error) {
 		if _, err := strconv.Atoi(tag[3:5]); err == nil {
 			return "CLK04", nil
 		}
+	}
+
+	if strings.HasPrefix(tag, "CHR_EYE") {
+		if len(tag) < len("CHR_EYE")+3 {
+			return "", nil
+		}
+
+		digits := tag[len(tag)-7 : len(tag)-4] // extract ### before _MDF
+		if _, err := strconv.Atoi(digits); err != nil {
+			return "", nil
+		}
+
+		// CHR_EYE129_MDF → CHR_EYE12
+		return tag[:len(tag)-5], nil
 	}
 
 	// Regex pattern for other variation materials
