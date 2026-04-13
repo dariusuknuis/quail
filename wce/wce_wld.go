@@ -1325,13 +1325,7 @@ func (e *DMSpriteDef) Write(token *AsciiWriteToken) error {
 		fmt.Fprintf(w, "\n")
 		fmt.Fprintf(w, "\tNUMMESHOPS %d\n", len(e.Meshops))
 		for _, meshop := range e.Meshops {
-			if meshop.TypeField >= 1 && meshop.TypeField <= 3 {
-				// TypeField 1-3: Offset is NULL, VertexIndex is printed
-				fmt.Fprintf(w, "\t\tMESHOP %d %d NULL %d %d\n", meshop.TypeField, meshop.VertexIndex, meshop.Param1, meshop.Param2)
-			} else if meshop.TypeField == 4 {
-				// TypeField 4: VertexIndex is NULL, Offset is printed
-				fmt.Fprintf(w, "\t\tMESHOP %d NULL %0.8f %d %d\n", meshop.TypeField, meshop.Offset, meshop.Param1, meshop.Param2)
-			}
+			fmt.Fprintf(w, "\t\tMESHOP %d %d %0.8f %d %d\n", meshop.Param1, meshop.Param2, meshop.Offset, meshop.VertexIndex, meshop.TypeField)
 		}
 		fmt.Fprintf(w, "\n")
 		fmt.Fprintf(w, "\tSKINASSIGNMENTGROUPS %d", len(e.SkinAssignmentGroups))
@@ -1552,52 +1546,38 @@ func (e *DMSpriteDef) Read(token *AsciiReadToken) error {
 	if err != nil {
 		return err
 	}
-	numMeshOps := int(0)
-	err = parse(&numMeshOps, records[1])
-	if err != nil {
+	numMeshops := 0
+	if err := parse(&numMeshops, records[1]); err != nil {
 		return fmt.Errorf("num mesh ops: %w", err)
 	}
 
-	for i := 0; i < numMeshOps; i++ {
-		meshOp := &DMSpriteDefMeshOp{}
+	for i := 0; i < numMeshops; i++ {
+		meshop := &DMSpriteDefMeshOp{}
 		records, err = token.ReadProperty("MESHOP", 5)
 		if err != nil {
 			return err
 		}
-		err = parse(&meshOp.TypeField, records[1])
+		err = parse(&meshop.Param1, records[1])
 		if err != nil {
-			return fmt.Errorf("mesh op %d typefield: %w", i, err)
+			return fmt.Errorf("mesh op %d index1: %w", i, err)
 		}
-
-		// Handle conditional NULL values for VertexIndex and Offset
-		if meshOp.TypeField >= 1 && meshOp.TypeField <= 3 {
-			// TypeField 1-3: Offset is NULL, VertexIndex is valid
-			err = parse(&meshOp.VertexIndex, records[2])
-			if err != nil {
-				return fmt.Errorf("mesh op %d vertex index: %w", i, err)
-			}
-			meshOp.Offset = 0 // Offset is NULL
-		} else if meshOp.TypeField == 4 {
-			// TypeField 4: VertexIndex is NULL, Offset is valid
-			err = parse(&meshOp.Offset, records[3])
-			if err != nil {
-				return fmt.Errorf("mesh op %d offset: %w", i, err)
-			}
-			meshOp.VertexIndex = 0 // VertexIndex is NULL
-		} else {
-			return fmt.Errorf("mesh op %d invalid typefield: %d", i, meshOp.TypeField)
+		err = parse(&meshop.Param2, records[2])
+		if err != nil {
+			return fmt.Errorf("mesh op %d index2: %w", i, err)
 		}
-
-		err = parse(&meshOp.Param1, records[4])
+		err = parse(&meshop.Offset, records[3])
+		if err != nil {
+			return fmt.Errorf("mesh op %d offset: %w", i, err)
+		}
+		err = parse(&meshop.VertexIndex, records[4])
 		if err != nil {
 			return fmt.Errorf("mesh op %d param1: %w", i, err)
 		}
-		err = parse(&meshOp.Param2, records[5])
+		err = parse(&meshop.TypeField, records[5])
 		if err != nil {
-			return fmt.Errorf("mesh op %d param2: %w", i, err)
+			return fmt.Errorf("mesh op %d typefield: %w", i, err)
 		}
-
-		e.Meshops = append(e.Meshops, meshOp)
+		e.Meshops = append(e.Meshops, meshop)
 	}
 
 	records, err = token.ReadProperty("SKINASSIGNMENTGROUPS", -1)
