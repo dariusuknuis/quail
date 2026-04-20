@@ -21,7 +21,7 @@ properties:
     args:
       - name: "current action"
         note: "The current action"
-        format: "%s"
+        format: "%d"
 
   - name: "LOCATION?"
     note: "The location of the actor"
