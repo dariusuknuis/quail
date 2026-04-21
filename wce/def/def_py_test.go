@@ -15,6 +15,53 @@ var (
 	knownProps = make(map[string]bool)
 )
 
+func pyDefaultValue(prop Property) string {
+	if len(prop.Properties) > 0 {
+		return "" // handled elsewhere
+	}
+
+	if strings.Contains(pyPropType(prop), "list[") {
+		return "[]"
+	}
+
+	isNullable := strings.HasSuffix(prop.Name, "?")
+
+	// If nullable → default is None
+	if isNullable {
+		return "None"
+	}
+
+	// Otherwise derive from base type
+	if len(prop.Args) == 1 {
+		switch prop.Args[0].Format {
+		case `%d`:
+			return "0"
+		case `%0.8e`:
+			return "0.0"
+		case `%s`:
+			return "\"\""
+		}
+	}
+
+	if len(prop.Args) > 1 {
+		// tuple default
+		parts := []string{}
+		for _, arg := range prop.Args {
+			switch arg.Format {
+			case `%d`:
+				parts = append(parts, "0")
+			case `%0.8e`:
+				parts = append(parts, "0.0")
+			case `%s`:
+				parts = append(parts, "\"\"")
+			}
+		}
+		return fmt.Sprintf("(%s)", strings.Join(parts, ", "))
+	}
+
+	return "None"
+}
+
 func TestWceGenPython(t *testing.T) {
 	// defs declared in def_md_test.go
 	dirTest := helper.DirTest()
@@ -105,6 +152,10 @@ func initPyProperties(tabIndex int, props []Property, scope string, hasTag bool)
 	out := ""
 	tabIndex--
 	for _, prop := range props {
+		if len(prop.Properties) == 0 && len(prop.Args) == 0 {
+			continue
+		}
+
 		if len(prop.Properties) > 0 {
 			continue
 		}
@@ -125,20 +176,17 @@ func initPyProperties(tabIndex int, props []Property, scope string, hasTag bool)
 	}
 
 	for _, prop := range props {
+		if len(prop.Properties) == 0 && len(prop.Args) == 0 {
+			continue
+		}
+
 		if len(prop.Properties) > 0 {
 			continue
 		}
 		propName := strings.TrimSuffix(prop.Name, "?")
 		propName = strings.ToLower(propName)
-		propValue := pyPropType(prop)
-		switch propValue {
-		case "int":
-			propValue = "0"
-		case "float":
-			propValue = "0.0"
-		case "str":
-			propValue = "\"\""
-		case "None":
+		propValue := pyDefaultValue(prop)
+		if propValue == "" {
 			continue
 		}
 
@@ -292,7 +340,71 @@ func traversePyProp(propInitBuf *bytes.Buffer, decInitBuf *bytes.Buffer, initRea
 			initReaderBuf.WriteString(fmt.Sprintf("%srecords = property(r, \"%s\", %d)\n", strings.Repeat("\t", initTabCount), prop.Name, argLen))
 			if len(prop.Properties) == 0 {
 				initReaderBuf.WriteString(fmt.Sprintf("%s%s.%s = ", strings.Repeat("\t", initTabCount), scope, strings.ToLower(trimName)))
-				writeBuf.WriteString(fmt.Sprintf("%sw.write(f\"%s%s \\\"{%s.%s}\\\"\\n\")\n", strings.Repeat("\t", initTabCount), strings.Repeat("\\t", decTabCount), prop.Name, scope, strings.ToLower(trimName)))
+				propVar := fmt.Sprintf("%s.%s", scope, strings.ToLower(trimName))
+				if len(prop.Args) > 1 {
+					if isNullable {
+						parts := []string{}
+						for i := range prop.Args {
+							parts = append(parts, fmt.Sprintf("{('NULL' if %s is None else %s[%d])}", propVar, propVar, i))
+						}
+
+						writeBuf.WriteString(fmt.Sprintf(
+							"%sw.write(f\"%s%s %s\\n\")\n",
+							strings.Repeat("\t", initTabCount),
+							strings.Repeat("\\t", decTabCount),
+							prop.Name,
+							strings.Join(parts, " "),
+						))
+					} else {
+						parts := []string{}
+						for i := range prop.Args {
+							parts = append(parts, fmt.Sprintf("{%s[%d]}", propVar, i))
+						}
+
+						writeBuf.WriteString(fmt.Sprintf(
+							"%sw.write(f\"%s%s %s\\n\")\n",
+							strings.Repeat("\t", initTabCount),
+							strings.Repeat("\\t", decTabCount),
+							prop.Name,
+							strings.Join(parts, " "),
+						))
+					}
+				} else {
+					// single value → keep old behavior (for now)
+					argFormat := prop.Args[0].Format
+					propVar := fmt.Sprintf("%s.%s", scope, strings.ToLower(trimName))
+
+					if argFormat == "%s" {
+						// string → quotes
+						writeBuf.WriteString(fmt.Sprintf(
+							"%sw.write(f\"%s%s \\\"{%s}\\\"\\n\")\n",
+							strings.Repeat("\t", initTabCount),
+							strings.Repeat("\\t", decTabCount),
+							prop.Name,
+							propVar,
+						))
+					} else {
+						// int / float → no quotes
+						if isNullable {
+							writeBuf.WriteString(fmt.Sprintf(
+								"%sw.write(f\"%s%s {('NULL' if %s is None else %s)}\\n\")\n",
+								strings.Repeat("\t", initTabCount),
+								strings.Repeat("\\t", decTabCount),
+								prop.Name,
+								propVar,
+								propVar,
+							))
+						} else {
+							writeBuf.WriteString(fmt.Sprintf(
+								"%sw.write(f\"%s%s {%s}\\n\")\n",
+								strings.Repeat("\t", initTabCount),
+								strings.Repeat("\\t", decTabCount),
+								prop.Name,
+								propVar,
+							))
+						}
+					}
+				}
 			} else {
 				initReaderBuf.WriteString(fmt.Sprintf("%s%s = ", strings.Repeat("\t", initTabCount), strings.ToLower(trimName)))
 			}
@@ -316,21 +428,80 @@ func traversePyProp(propInitBuf *bytes.Buffer, decInitBuf *bytes.Buffer, initRea
 				}
 
 				if len(prop.Properties) == 0 {
-					if isNullable {
-						propBuf += fmt.Sprintf("tuple[%s, None]", base)
-						initBuf += fmt.Sprintf("tuple[%s, None]", base)
-						initReaderBuf.WriteString(fmt.Sprintf("(%s(records[%d]) if records[%d] != \"NULL\" else None)", base, i+1, i+1))
-					} else {
-						propBuf += base
-						switch base {
-						case "int":
-							initBuf += "0"
-						case "float":
-							initBuf += "0.0"
-						case "str":
-							initBuf += "\"\""
+
+					// -------------------------
+					// SINGLE VALUE (keep old behavior)
+					// -------------------------
+					if len(prop.Args) == 1 {
+
+						if isNullable {
+							propBuf += fmt.Sprintf("%s | None", base)
+							initBuf += fmt.Sprintf("%s | None", base)
+
+							initReaderBuf.WriteString(fmt.Sprintf(
+								"%s(records[%d]) if records[%d] != \"NULL\" else None",
+								base, i+1, i+1))
+
+						} else {
+							propBuf += base
+
+							switch base {
+							case "int":
+								initBuf += "0"
+							case "float":
+								initBuf += "0.0"
+							case "str":
+								initBuf += "\"\""
+							}
+
+							initReaderBuf.WriteString(fmt.Sprintf("%s(records[%d])", base, i+1))
 						}
+
+						// -------------------------
+						// TUPLE (THIS IS THE FIX)
+						// -------------------------
+					} else {
+
+						// Build correct tuple type ONCE (only when i == 0)
+						if i == 0 {
+
+							types := []string{}
+							for _, a := range prop.Args {
+								switch a.Format {
+								case `%d`:
+									types = append(types, "int")
+								case `%0.8e`:
+									types = append(types, "float")
+								case `%s`:
+									types = append(types, "str")
+								}
+							}
+
+							tupleType := fmt.Sprintf("tuple[%s]", strings.Join(types, ", "))
+
+							if isNullable {
+								tupleType += " | None"
+							}
+
+							propBuf += tupleType
+							initBuf += tupleType
+
+							// ---- READER (ALL-OR-NOTHING) ----
+							if isNullable {
+								initReaderBuf.WriteString("None if records[1] == \"NULL\" else (")
+							} else {
+								initReaderBuf.WriteString("(")
+							}
+						}
+
+						// Write each tuple element
 						initReaderBuf.WriteString(fmt.Sprintf("%s(records[%d])", base, i+1))
+
+						if i < len(prop.Args)-1 {
+							initReaderBuf.WriteString(", ")
+						} else {
+							initReaderBuf.WriteString(")")
+						}
 					}
 				} else {
 					if isNullable {
@@ -349,16 +520,84 @@ func traversePyProp(propInitBuf *bytes.Buffer, decInitBuf *bytes.Buffer, initRea
 					}
 				}
 				if len(prop.Args) > i+1 {
-					propBuf += ", "
-					initBuf += ", "
-					initReaderBuf.WriteString(", ")
+
+					// Only append to type strings for SINGLE VALUE mode
+					if len(prop.Args) == 1 {
+						propBuf += ", "
+						initBuf += ", "
+						initReaderBuf.WriteString(", ")
+					}
 				}
 			}
 		} else { // many args
 			initReaderBuf.WriteString(fmt.Sprintf("%srecords = property(r, \"%s\", -1)\n", strings.Repeat("\t", initTabCount), prop.Name))
 			if len(prop.Properties) == 0 {
 				initReaderBuf.WriteString(fmt.Sprintf("%s%s.%s = ", strings.Repeat("\t", initTabCount), scope, strings.ToLower(trimName)))
-				writeBuf.WriteString(fmt.Sprintf("%sw.write(f\"%s%s \\\"{%s.%s}\\\"\\n\")\n", strings.Repeat("\t", initTabCount), strings.Repeat("\\t", decTabCount), prop.Name, scope, strings.ToLower(trimName)))
+				propVar := fmt.Sprintf("%s.%s", scope, strings.ToLower(trimName))
+				if len(prop.Args) > 1 {
+					if isNullable {
+						parts := []string{}
+						for i := range prop.Args {
+							parts = append(parts, fmt.Sprintf("{('NULL' if %s is None else %s[%d])}", propVar, propVar, i))
+						}
+
+						writeBuf.WriteString(fmt.Sprintf(
+							"%sw.write(f\"%s%s %s\\n\")\n",
+							strings.Repeat("\t", initTabCount),
+							strings.Repeat("\\t", decTabCount),
+							prop.Name,
+							strings.Join(parts, " "),
+						))
+					} else {
+						parts := []string{}
+						for i := range prop.Args {
+							parts = append(parts, fmt.Sprintf("{%s[%d]}", propVar, i))
+						}
+
+						writeBuf.WriteString(fmt.Sprintf(
+							"%sw.write(f\"%s%s %s\\n\")\n",
+							strings.Repeat("\t", initTabCount),
+							strings.Repeat("\\t", decTabCount),
+							prop.Name,
+							strings.Join(parts, " "),
+						))
+					}
+				} else {
+					// single value → keep old behavior (for now)
+					argFormat := prop.Args[0].Format
+					propVar := fmt.Sprintf("%s.%s", scope, strings.ToLower(trimName))
+
+					if argFormat == "%s" {
+						// string → quotes
+						writeBuf.WriteString(fmt.Sprintf(
+							"%sw.write(f\"%s%s \\\"{%s}\\\"\\n\")\n",
+							strings.Repeat("\t", initTabCount),
+							strings.Repeat("\\t", decTabCount),
+							prop.Name,
+							propVar,
+						))
+					} else {
+						// int / float → no quotes
+						if isNullable {
+							writeBuf.WriteString(fmt.Sprintf(
+								"%sw.write(f\"%s%s {('NULL' if %s is None else %s)}\\n\")\n",
+								strings.Repeat("\t", initTabCount),
+								strings.Repeat("\\t", decTabCount),
+								prop.Name,
+								propVar,
+								propVar,
+							))
+						} else {
+							writeBuf.WriteString(fmt.Sprintf(
+								"%sw.write(f\"%s%s {%s}\\n\")\n",
+								strings.Repeat("\t", initTabCount),
+								strings.Repeat("\\t", decTabCount),
+								prop.Name,
+								propVar,
+							))
+						}
+					}
+				}
 			} else {
 				initReaderBuf.WriteString(fmt.Sprintf("%s%s = ", strings.Repeat("\t", initTabCount), strings.ToLower(trimName)))
 			}
@@ -367,10 +606,6 @@ func traversePyProp(propInitBuf *bytes.Buffer, decInitBuf *bytes.Buffer, initRea
 			initReaderBuf.WriteString("records[1:]\n")
 		}
 
-		if len(prop.Args) > 1 {
-			propBuf += "]"
-			initBuf += "]"
-		}
 		if prop.Note != "" && len(prop.Properties) == 0 {
 			propBuf += " # " + prop.Note
 		}
@@ -564,11 +799,7 @@ func pyPropType(prop Property) string {
 		return "None"
 	}
 
-	out := ""
-	if len(prop.Args) > 1 {
-		out += "tuple["
-	}
-
+	// Handle variable-length args (list)
 	for _, arg := range prop.Args {
 		if strings.HasSuffix(arg.Format, "...") {
 			return "list[str]"
@@ -576,35 +807,36 @@ func pyPropType(prop Property) string {
 	}
 
 	isNullable := strings.HasSuffix(prop.Name, "?")
-	for i, arg := range prop.Args {
 
-		base := ""
+	// Build list of base types
+	types := []string{}
+	for _, arg := range prop.Args {
 		switch arg.Format {
-		case `%s`:
-			base = "str"
 		case `%d`:
-			base = "int"
+			types = append(types, "int")
 		case `%0.8e`:
-			base = "float"
+			types = append(types, "float")
+		case `%s`:
+			types = append(types, "str")
 		default:
-			base = "Unknown"
-		}
-
-		if len(prop.Properties) == 0 {
-			if isNullable {
-				out += fmt.Sprintf("tuple[%s, None]", base)
-			} else {
-				out += base
-			}
-		}
-
-		if len(prop.Args) > i+1 {
-			out += ", "
+			types = append(types, "Unknown")
 		}
 	}
 
-	if len(prop.Args) > 1 {
-		out += "]"
+	out := ""
+
+	// Single value
+	if len(types) == 1 {
+		out = types[0]
+	} else {
+		// Tuple
+		out = fmt.Sprintf("tuple[%s]", strings.Join(types, ", "))
 	}
+
+	// Nullable
+	if isNullable {
+		out += " | None"
+	}
+
 	return out
 }
