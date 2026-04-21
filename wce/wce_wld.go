@@ -4832,7 +4832,7 @@ type PolyhedronDefinition struct {
 	fragID         int32
 	Tag            string
 	BoundingRadius float32
-	ScaleFactor    float32
+	ScaleFactor    NullFloat32
 	Vertices       [][3]float32
 	Faces          [][]uint32
 	HexOneFlag     int
@@ -4859,7 +4859,7 @@ func (e *PolyhedronDefinition) Write(token *AsciiWriteToken) error {
 
 		fmt.Fprintf(w, "%s \"%s\"\n", e.Definition(), e.Tag)
 		fmt.Fprintf(w, "\tBOUNDINGRADIUS %0.8e\n", e.BoundingRadius)
-		fmt.Fprintf(w, "\tSCALEFACTOR %0.8e\n", e.ScaleFactor)
+		fmt.Fprintf(w, "\tSCALEFACTOR? %s\n", wcVal(e.ScaleFactor))
 		fmt.Fprintf(w, "\tNUMVERTICES %d\n", len(e.Vertices))
 		for _, vert := range e.Vertices {
 			fmt.Fprintf(w, "\t\tXYZ %0.8e %0.8e %0.8e\n", vert[0], vert[1], vert[2])
@@ -4872,7 +4872,6 @@ func (e *PolyhedronDefinition) Write(token *AsciiWriteToken) error {
 			}
 			fmt.Fprintf(w, "\n")
 		}
-		fmt.Fprintf(w, "\tHEXONEFLAG %d\n", e.HexOneFlag)
 		fmt.Fprintf(w, "\n")
 	}
 	e.folders = []string{}
@@ -4890,7 +4889,7 @@ func (e *PolyhedronDefinition) Read(token *AsciiReadToken) error {
 		return fmt.Errorf("bounding radius: %w", err)
 	}
 
-	records, err = token.ReadProperty("SCALEFACTOR", 1)
+	records, err = token.ReadProperty("SCALEFACTOR?", 1)
 	if err != nil {
 		return err
 	}
@@ -4959,15 +4958,6 @@ func (e *PolyhedronDefinition) Read(token *AsciiReadToken) error {
 		e.Faces = append(e.Faces, faceVals)
 	}
 
-	records, err = token.ReadProperty("HEXONEFLAG", 1)
-	if err != nil {
-		return err
-	}
-	err = parse(&e.HexOneFlag, records[1])
-	if err != nil {
-		return fmt.Errorf("hex one flag: %w", err)
-	}
-
 	return nil
 }
 
@@ -4978,14 +4968,14 @@ func (e *PolyhedronDefinition) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 
 	wfPolyhedronDef := &rawfrag.WldFragPolyhedronDef{
 		BoundingRadius: e.BoundingRadius,
-		ScaleFactor:    e.ScaleFactor,
 		Vertices:       e.Vertices,
 		Faces:          e.Faces,
 	}
 	wfPolyhedronDef.SetNameRef(rawWld.NameAdd(baseTag(e.Tag)))
 
-	if e.HexOneFlag > 0 {
+	if e.ScaleFactor.Valid {
 		wfPolyhedronDef.Flags |= 0x01
+		wfPolyhedronDef.ScaleFactor = e.ScaleFactor.Float32
 	}
 
 	rawWld.Fragments = append(rawWld.Fragments, wfPolyhedronDef)
@@ -4996,11 +4986,11 @@ func (e *PolyhedronDefinition) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 func (e *PolyhedronDefinition) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragPolyhedronDef) error {
 	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()), e.fragID)
 	e.BoundingRadius = frag.BoundingRadius
-	e.ScaleFactor = frag.ScaleFactor
 	e.Vertices = frag.Vertices
 	e.Faces = frag.Faces
 	if frag.Flags&0x01 != 0 {
-		e.HexOneFlag = 1
+		e.ScaleFactor.Valid = true
+		e.ScaleFactor.Float32 = frag.ScaleFactor
 	}
 
 	return nil

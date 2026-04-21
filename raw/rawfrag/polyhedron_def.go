@@ -29,7 +29,9 @@ func (e *WldFragPolyhedronDef) Write(w io.Writer, isNewWorld bool) error {
 	enc.Uint32(uint32(len(e.Vertices)))
 	enc.Uint32(uint32(len(e.Faces)))
 	enc.Float32(e.BoundingRadius)
-	enc.Float32(e.ScaleFactor)
+	if e.Flags&0x1 != 0 {
+		enc.Float32(e.ScaleFactor)
+	}
 	for _, entry := range e.Vertices {
 		enc.Float32(entry[0])
 		enc.Float32(entry[1])
@@ -55,7 +57,9 @@ func (e *WldFragPolyhedronDef) Read(r io.ReadSeeker, isNewWorld bool) error {
 	vertexCount := dec.Uint32()
 	faceCount := dec.Uint32()
 	e.BoundingRadius = dec.Float32()
-	e.ScaleFactor = dec.Float32()
+	if e.Flags&0x1 != 0 {
+		e.ScaleFactor = dec.Float32()
+	}
 	e.Vertices = make([][3]float32, vertexCount)
 	for i := range e.Vertices {
 		e.Vertices[i] = [3]float32{dec.Float32(), dec.Float32(), dec.Float32()}

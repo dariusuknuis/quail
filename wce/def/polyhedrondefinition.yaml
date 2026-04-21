@@ -8,7 +8,7 @@ properties:
       - name: ""
         note: ""
         format: "%0.8e"
-  - name: "SCALEFACTOR"
+  - name: "SCALEFACTOR?"
     note: ""
     args:
       - name: ""
@@ -47,9 +47,3 @@ properties:
             note: ""
             format: "%d..."
             example: "1 1"
-  - name: "HEXONEFLAG"
-    note: ""
-    args:
-      - name: ""
-        note: ""
-        format: "%d"
