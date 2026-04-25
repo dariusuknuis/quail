@@ -15,6 +15,27 @@ var (
 	knownProps = make(map[string]bool)
 )
 
+func pyFloatExpr(expr string) string {
+	return fmt.Sprintf("format(%s, '.8e')", expr)
+}
+
+func pyValueExpr(expr string, format string, nullable bool) string {
+	switch format {
+
+	case "%0.8e":
+		if nullable {
+			return fmt.Sprintf("('NULL' if %s is None else %s)", expr, pyFloatExpr(expr))
+		}
+		return pyFloatExpr(expr)
+
+	default: // int / string fallback
+		if nullable {
+			return fmt.Sprintf("('NULL' if %s is None else %s)", expr, expr)
+		}
+		return expr
+	}
+}
+
 func pyDefaultValue(prop Property) string {
 	if len(prop.Properties) > 0 {
 		return "" // handled elsewhere
@@ -358,7 +379,8 @@ func traversePyProp(propInitBuf *bytes.Buffer, decInitBuf *bytes.Buffer, initRea
 					} else {
 						parts := []string{}
 						for i := range prop.Args {
-							parts = append(parts, fmt.Sprintf("{%s[%d]}", propVar, i))
+							expr := fmt.Sprintf("%s[%d]", propVar, i)
+							parts = append(parts, fmt.Sprintf("{%s}", pyValueExpr(expr, prop.Args[i].Format, isNullable)))
 						}
 
 						writeBuf.WriteString(fmt.Sprintf(
@@ -375,34 +397,45 @@ func traversePyProp(propInitBuf *bytes.Buffer, decInitBuf *bytes.Buffer, initRea
 					propVar := fmt.Sprintf("%s.%s", scope, strings.ToLower(trimName))
 
 					if argFormat == "%s" {
-						// string → quotes
-						writeBuf.WriteString(fmt.Sprintf(
-							"%sw.write(f\"%s%s \\\"{%s}\\\"\\n\")\n",
-							strings.Repeat("\t", initTabCount),
-							strings.Repeat("\\t", decTabCount),
-							prop.Name,
-							propVar,
-						))
-					} else {
-						// int / float → no quotes
 						if isNullable {
+
 							writeBuf.WriteString(fmt.Sprintf(
-								"%sw.write(f\"%s%s {('NULL' if %s is None else %s)}\\n\")\n",
+								"%sif %s is None: w.write(\"%s%s NULL\\n\")\n",
+								strings.Repeat("\t", initTabCount),
+								propVar,
+								strings.Repeat("\\t", decTabCount),
+								prop.Name,
+							))
+
+							writeBuf.WriteString(fmt.Sprintf(
+								"%selse: w.write(f\"%s%s \\\"{%s}\\\"\\n\")\n",
 								strings.Repeat("\t", initTabCount),
 								strings.Repeat("\\t", decTabCount),
 								prop.Name,
 								propVar,
-								propVar,
 							))
+
 						} else {
+
 							writeBuf.WriteString(fmt.Sprintf(
-								"%sw.write(f\"%s%s {%s}\\n\")\n",
+								"%sw.write(f\"%s%s \\\"{%s}\\\"\\n\")\n",
 								strings.Repeat("\t", initTabCount),
 								strings.Repeat("\\t", decTabCount),
 								prop.Name,
 								propVar,
 							))
 						}
+					} else {
+						// int / float → no quotes
+						expr := pyValueExpr(propVar, argFormat, isNullable)
+
+						writeBuf.WriteString(fmt.Sprintf(
+							"%sw.write(f\"%s%s {%s}\\n\")\n",
+							strings.Repeat("\t", initTabCount),
+							strings.Repeat("\\t", decTabCount),
+							prop.Name,
+							expr,
+						))
 					}
 				}
 			} else {
@@ -551,7 +584,8 @@ func traversePyProp(propInitBuf *bytes.Buffer, decInitBuf *bytes.Buffer, initRea
 					} else {
 						parts := []string{}
 						for i := range prop.Args {
-							parts = append(parts, fmt.Sprintf("{%s[%d]}", propVar, i))
+							expr := fmt.Sprintf("%s[%d]", propVar, i)
+							parts = append(parts, fmt.Sprintf("{%s}", pyValueExpr(expr, prop.Args[i].Format, isNullable)))
 						}
 
 						writeBuf.WriteString(fmt.Sprintf(
@@ -568,34 +602,45 @@ func traversePyProp(propInitBuf *bytes.Buffer, decInitBuf *bytes.Buffer, initRea
 					propVar := fmt.Sprintf("%s.%s", scope, strings.ToLower(trimName))
 
 					if argFormat == "%s" {
-						// string → quotes
-						writeBuf.WriteString(fmt.Sprintf(
-							"%sw.write(f\"%s%s \\\"{%s}\\\"\\n\")\n",
-							strings.Repeat("\t", initTabCount),
-							strings.Repeat("\\t", decTabCount),
-							prop.Name,
-							propVar,
-						))
-					} else {
-						// int / float → no quotes
 						if isNullable {
+
 							writeBuf.WriteString(fmt.Sprintf(
-								"%sw.write(f\"%s%s {('NULL' if %s is None else %s)}\\n\")\n",
+								"%sif %s is None: w.write(\"%s%s NULL\\n\")\n",
+								strings.Repeat("\t", initTabCount),
+								propVar,
+								strings.Repeat("\\t", decTabCount),
+								prop.Name,
+							))
+
+							writeBuf.WriteString(fmt.Sprintf(
+								"%selse: w.write(f\"%s%s \\\"{%s}\\\"\\n\")\n",
 								strings.Repeat("\t", initTabCount),
 								strings.Repeat("\\t", decTabCount),
 								prop.Name,
 								propVar,
-								propVar,
 							))
+
 						} else {
+
 							writeBuf.WriteString(fmt.Sprintf(
-								"%sw.write(f\"%s%s {%s}\\n\")\n",
+								"%sw.write(f\"%s%s \\\"{%s}\\\"\\n\")\n",
 								strings.Repeat("\t", initTabCount),
 								strings.Repeat("\\t", decTabCount),
 								prop.Name,
 								propVar,
 							))
 						}
+					} else {
+						// int / float → no quotes
+						expr := pyValueExpr(propVar, argFormat, isNullable)
+
+						writeBuf.WriteString(fmt.Sprintf(
+							"%sw.write(f\"%s%s {%s}\\n\")\n",
+							strings.Repeat("\t", initTabCount),
+							strings.Repeat("\\t", decTabCount),
+							prop.Name,
+							expr,
+						))
 					}
 				}
 			} else {
@@ -692,7 +737,7 @@ func traversePyProp(propInitBuf *bytes.Buffer, decInitBuf *bytes.Buffer, initRea
 
 		// write count
 		writeBuf.WriteString(fmt.Sprintf(
-			"%sw.write(f\"%s%s \\\"{len(%s.%s)}\\\"\\n\")\n",
+			"%sw.write(f\"%s%s {len(%s.%s)}\\n\")\n",
 			strings.Repeat("\t", initTabCount),
 			strings.Repeat("\\t", decTabCount),
 			prop.Name,
