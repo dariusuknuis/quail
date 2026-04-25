@@ -366,7 +366,9 @@ func traversePyProp(propInitBuf *bytes.Buffer, decInitBuf *bytes.Buffer, initRea
 					if isNullable {
 						parts := []string{}
 						for i := range prop.Args {
-							parts = append(parts, fmt.Sprintf("{('NULL' if %s is None else %s[%d])}", propVar, propVar, i))
+							expr := fmt.Sprintf("%s[%d]", propVar, i)
+							formatted := pyValueExpr(expr, prop.Args[i].Format, false) // IMPORTANT: false here
+							parts = append(parts, fmt.Sprintf("{('NULL' if %s is None else %s)}", propVar, formatted))
 						}
 
 						writeBuf.WriteString(fmt.Sprintf(
@@ -571,7 +573,9 @@ func traversePyProp(propInitBuf *bytes.Buffer, decInitBuf *bytes.Buffer, initRea
 					if isNullable {
 						parts := []string{}
 						for i := range prop.Args {
-							parts = append(parts, fmt.Sprintf("{('NULL' if %s is None else %s[%d])}", propVar, propVar, i))
+							expr := fmt.Sprintf("%s[%d]", propVar, i)
+							formatted := pyValueExpr(expr, prop.Args[i].Format, false) // IMPORTANT: false here
+							parts = append(parts, fmt.Sprintf("{('NULL' if %s is None else %s)}", propVar, formatted))
 						}
 
 						writeBuf.WriteString(fmt.Sprintf(
@@ -597,11 +601,22 @@ func traversePyProp(propInitBuf *bytes.Buffer, decInitBuf *bytes.Buffer, initRea
 						))
 					}
 				} else {
-					// single value → keep old behavior (for now)
 					argFormat := prop.Args[0].Format
 					propVar := fmt.Sprintf("%s.%s", scope, strings.ToLower(trimName))
 
-					if argFormat == "%s" {
+					// 🔥 FIX: handle "%d..." (flat list case like FACEMATERIALGROUPS)
+					if strings.HasSuffix(argFormat, "...") {
+
+						writeBuf.WriteString(fmt.Sprintf(
+							"%sw.write(f\"%s%s {' '.join(%s)}\\n\")\n",
+							strings.Repeat("\t", initTabCount),
+							strings.Repeat("\\t", decTabCount),
+							prop.Name,
+							propVar,
+						))
+
+					} else if argFormat == "%s" {
+
 						if isNullable {
 
 							writeBuf.WriteString(fmt.Sprintf(
@@ -630,8 +645,9 @@ func traversePyProp(propInitBuf *bytes.Buffer, decInitBuf *bytes.Buffer, initRea
 								propVar,
 							))
 						}
+
 					} else {
-						// int / float → no quotes
+						// int / float → no quotes (existing behavior)
 						expr := pyValueExpr(propVar, argFormat, isNullable)
 
 						writeBuf.WriteString(fmt.Sprintf(
