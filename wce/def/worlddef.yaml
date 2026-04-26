@@ -16,7 +16,7 @@ properties:
     args:
       - name: "is zone"
         note: "0: no, 1: yes"
-        format: "%s"
+        format: "%d"
 
   - name: "EQGVERSION?"
     note: "Used in eqg parsing for version rebuilding"
