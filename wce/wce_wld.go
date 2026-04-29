@@ -6425,11 +6425,11 @@ type Region struct {
 	Obstacles         []*Obstacle
 	CuttingObstacles  []*Obstacle
 	VisTree           *VisTree
-	Sphere            [4]float32
-	ReverbVolume      float32
-	ReverbOffset      int32
+	Sphere            NullFloat32Slice4
+	ReverbVolume      NullFloat32
+	ReverbOffset      NullInt32
 	UserData          string
-	SpriteTag         string
+	SpriteTag         NullString
 }
 
 type Wall struct {
@@ -6473,20 +6473,22 @@ func (e *Region) Write(token *AsciiWriteToken) error {
 			return err
 		}
 
-		if e.SpriteTag != "" {
-			sprite := token.wce.ByTag(e.SpriteTag)
-			if sprite == nil {
-				return fmt.Errorf("sprite not found: %s", e.SpriteTag)
-			}
-			err = sprite.Write(token)
-			if err != nil {
-				return fmt.Errorf("sprite write: %w", err)
+		if e.SpriteTag.Valid {
+			if e.SpriteTag.String != "" {
+				sprite := token.wce.ByTag(e.SpriteTag.String)
+				if sprite == nil {
+					return fmt.Errorf("sprite not found: %s", e.SpriteTag.String)
+				}
+				err = sprite.Write(token)
+				if err != nil {
+					return fmt.Errorf("sprite write: %w", err)
+				}
 			}
 		}
 
 		fmt.Fprintf(w, "%s \"%s\"\n", e.Definition(), e.Tag)
-		fmt.Fprintf(w, "\tREVERBVOLUME %0.8e\n", e.ReverbVolume)
-		fmt.Fprintf(w, "\tREVERBOFFSET %d\n", e.ReverbOffset)
+		fmt.Fprintf(w, "\tREVERBVOLUME? %s\n", wcVal(e.ReverbVolume))
+		fmt.Fprintf(w, "\tREVERBOFFSET? %s\n", wcVal(e.ReverbOffset))
 		fmt.Fprintf(w, "\tREGIONFOG %d\n", e.RegionFog)
 		fmt.Fprintf(w, "\tGOURAND2 %d\n", e.Gouraud2)
 		fmt.Fprintf(w, "\tENCODEDVISIBILITY %d\n", e.EncodedVisibility)
@@ -6571,9 +6573,9 @@ func (e *Region) Write(token *AsciiWriteToken) error {
 			return fmt.Errorf("write to file: %w", err)
 		}
 
-		fmt.Fprintf(w, "\tSPHERE %0.8e %0.8e %0.8e %0.8e\n", e.Sphere[0], e.Sphere[1], e.Sphere[2], e.Sphere[3])
+		fmt.Fprintf(w, "\tSPHERE? %s\n", wcVal(e.Sphere))
 		fmt.Fprintf(w, "\tUSERDATA \"%s\"\n", e.UserData)
-		fmt.Fprintf(w, "\tSPRITE \"%s\"\n", e.SpriteTag)
+		fmt.Fprintf(w, "\tSPRITE? \"%s\"\n", wcVal(e.SpriteTag))
 		fmt.Fprintf(w, "\n")
 
 	}
@@ -6584,7 +6586,7 @@ func (e *Region) Write(token *AsciiWriteToken) error {
 func (e *Region) Read(token *AsciiReadToken) error {
 	e.folders = append(e.folders, token.folder)
 	e.VisTree = &VisTree{}
-	records, err := token.ReadProperty("REVERBVOLUME", 1)
+	records, err := token.ReadProperty("REVERBVOLUME?", 1)
 	if err != nil {
 		return err
 	}
@@ -6593,7 +6595,7 @@ func (e *Region) Read(token *AsciiReadToken) error {
 		return fmt.Errorf("reverb volume: %w", err)
 	}
 
-	records, err = token.ReadProperty("REVERBOFFSET", 1)
+	records, err = token.ReadProperty("REVERBOFFSET?", 1)
 	if err != nil {
 		return err
 	}
@@ -6966,7 +6968,7 @@ func (e *Region) Read(token *AsciiReadToken) error {
 		e.VisTree.VisLists = append(e.VisTree.VisLists, list)
 	}
 
-	records, err = token.ReadProperty("SPHERE", 4)
+	records, err = token.ReadProperty("SPHERE?", 4)
 	if err != nil {
 		return err
 	}
@@ -6983,11 +6985,14 @@ func (e *Region) Read(token *AsciiReadToken) error {
 
 	e.UserData = records[1]
 
-	records, err = token.ReadProperty("SPRITE", 1)
+	records, err = token.ReadProperty("SPRITE?", 1)
 	if err != nil {
 		return err
 	}
-	e.SpriteTag = records[1]
+	err = parse(&e.SpriteTag, records[1])
+	if err != nil {
+		return fmt.Errorf("sprite: %w", err)
+	}
 
 	return nil
 }
@@ -6998,21 +7003,21 @@ func (e *Region) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 	}
 	wfRegion := &rawfrag.WldFragRegion{
 		RegionVertices: e.RegionVertices,
-		Sphere:         e.Sphere,
-		ReverbVolume:   e.ReverbVolume,
-		ReverbOffset:   e.ReverbOffset,
 	}
 
-	if wfRegion.Sphere != [4]float32{0, 0, 0, 0} {
+	if e.Sphere.Valid {
 		wfRegion.Flags |= 0x01
+		wfRegion.Sphere = e.Sphere.Float32Slice4
 	}
 
-	if e.ReverbVolume != 0 {
+	if e.ReverbVolume.Valid {
 		wfRegion.Flags |= 0x02
+		wfRegion.ReverbVolume = e.ReverbVolume.Float32
 	}
 
-	if e.ReverbOffset != 0 {
+	if e.ReverbOffset.Valid {
 		wfRegion.Flags |= 0x04
+		wfRegion.ReverbOffset = e.ReverbOffset.Int32
 	}
 
 	if e.RegionFog != 0 {
@@ -7066,11 +7071,11 @@ func (e *Region) ToRaw(wce *Wce, rawWld *raw.Wld) (int32, error) {
 		wfRegion.VisLists = append(wfRegion.VisLists, visList)
 	}
 
-	if e.SpriteTag != "" {
+	if e.SpriteTag.Valid {
 		wfRegion.Flags |= 0x100
-		spriteDef := wce.ByTag(e.SpriteTag)
+		spriteDef := wce.ByTag(e.SpriteTag.String)
 		if spriteDef == nil {
-			return 0, fmt.Errorf("region sprite def not found: %s", e.SpriteTag)
+			return 0, fmt.Errorf("region sprite def not found: %s", e.SpriteTag.String)
 		}
 
 		spriteRef, err := spriteDef.ToRaw(wce, rawWld)
@@ -7094,12 +7099,22 @@ func (e *Region) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragRegion)
 	e.VisTree = &VisTree{}
 	e.Tag = wce.NextIndexedTag(rawWld.Name(frag.NameRef()), e.fragID)
 	e.RegionVertices = frag.RegionVertices
-	e.Sphere = frag.Sphere
-	e.ReverbVolume = frag.ReverbVolume
-	e.ReverbOffset = frag.ReverbOffset
-	// 0x01 is sphere, we just copy
-	// 0x02 has reverb volume, we just copy
-	// 0x04 has reverb offset, we just copy
+
+	if frag.Flags&0x01 == 0x01 {
+		e.Sphere.Valid = true
+		e.Sphere.Float32Slice4 = frag.Sphere
+	}
+
+	if frag.Flags&0x02 == 0x02 {
+		e.ReverbVolume.Valid = true
+		e.ReverbVolume.Float32 = frag.ReverbVolume
+	}
+
+	if frag.Flags&0x04 == 0x04 {
+		e.ReverbOffset.Valid = true
+		e.ReverbOffset.Int32 = frag.ReverbOffset
+	}
+
 	if frag.Flags&0x08 == 0x08 {
 		e.RegionFog = 1
 	}
@@ -7109,7 +7124,7 @@ func (e *Region) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragRegion)
 	if frag.Flags&0x20 == 0x20 {
 		e.EncodedVisibility = 1
 	}
-	// 0x40 unknown
+	// 0x40 unknown (also makes mesh reference present, apparently)
 	if frag.Flags&0x80 == 0x80 {
 		e.VisListBytes = 1
 	}
@@ -7152,7 +7167,8 @@ func (e *Region) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragRegion)
 		e.VisTree.VisLists = append(e.VisTree.VisLists, visListData)
 	}
 
-	if frag.MeshReference > 0 {
+	if frag.Flags&0x100 == 0x100 {
+		e.SpriteTag.Valid = true
 		if len(rawWld.Fragments) < int(frag.MeshReference) {
 			return fmt.Errorf("mesh ref %d not found", frag.MeshReference)
 		}
@@ -7164,7 +7180,7 @@ func (e *Region) FromRaw(wce *Wce, rawWld *raw.Wld, frag *rawfrag.WldFragRegion)
 			if !ok {
 				return fmt.Errorf("mesh ref %d not found in indexed tags", frag.MeshReference)
 			}
-			e.SpriteTag = tag
+			e.SpriteTag.String = tag
 		default:
 			return fmt.Errorf("unhandled mesh reference fragment type %d (%s)", rawMesh.FragCode(), raw.FragName(rawMesh.FragCode()))
 		}
