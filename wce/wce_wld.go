@@ -7462,7 +7462,7 @@ func (e *RGBTrackDef) Write(token *AsciiWriteToken) error {
 		for _, rgbaFrame := range e.RGBAFrames {
 			fmt.Fprintf(w, "\t\tNUMRGBAS %d\n", len(rgbaFrame))
 			for _, rgba := range rgbaFrame {
-				fmt.Fprintf(w, "\t\tRGBA %d %d %d %d\n", rgba[0], rgba[1], rgba[2], rgba[3])
+				fmt.Fprintf(w, "\t\tRGBA %d %d %d %d\n", rgba[2], rgba[1], rgba[0], rgba[3])
 			}
 		}
 		fmt.Fprintf(w, "\n")
@@ -7540,7 +7540,8 @@ func (e *RGBTrackDef) Read(token *AsciiReadToken) error {
 			if err != nil {
 				return fmt.Errorf("rbg deformation frame %d rgba %d: %w", i, j, err)
 			}
-			rgbaFrames = append(rgbaFrames, rgba)
+			bgra := [4]uint8{rgba[2], rgba[1], rgba[0], rgba[3]}
+			rgbaFrames = append(rgbaFrames, bgra)
 		}
 		e.RGBAFrames = append(e.RGBAFrames, rgbaFrames)
 	}
