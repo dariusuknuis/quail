@@ -42,6 +42,9 @@ func pyDefaultValue(prop Property) string {
 	}
 
 	if strings.Contains(pyPropType(prop), "list[") {
+		if strings.HasSuffix(prop.Name, "?") {
+			return "None"
+		}
 		return "[]"
 	}
 
@@ -604,17 +607,29 @@ func traversePyProp(propInitBuf *bytes.Buffer, decInitBuf *bytes.Buffer, initRea
 					argFormat := prop.Args[0].Format
 					propVar := fmt.Sprintf("%s.%s", scope, strings.ToLower(trimName))
 
-					// 🔥 FIX: handle "%d..." (flat list case like FACEMATERIALGROUPS)
 					if strings.HasSuffix(argFormat, "...") {
 
-						writeBuf.WriteString(fmt.Sprintf(
-							"%sw.write(f\"%s%s {' '.join(%s)}\\n\")\n",
-							strings.Repeat("\t", initTabCount),
-							strings.Repeat("\\t", decTabCount),
-							prop.Name,
-							propVar,
-						))
+						if isNullable {
 
+							writeBuf.WriteString(fmt.Sprintf(
+								"%sw.write(f\"%s%s {'NULL' if %s is None else ' '.join(%s)}\\n\")\n",
+								strings.Repeat("\t", initTabCount),
+								strings.Repeat("\\t", decTabCount),
+								prop.Name,
+								propVar,
+								propVar,
+							))
+
+						} else {
+
+							writeBuf.WriteString(fmt.Sprintf(
+								"%sw.write(f\"%s%s {' '.join(%s)}\\n\")\n",
+								strings.Repeat("\t", initTabCount),
+								strings.Repeat("\\t", decTabCount),
+								prop.Name,
+								propVar,
+							))
+						}
 					} else if argFormat == "%s" {
 
 						if isNullable {
@@ -662,9 +677,20 @@ func traversePyProp(propInitBuf *bytes.Buffer, decInitBuf *bytes.Buffer, initRea
 			} else {
 				initReaderBuf.WriteString(fmt.Sprintf("%s%s = ", strings.Repeat("\t", initTabCount), strings.ToLower(trimName)))
 			}
-			propBuf += "list[str]"
-			initBuf += "list[str]"
-			initReaderBuf.WriteString("records[1:]\n")
+			if isNullable {
+				propBuf += "list[str] | None"
+				initBuf += "list[str] | None"
+			} else {
+				propBuf += "list[str]"
+				initBuf += "list[str]"
+			}
+			if isNullable {
+				initReaderBuf.WriteString(
+					"None if len(records) > 1 and records[1] == \"NULL\" else records[1:]\n",
+				)
+			} else {
+				initReaderBuf.WriteString("records[1:]\n")
+			}
 		}
 
 		if prop.Note != "" && len(prop.Properties) == 0 {
@@ -863,6 +889,9 @@ func pyPropType(prop Property) string {
 	// Handle variable-length args (list)
 	for _, arg := range prop.Args {
 		if strings.HasSuffix(arg.Format, "...") {
+			if strings.HasSuffix(prop.Name, "?") {
+				return "list[str] | None"
+			}
 			return "list[str]"
 		}
 	}
