@@ -7695,7 +7695,7 @@ func (e *ParticleCloudDef) Write(token *AsciiWriteToken) error {
 		fmt.Fprintf(w, "\tSPAWNVELOCITY %0.8e %0.8e %0.8e\n", e.SpawnVelocity[0], e.SpawnVelocity[1], e.SpawnVelocity[2])
 		fmt.Fprintf(w, "\tSPAWNRATE %d\n", e.SpawnRate)
 		fmt.Fprintf(w, "\tSPAWNSCALE %0.8e // size of blittag\n", e.SpawnScale)
-		fmt.Fprintf(w, "\tTINT %d %d %d %d\n", e.Tint[0], e.Tint[1], e.Tint[2], e.Tint[3])
+		fmt.Fprintf(w, "\tTINT %d %d %d %d\n", e.Tint[2], e.Tint[1], e.Tint[0], e.Tint[3])
 		fmt.Fprintf(w, "\tSPAWNBOXMIN? %s\n", wcVal(e.SpawnBoxMin))
 		fmt.Fprintf(w, "\tSPAWNBOXMAX? %s\n", wcVal(e.SpawnBoxMax))
 		fmt.Fprintf(w, "\tBOXMIN? %s\n", wcVal(e.BoxMin))
@@ -7866,10 +7866,13 @@ func (e *ParticleCloudDef) Read(token *AsciiReadToken) error {
 		return err
 	}
 
-	err = parse(&e.Tint, records[1:]...)
+	color := [4]uint8{}
+	err = parse(&color, records[1:]...)
 	if err != nil {
 		return fmt.Errorf("tint: %w", err)
 	}
+	bgra := [4]uint8{color[2], color[1], color[0], color[3]}
+	e.Tint = bgra
 
 	records, err = token.ReadProperty("SPAWNBOXMIN?", 3)
 	if err != nil {
