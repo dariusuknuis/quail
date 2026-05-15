@@ -26,8 +26,12 @@ func main() {
 	}() */
 
 	info, _ := debug.ReadBuildInfo()
-	Version = info.Main.Version
+
 	if Version == "" {
+		Version = info.Main.Version
+	}
+
+	if Version == "" || Version == "(devel)" {
 		Version = "dev-" + time.Now().Format("20060102")
 	}
 
