@@ -4,13 +4,6 @@ note: "Wld Material"
 
 properties:
 
-  - name: "TAGINDEX"
-    note: "For tag variations, starts at 0, increases by 1"
-    args:
-      - name: "index"
-        note: "Index of tag"
-        format: "%d"
-
   - name: "VARIATION"
     note: "For variations"
     args:
@@ -65,13 +58,6 @@ properties:
           - name: "tag"
             note: "Simple sprite instance tag"
             format: "%s"
-
-      - name: "SIMPLESPRITETAGINDEX"
-        note: "Index of simple sprite tag"
-        args:
-          - name: "index"
-            note: "Simple sprite tag index"
-            format: "%d"
 
       - name: "SIMPLESPRITEHAVESKIPFRAMES"
         note: "0x10 flag; enables SIMPLESPRITESKIPFRAMES flag to be evaluated"

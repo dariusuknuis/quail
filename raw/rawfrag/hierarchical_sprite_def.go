@@ -12,19 +12,19 @@ import (
 type WldFragHierarchicalSpriteDef struct {
 	nameRef                     int32
 	Flags                       uint32
-	CollisionVolumeRef          uint32
+	CollisionVolumeRef          int32
 	CenterOffset                [3]float32
 	BoundingRadius              float32
 	Dags                        []*WldFragDag
-	DMSprites                   []uint32
+	DMSprites                   []int32
 	LinkSkinUpdatesToDagIndexes []uint32
 }
 
 type WldFragDag struct {
 	nameRef                   int32
 	Flags                     uint32
-	TrackRef                  uint32
-	MeshOrSpriteOrParticleRef uint32
+	TrackRef                  int32
+	MeshOrSpriteOrParticleRef int32
 	SubDags                   []uint32
 }
 
@@ -37,7 +37,7 @@ func (e *WldFragHierarchicalSpriteDef) Write(w io.Writer, isNewWorld bool) error
 	enc.Int32(e.nameRef)
 	enc.Uint32(e.Flags)
 	enc.Uint32(uint32(len(e.Dags)))
-	enc.Uint32(e.CollisionVolumeRef)
+	enc.Int32(e.CollisionVolumeRef)
 	if e.Flags&0x1 != 0 {
 		enc.Float32(e.CenterOffset[0])
 		enc.Float32(e.CenterOffset[1])
@@ -51,8 +51,8 @@ func (e *WldFragHierarchicalSpriteDef) Write(w io.Writer, isNewWorld bool) error
 	for _, bone := range e.Dags {
 		enc.Int32(bone.nameRef)
 		enc.Uint32(bone.Flags)
-		enc.Uint32(bone.TrackRef)
-		enc.Uint32(bone.MeshOrSpriteOrParticleRef)
+		enc.Int32(bone.TrackRef)
+		enc.Int32(bone.MeshOrSpriteOrParticleRef)
 		enc.Uint32(uint32(len(bone.SubDags)))
 		for _, subCount := range bone.SubDags {
 			enc.Uint32(subCount)
@@ -62,7 +62,7 @@ func (e *WldFragHierarchicalSpriteDef) Write(w io.Writer, isNewWorld bool) error
 	if e.Flags&0x200 != 0 {
 		enc.Uint32(uint32(len(e.DMSprites)))
 		for _, dmSprite := range e.DMSprites {
-			enc.Uint32(dmSprite)
+			enc.Int32(dmSprite)
 		}
 		for _, skinLink := range e.LinkSkinUpdatesToDagIndexes {
 			enc.Uint32(skinLink)
@@ -82,7 +82,7 @@ func (e *WldFragHierarchicalSpriteDef) Read(r io.ReadSeeker, isNewWorld bool) er
 	e.nameRef = dec.Int32()
 	e.Flags = dec.Uint32()
 	numDags := dec.Uint32()
-	e.CollisionVolumeRef = dec.Uint32()
+	e.CollisionVolumeRef = dec.Int32()
 	if e.Flags&0x1 != 0 {
 		e.CenterOffset = [3]float32{dec.Float32(), dec.Float32(), dec.Float32()}
 	}
@@ -95,8 +95,8 @@ func (e *WldFragHierarchicalSpriteDef) Read(r io.ReadSeeker, isNewWorld bool) er
 		dag := &WldFragDag{}
 		dag.nameRef = dec.Int32()
 		dag.Flags = dec.Uint32()
-		dag.TrackRef = dec.Uint32()
-		dag.MeshOrSpriteOrParticleRef = dec.Uint32()
+		dag.TrackRef = dec.Int32()
+		dag.MeshOrSpriteOrParticleRef = dec.Int32()
 		subCount := dec.Uint32()
 		for j := 0; j < int(subCount); j++ {
 			dag.SubDags = append(dag.SubDags, dec.Uint32())
@@ -107,7 +107,7 @@ func (e *WldFragHierarchicalSpriteDef) Read(r io.ReadSeeker, isNewWorld bool) er
 	if e.Flags&0x200 != 0 {
 		skinCount := dec.Uint32()
 		for i := 0; i < int(skinCount); i++ {
-			e.DMSprites = append(e.DMSprites, dec.Uint32())
+			e.DMSprites = append(e.DMSprites, dec.Int32())
 		}
 		for i := 0; i < int(skinCount); i++ {
 			e.LinkSkinUpdatesToDagIndexes = append(e.LinkSkinUpdatesToDagIndexes, dec.Uint32())

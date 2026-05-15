@@ -203,7 +203,7 @@ func (wce *Wce) writeAsciiData(path string) error {
 	for _, track := range wce.TrackInstances {
 		err = track.Write(token)
 		if err != nil {
-			return fmt.Errorf("track %s_%d: %w", track.Tag, track.TagIndex, err)
+			return fmt.Errorf("track %s: %w", track.Tag, err)
 		}
 	}
 
@@ -383,7 +383,8 @@ func (wce *Wce) writeAsciiData(path string) error {
 			parentSubfolder = strings.TrimLeft(parentSubfolder, "/")
 
 			tag := chunks[len(chunks)-1]
-			ok := writtenSubfolders[parentFolder]
+			subfolderKey := parentFolder + "/" + parentSubfolder
+			_, ok := writtenSubfolders[subfolderKey]
 			if !ok && parentSubfolder != "" {
 				includes[parentFolder] += fmt.Sprintf("INCLUDE \"%s/_ROOT.WCE\"\n", strings.ToUpper(parentSubfolder))
 			}
@@ -396,7 +397,7 @@ func (wce *Wce) writeAsciiData(path string) error {
 				includes[rootFolder] += fmt.Sprintf("INCLUDE \"%s_ANI.WCE\"\n", strings.ToUpper(tag))
 			}
 
-			writtenSubfolders[parentFolder] = true
+			writtenSubfolders[subfolderKey] = true
 			if !writtenRoots[parentFolder] {
 				rootW.Write([]byte(fmt.Sprintf("INCLUDE \"%s/_ROOT.WCE\"\n", strings.ToUpper(parentFolder))))
 				writtenRoots[parentFolder] = true

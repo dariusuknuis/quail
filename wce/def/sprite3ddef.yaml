@@ -101,11 +101,6 @@ properties:
                     - name: "tag"
                       format: "%s"
 
-                - name: "SIMPLESPRITETAGINDEX"
-                  args:
-                    - name: "index"
-                      format: "%d"
-
                 - name: "SIMPLESPRITEHAVESKIPFRAMES"
                   args:
                     - name: "flag"

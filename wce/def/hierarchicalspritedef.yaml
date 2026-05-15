@@ -29,26 +29,12 @@ properties:
             note: "Sprite definition tag"
             format: "%s"
 
-      - name: "SPRITEINDEX"
-        note: "Index of sprite tag reference"
-        args:
-          - name: "sprite index"
-            note: "Sprite tag index"
-            format: "%d"
-
       - name: "TRACK"
         note: "Referenced track tag"
         args:
           - name: "track tag"
             note: "Track definition tag"
             format: "%s"
-
-      - name: "TRACKINDEX"
-        note: "Index of track reference"
-        args:
-          - name: "track index"
-            note: "Track index value"
-            format: "%d"
 
       - name: "SUBDAGLIST"
         note: "List of child DAG indices"
@@ -75,13 +61,6 @@ properties:
           - name: "dmsprite tag"
             note: "DMSPRITE definition tag"
             format: "%s"
-
-      - name: "DMSPRITEINDEX"
-        note: "Index of DMSPRITE reference"
-        args:
-          - name: "dmsprite index"
-            note: "DMSPRITE index value"
-            format: "%d"
 
       - name: "LINKSKINUPDATESTODAGINDEX"
         note: "Index of DAG this skin updates"

@@ -2,12 +2,6 @@ name: "TRACKDEFINITION"
 hasTag: true
 note: "Wld Track"
 properties:
-  - name: "TAGINDEX"
-    note: ""
-    args:
-      - name: ""
-        note: ""
-        format: "%d"
   - name: "NUMFRAMES"
     note: ""
     args:

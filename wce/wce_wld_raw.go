@@ -58,7 +58,7 @@ func (wce *Wce) ReadWldRaw(src *raw.Wld) error {
 			return fmt.Errorf("fragment %d (%s): folders not found", i, raw.FragName(fragment.FragCode()))
 		}
 
-		err := readRawFrag(wce, src, fragment, folders)
+		err := readRawFrag(wce, src, fragment, folders, int32(i))
 		if err != nil {
 			return fmt.Errorf("fragment %d (%s): %w", i, raw.FragName(fragment.FragCode()), err)
 		}
@@ -67,7 +67,7 @@ func (wce *Wce) ReadWldRaw(src *raw.Wld) error {
 	return nil
 }
 
-func readRawFrag(e *Wce, rawWld *raw.Wld, fragment helper.FragmentReadWriter, folders []string) error {
+func readRawFrag(e *Wce, rawWld *raw.Wld, fragment helper.FragmentReadWriter, folders []string, fragID int32) error {
 	if len(folders) == 0 {
 		folders = []string{"world"}
 	}
@@ -75,6 +75,7 @@ func readRawFrag(e *Wce, rawWld *raw.Wld, fragment helper.FragmentReadWriter, fo
 	case rawfrag.FragCodeGlobalAmbientLightDef:
 
 		def := &GlobalAmbientLightDef{folders: folders}
+		def.fragID = fragID
 		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragGlobalAmbientLightDef))
 		if err != nil {
 			return fmt.Errorf("globalambientlightdef: %w", err)
@@ -82,6 +83,7 @@ func readRawFrag(e *Wce, rawWld *raw.Wld, fragment helper.FragmentReadWriter, fo
 		e.GlobalAmbientLightDef = def
 	case rawfrag.FragCodeUserData:
 		def := &UserData{folders: folders}
+		def.fragID = fragID
 		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragUserData))
 		if err != nil {
 			return fmt.Errorf("userdata: %w", err)
@@ -92,6 +94,7 @@ func readRawFrag(e *Wce, rawWld *raw.Wld, fragment helper.FragmentReadWriter, fo
 		return nil
 	case rawfrag.FragCodeSimpleSpriteDef:
 		def := &SimpleSpriteDef{folders: folders}
+		def.fragID = fragID
 		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragSimpleSpriteDef))
 		if err != nil {
 			return fmt.Errorf("simplespritedef: %w", err)
@@ -102,6 +105,7 @@ func readRawFrag(e *Wce, rawWld *raw.Wld, fragment helper.FragmentReadWriter, fo
 		//return fmt.Errorf("simplesprite fragment found, but not expected")
 	case rawfrag.FragCodeBlitSpriteDef:
 		def := &BlitSpriteDef{folders: folders}
+		def.fragID = fragID
 		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragBlitSpriteDef))
 		if err != nil {
 			return fmt.Errorf("blitspritedef: %w", err)
@@ -110,6 +114,7 @@ func readRawFrag(e *Wce, rawWld *raw.Wld, fragment helper.FragmentReadWriter, fo
 	case rawfrag.FragCodeBlitSprite:
 	case rawfrag.FragCodeParticleCloudDef:
 		def := &ParticleCloudDef{folders: folders}
+		def.fragID = fragID
 		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragParticleCloudDef))
 		if err != nil {
 			return fmt.Errorf("particleclouddef: %w", err)
@@ -117,6 +122,7 @@ func readRawFrag(e *Wce, rawWld *raw.Wld, fragment helper.FragmentReadWriter, fo
 		e.ParticleCloudDefs = append(e.ParticleCloudDefs, def)
 	case rawfrag.FragCodeMaterialDef:
 		def := &MaterialDef{folders: folders}
+		def.fragID = fragID
 		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragMaterialDef))
 		if err != nil {
 			return fmt.Errorf("materialdef: %w", err)
@@ -124,6 +130,7 @@ func readRawFrag(e *Wce, rawWld *raw.Wld, fragment helper.FragmentReadWriter, fo
 		e.MaterialDefs = append(e.MaterialDefs, def)
 	case rawfrag.FragCodeMaterialPalette:
 		def := &MaterialPalette{folders: folders}
+		def.fragID = fragID
 		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragMaterialPalette))
 		if err != nil {
 			return fmt.Errorf("materialpalette: %w", err)
@@ -131,6 +138,7 @@ func readRawFrag(e *Wce, rawWld *raw.Wld, fragment helper.FragmentReadWriter, fo
 		e.MaterialPalettes = append(e.MaterialPalettes, def)
 	case rawfrag.FragCodeDmSpriteDef2:
 		def := &DMSpriteDef2{folders: folders}
+		def.fragID = fragID
 		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragDmSpriteDef2))
 		if err != nil {
 			return fmt.Errorf("dmspritedef2: %w", err)
@@ -150,6 +158,7 @@ func readRawFrag(e *Wce, rawWld *raw.Wld, fragment helper.FragmentReadWriter, fo
 		e.DMSpriteDef2s = append(e.DMSpriteDef2s, def)
 	case rawfrag.FragCodeTrack:
 		def := &TrackInstance{folders: folders}
+		def.fragID = fragID
 		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragTrack))
 		if err != nil {
 			return fmt.Errorf("track: %w", err)
@@ -157,6 +166,7 @@ func readRawFrag(e *Wce, rawWld *raw.Wld, fragment helper.FragmentReadWriter, fo
 		e.TrackInstances = append(e.TrackInstances, def)
 	case rawfrag.FragCodeTrackDef:
 		def := &TrackDef{folders: folders}
+		def.fragID = fragID
 		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragTrackDef))
 		if err != nil {
 			return fmt.Errorf("trackdef: %w", err)
@@ -169,6 +179,7 @@ func readRawFrag(e *Wce, rawWld *raw.Wld, fragment helper.FragmentReadWriter, fo
 		}
 	case rawfrag.FragCodeDmTrackDef2:
 		def := &DMTrackDef2{folders: folders}
+		def.fragID = fragID
 		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragDmTrackDef2))
 		if err != nil {
 			return fmt.Errorf("dmtrackdef2: %w", err)
@@ -177,6 +188,7 @@ func readRawFrag(e *Wce, rawWld *raw.Wld, fragment helper.FragmentReadWriter, fo
 
 	case rawfrag.FragCodeDMSpriteDef:
 		def := &DMSpriteDef{folders: folders}
+		def.fragID = fragID
 		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragDMSpriteDef))
 		if err != nil {
 			return fmt.Errorf("dmspritedef: %w", err)
@@ -185,6 +197,7 @@ func readRawFrag(e *Wce, rawWld *raw.Wld, fragment helper.FragmentReadWriter, fo
 	case rawfrag.FragCodeDMSprite:
 	case rawfrag.FragCodeActorDef:
 		def := &ActorDef{folders: folders}
+		def.fragID = fragID
 		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragActorDef))
 		if err != nil {
 			return fmt.Errorf("actordef: %w", err)
@@ -193,6 +206,7 @@ func readRawFrag(e *Wce, rawWld *raw.Wld, fragment helper.FragmentReadWriter, fo
 		e.ActorDefs = append(e.ActorDefs, def)
 	case rawfrag.FragCodeActor:
 		def := &ActorInst{folders: folders}
+		def.fragID = fragID
 		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragActor))
 		if err != nil {
 			return fmt.Errorf("actor: %w", err)
@@ -201,6 +215,7 @@ func readRawFrag(e *Wce, rawWld *raw.Wld, fragment helper.FragmentReadWriter, fo
 		e.ActorInsts = append(e.ActorInsts, def)
 	case rawfrag.FragCodeHierarchicalSpriteDef:
 		def := &HierarchicalSpriteDef{folders: folders}
+		def.fragID = fragID
 		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragHierarchicalSpriteDef))
 		if err != nil {
 			return fmt.Errorf("hierarchicalspritedef: %w", err)
@@ -210,6 +225,7 @@ func readRawFrag(e *Wce, rawWld *raw.Wld, fragment helper.FragmentReadWriter, fo
 		return nil
 	case rawfrag.FragCodeLightDef:
 		def := &LightDef{folders: folders}
+		def.fragID = fragID
 		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragLightDef))
 		if err != nil {
 			return fmt.Errorf("lightdef: %w", err)
@@ -219,6 +235,7 @@ func readRawFrag(e *Wce, rawWld *raw.Wld, fragment helper.FragmentReadWriter, fo
 		return nil // light instances are ignored, since they're derived from other definitions
 	case rawfrag.FragCodeSprite3DDef:
 		def := &Sprite3DDef{folders: folders}
+		def.fragID = fragID
 		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragSprite3DDef))
 		if err != nil {
 			return fmt.Errorf("sprite3ddef: %w", err)
@@ -229,6 +246,7 @@ func readRawFrag(e *Wce, rawWld *raw.Wld, fragment helper.FragmentReadWriter, fo
 		return nil
 	case rawfrag.FragCodeSphereListDef:
 		def := &SphereListDef{folders: folders}
+		def.fragID = fragID
 		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragSphereListDef))
 		if err != nil {
 			return fmt.Errorf("spherelistdef: %w", err)
@@ -239,6 +257,7 @@ func readRawFrag(e *Wce, rawWld *raw.Wld, fragment helper.FragmentReadWriter, fo
 		return nil
 	case rawfrag.FragCodeZone:
 		def := &Zone{folders: folders}
+		def.fragID = fragID
 		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragZone))
 		if err != nil {
 			return fmt.Errorf("zone: %w", err)
@@ -247,6 +266,7 @@ func readRawFrag(e *Wce, rawWld *raw.Wld, fragment helper.FragmentReadWriter, fo
 
 	case rawfrag.FragCodeWorldTree:
 		def := &WorldTree{folders: folders}
+		def.fragID = fragID
 		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragWorldTree))
 		if err != nil {
 			return fmt.Errorf("worldtree: %w", err)
@@ -255,6 +275,7 @@ func readRawFrag(e *Wce, rawWld *raw.Wld, fragment helper.FragmentReadWriter, fo
 
 	case rawfrag.FragCodeRegion:
 		def := &Region{folders: folders}
+		def.fragID = fragID
 		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragRegion))
 		if err != nil {
 			return fmt.Errorf("region: %w", err)
@@ -262,6 +283,7 @@ func readRawFrag(e *Wce, rawWld *raw.Wld, fragment helper.FragmentReadWriter, fo
 		e.Regions = append(e.Regions, def)
 	case rawfrag.FragCodeAmbientLight:
 		def := &AmbientLight{folders: folders}
+		def.fragID = fragID
 		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragAmbientLight))
 		if err != nil {
 			return fmt.Errorf("ambientlight: %w", err)
@@ -269,6 +291,7 @@ func readRawFrag(e *Wce, rawWld *raw.Wld, fragment helper.FragmentReadWriter, fo
 		e.AmbientLights = append(e.AmbientLights, def)
 	case rawfrag.FragCodePointLight:
 		def := &PointLight{folders: folders}
+		def.fragID = fragID
 		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragPointLight))
 		if err != nil {
 			return fmt.Errorf("pointlight: %w", err)
@@ -276,6 +299,7 @@ func readRawFrag(e *Wce, rawWld *raw.Wld, fragment helper.FragmentReadWriter, fo
 		e.PointLights = append(e.PointLights, def)
 	case rawfrag.FragCodeDirectionalLight:
 		def := &DirectionalLight{folders: folders}
+		def.fragID = fragID
 		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragDirectionalLight))
 		if err != nil {
 			return fmt.Errorf("directionallight: %w", err)
@@ -283,6 +307,7 @@ func readRawFrag(e *Wce, rawWld *raw.Wld, fragment helper.FragmentReadWriter, fo
 		e.DirectionalLights = append(e.DirectionalLights, def)
 	case rawfrag.FragCodePolyhedronDef:
 		def := &PolyhedronDefinition{folders: folders}
+		def.fragID = fragID
 		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragPolyhedronDef))
 		if err != nil {
 			return fmt.Errorf("polyhedrondefinition: %w", err)
@@ -296,6 +321,7 @@ func readRawFrag(e *Wce, rawWld *raw.Wld, fragment helper.FragmentReadWriter, fo
 		return nil
 	case rawfrag.FragCodeDmRGBTrackDef:
 		def := &RGBTrackDef{folders: folders}
+		def.fragID = fragID
 		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragDmRGBTrackDef))
 		if err != nil {
 			return fmt.Errorf("dmrgbtrackdef: %w", err)
@@ -304,6 +330,7 @@ func readRawFrag(e *Wce, rawWld *raw.Wld, fragment helper.FragmentReadWriter, fo
 	case rawfrag.FragCodeDmRGBTrack:
 	case rawfrag.FragCodeSprite2DDef:
 		def := &Sprite2DDef{folders: folders}
+		def.fragID = fragID
 		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragSprite2DDef))
 		if err != nil {
 			return fmt.Errorf("sprite2ddef: %w", err)
@@ -312,6 +339,7 @@ func readRawFrag(e *Wce, rawWld *raw.Wld, fragment helper.FragmentReadWriter, fo
 	case rawfrag.FragCodeSprite2D:
 	case rawfrag.FragCodeDefaultPaletteFile:
 		def := &DefaultPalette{folders: folders}
+		def.fragID = fragID
 		err := def.FromRaw(e, rawWld, fragment.(*rawfrag.WldFragDefaultPaletteFile))
 		if err != nil {
 			return fmt.Errorf("default palette file: %w", err)
@@ -648,6 +676,21 @@ func setRootFolder(foldersByFrag map[int][]string, folder string, node *tree.Nod
 									foldersByFrag[int(node.FragID)] = appendUnique(foldersByFrag[int(node.FragID)], folderToAdd)
 									addChildrenFolder(foldersByFrag, folderToAdd, node)
 								}
+							}
+						}
+					}
+				} else if strings.HasPrefix(prefix, "CHR_EYE") {
+					for _, potentialNode := range nodes {
+						if potentialNode.FragType != "MaterialPalette" {
+							continue
+						}
+
+						for _, childNode := range potentialNode.Children {
+							if strings.HasPrefix(childNode.Tag, prefix) {
+								folderToAdd := potentialNode.Tag[:3]
+								foldersByFrag[int(node.FragID)] = appendUnique(foldersByFrag[int(node.FragID)], folderToAdd)
+								addChildrenFolder(foldersByFrag, folderToAdd, node)
+								break
 							}
 						}
 					}

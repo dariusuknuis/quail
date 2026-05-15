@@ -4,13 +4,6 @@ note: "Wld Simple Sprite Definition"
 
 properties:
 
-  - name: "TAGINDEX"
-    note: "Index of tag"
-    args:
-      - name: "index"
-        note: "Index of tag"
-        format: "%d"
-
   - name: "VARIATION"
     note: "Variation of tag"
     args:

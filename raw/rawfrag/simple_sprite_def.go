@@ -14,7 +14,7 @@ type WldFragSimpleSpriteDef struct {
 	Flags        uint32
 	CurrentFrame int32
 	Sleep        uint32
-	BitmapRefs   []uint32
+	BitmapRefs   []int32
 }
 
 func (e *WldFragSimpleSpriteDef) FragCode() int {
@@ -25,7 +25,7 @@ func (e *WldFragSimpleSpriteDef) Write(w io.Writer, isNewWorld bool) error {
 	enc := encdec.NewEncoder(w, binary.LittleEndian)
 	enc.Int32(e.nameRef)
 	enc.Uint32(e.Flags)
-	enc.Uint32(uint32(len(e.BitmapRefs)))
+	enc.Int32(int32(len(e.BitmapRefs)))
 	if e.Flags&0x04 != 0 {
 		enc.Int32(e.CurrentFrame)
 	}
@@ -33,7 +33,7 @@ func (e *WldFragSimpleSpriteDef) Write(w io.Writer, isNewWorld bool) error {
 		enc.Uint32(e.Sleep)
 	}
 	for _, textureRef := range e.BitmapRefs {
-		enc.Uint32(textureRef)
+		enc.Int32(textureRef)
 	}
 	err := enc.Error()
 	if err != nil {
@@ -54,7 +54,7 @@ func (e *WldFragSimpleSpriteDef) Read(r io.ReadSeeker, isNewWorld bool) error {
 		e.Sleep = dec.Uint32()
 	}
 	for i := 0; i < int(textureRefCount); i++ {
-		e.BitmapRefs = append(e.BitmapRefs, dec.Uint32())
+		e.BitmapRefs = append(e.BitmapRefs, dec.Int32())
 	}
 	err := dec.Error()
 	if err != nil {

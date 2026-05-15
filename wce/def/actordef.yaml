@@ -21,7 +21,7 @@ properties:
     args:
       - name: "current action"
         note: "The current action"
-        format: "%s"
+        format: "%d"
 
   - name: "LOCATION?"
     note: "The location of the actor"
@@ -61,39 +61,35 @@ properties:
     properties:
       - name: "ACTION"
         note: "Action entry"
-      - name: "UNK1"
-        note: "Unknown entry 1"
-        args:
-          - name: "unk1"
-            note: "value of unk1"
-            format: "%d"
-      - name: "NUMLEVELSOFDETAILS"
-        note: "Number of levels of detail"
-        args:
-          - name: "lod value"
-            note: "Number of levels of detail"
-            format: "%d"
         properties:
-          - name: "LEVELOFDETAIL"
-            note: "Level of detail entry"
-          - name: "SPRITE"
-            note: "Sprite entry tag"
-            args:
-              - name: "tag"
-                note: "sprite tag"
-                format: "%s"
-          - name: "SPRITEINDEX"
-            note: "Sprite index"
-            args:
-              - name: "index"
-                note: "Sprite index"
-                format: "%d"
-          - name: "MINDISTANCE"
-            note: "Minimum distance to render LOD"
-            args:
-              - name: ""
-                note: "Minimum distance"
-                format: "%0.8e"
+        - name: "UNK1"
+          note: "Unknown entry 1"
+          args:
+            - name: "unk1"
+              note: "value of unk1"
+              format: "%d"
+        - name: "NUMLEVELSOFDETAILS"
+          note: "Number of levels of detail"
+          args:
+            - name: "lod value"
+              note: "Number of levels of detail"
+              format: "%d"
+          properties:
+            - name: "LEVELOFDETAIL"
+              note: "Level of detail entry"
+              properties:
+              - name: "SPRITE"
+                note: "Sprite entry tag"
+                args:
+                  - name: "tag"
+                    note: "sprite tag"
+                    format: "%s"
+              - name: "MINDISTANCE"
+                note: "Minimum distance to render LOD"
+                args:
+                  - name: ""
+                    note: "Minimum distance"
+                    format: "%0.8e"
   - name: "SPRITEVOLUMEONLY"
     note: "Ignored in RoF2. 0x80 flag. This gets ignored if ActorInst doesn't have it. Likely need to use hierarchysprite flag for things like boats"
     args:

@@ -2,13 +2,13 @@ name: "REGION"
 hasTag: true
 note: "Wld Region"
 properties:
-  - name: "REVERBVOLUME"
+  - name: "REVERBVOLUME?"
     note: ""
     args:
       - name: ""
         note: ""
         format: "%0.8e"
-  - name: "REVERBOFFSET"
+  - name: "REVERBOFFSET?"
     note: ""
     args:
       - name: ""
@@ -265,7 +265,7 @@ properties:
             note: ""
             format: "%d..."
             example: "1 1"
-  - name: "SPHERE"
+  - name: "SPHERE?"
     note: ""
     args:
       - name: ""
@@ -286,7 +286,7 @@ properties:
       - name: ""
         note: ""
         format: "%s"
-  - name: "SPRITE"
+  - name: "SPRITE?"
     note: ""
     args:
       - name: ""

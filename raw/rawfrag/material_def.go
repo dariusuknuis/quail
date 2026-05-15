@@ -16,7 +16,7 @@ type WldFragMaterialDef struct {
 	RGBPen          [4]uint8
 	Brightness      float32
 	ScaledAmbient   float32
-	SimpleSpriteRef uint32
+	SimpleSpriteRef int32
 	UShiftPerMs     float32
 	VShiftPerMs     float32
 }
@@ -36,7 +36,7 @@ func (e *WldFragMaterialDef) Write(w io.Writer, isNewWorld bool) error {
 	enc.Uint8(e.RGBPen[3])
 	enc.Float32(e.Brightness)
 	enc.Float32(e.ScaledAmbient)
-	enc.Uint32(e.SimpleSpriteRef)
+	enc.Int32(e.SimpleSpriteRef)
 	if e.Flags&0x2 != 0 {
 		enc.Float32(e.UShiftPerMs)
 		enc.Float32(e.VShiftPerMs)
@@ -56,7 +56,7 @@ func (e *WldFragMaterialDef) Read(r io.ReadSeeker, isNewWorld bool) error {
 	e.RGBPen = [4]uint8{dec.Uint8(), dec.Uint8(), dec.Uint8(), dec.Uint8()}
 	e.Brightness = dec.Float32()
 	e.ScaledAmbient = dec.Float32()
-	e.SimpleSpriteRef = dec.Uint32()
+	e.SimpleSpriteRef = dec.Int32()
 	if e.Flags&0x2 != 0 {
 		e.UShiftPerMs = dec.Float32()
 		e.VShiftPerMs = dec.Float32()

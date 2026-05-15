@@ -4,13 +4,6 @@ note: "Wld DM sprite definition"
 
 properties:
 
-  - name: "TAGINDEX"
-    note: "The index of the tag"
-    args:
-      - name: "index"
-        note: "The index of the tag"
-        format: "%d"
-
   - name: "CENTEROFFSET"
     note: "The center offset of the sprite"
     args:
@@ -107,13 +100,10 @@ properties:
   - name: "SKINASSIGNMENTGROUPS"
     note: "The skin assignment groups"
     args:
-      - name: "group size"
-        note: "The size of the group"
-        format: "%d"
-      - name: "group data"
-        note: "The data of the group"
+      - name: "group entries"
+        note: "First value is the number of groups, then pairs of dag/# of verts"
         format: "%d..."
-        example: "2 3"
+        example: "1 1 1"
 
   - name: "MATERIALPALETTE"
     note: "The material palette used by the sprite"
@@ -204,15 +194,15 @@ properties:
     note: "The face material groups"
     args:
       - name: "group entries"
-        note: "The size of the group"
+        note: "First value if number of groups, then pairs of mat and # of faces"
         format: "%d..."
         example: "1 1 1"
 
   - name: "VERTEXMATERIALGROUPS"
     note: "The vertex material groups"
     args:
-      - name: "group size"
-        note: "The size of the group"
+      - name: "group entries"
+        note: "First value if number of groups, then pairs of mat and # of verts"
         format: "%d..."
         example: "1 1 1"
 
