@@ -56,7 +56,6 @@ type ModMaterial struct {
 	ID         int32
 	Name       string
 	ShaderName string
-	Flags      uint32
 	Properties []*ModMaterialParam
 	Animation  ModMaterialAnimation
 }

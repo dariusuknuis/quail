@@ -27,12 +27,6 @@ properties:
           - name: ""
             note: ""
             format: "%s"
-      - name: "HEXONEFLAG"
-        note: ""
-        args:
-          - name: ""
-            note: ""
-            format: "%d"
       - name: "NUMPROPERTIES"
         note: ""
         args:

@@ -74,7 +74,6 @@ func (e *EqgModDef) Write(token *AsciiWriteToken) error {
 		for _, material := range e.Materials {
 			fmt.Fprintf(w, "\t\tMATERIALTAG \"%s\"\n", material.Tag)
 			fmt.Fprintf(w, "\t\t\tSHADERTAG \"%s\"\n", material.ShaderTag)
-			fmt.Fprintf(w, "\t\t\tHEXONEFLAG %d\n", material.HexOneFlag)
 			fmt.Fprintf(w, "\t\t\tNUMPROPERTIES %d\n", len(material.Properties))
 			for _, prop := range material.Properties {
 				fmt.Fprintf(w, "\t\t\t\tPROPERTY \"%s\" %d \"%s\"\n", prop.Name, prop.Type, prop.Value)
@@ -644,7 +643,6 @@ func (e *EqgMdsDef) Write(token *AsciiWriteToken) error {
 		for _, material := range e.Materials {
 			fmt.Fprintf(w, "\t\tMATERIALTAG \"%s\"\n", material.Tag)
 			fmt.Fprintf(w, "\t\t\tSHADERTAG \"%s\"\n", material.ShaderTag)
-			fmt.Fprintf(w, "\t\t\tHEXONEFLAG %d\n", material.HexOneFlag)
 			fmt.Fprintf(w, "\t\t\tNUMPROPERTIES %d\n", len(material.Properties))
 			for _, prop := range material.Properties {
 				fmt.Fprintf(w, "\t\t\t\tPROPERTY \"%s\" %d \"%s\"\n", prop.Name, prop.Type, prop.Value)
@@ -1234,7 +1232,6 @@ func (e *EqgTerDef) Write(token *AsciiWriteToken) error {
 		for _, material := range e.Materials {
 			fmt.Fprintf(w, "\t\tMATERIALTAG \"%s\"\n", material.Tag)
 			fmt.Fprintf(w, "\t\t\tSHADERTAG \"%s\"\n", material.ShaderTag)
-			fmt.Fprintf(w, "\t\t\tHEXONEFLAG %d\n", material.HexOneFlag)
 			fmt.Fprintf(w, "\t\t\tNUMPROPERTIES %d\n", len(material.Properties))
 			for _, prop := range material.Properties {
 				fmt.Fprintf(w, "\t\t\t\tPROPERTY \"%s\" %d \"%s\"\n", prop.Name, prop.Type, prop.Value)
@@ -1566,7 +1563,6 @@ type EQMaterialDef struct {
 	folders           []string
 	Tag               string
 	ShaderTag         string
-	HexOneFlag        int
 	Properties        []*MaterialProperty
 	AnimationSleep    uint32
 	AnimationTextures []string
@@ -1604,9 +1600,8 @@ func (e *EQMaterialDef) Write(token *AsciiWriteToken) error {
 
 		fmt.Fprintf(w, "%s \"%s\"\n", e.Definition(), e.Tag)
 		fmt.Fprintf(w, "\tSHADERTAG \"%s\"\n", e.ShaderTag)
-		fmt.Fprintf(w, "\tHEXONEFLAG %d\n", e.HexOneFlag)
-
 		fmt.Fprintf(w, "\tNUMPROPERTIES %d\n", len(e.Properties))
+		// PROPERTY TYPES: 0 = float, 1 = int, 2 = texture file name, 3 = ARGB color
 		for _, prop := range e.Properties {
 			fmt.Fprintf(w, "\t\tPROPERTY \"%s\" %d \"%s\"\n", prop.Name, prop.Type, prop.Value)
 		}
@@ -1630,15 +1625,6 @@ func (e *EQMaterialDef) Read(token *AsciiReadToken) error {
 		return err
 	}
 	e.ShaderTag = records[1]
-
-	records, err = token.ReadProperty("HEXONEFLAG", 1)
-	if err != nil {
-		return err
-	}
-	err = parse(&e.HexOneFlag, records[1])
-	if err != nil {
-		return fmt.Errorf("hexoneflag: %w", err)
-	}
 
 	records, err = token.ReadProperty("NUMPROPERTIES", 1)
 	if err != nil {
@@ -1702,9 +1688,6 @@ func (e *EQMaterialDef) Read(token *AsciiReadToken) error {
 func (e *EQMaterialDef) ToRaw(wce *Wce, dst *raw.ModMaterial) error {
 	dst.Name = e.Tag
 	dst.ShaderName = e.ShaderTag
-	if e.HexOneFlag == 1 {
-		dst.Flags = 0x01
-	}
 	for _, prop := range e.Properties {
 		mp := &raw.ModMaterialParam{
 			Name:  prop.Name,
@@ -1728,9 +1711,6 @@ func (e *EQMaterialDef) FromRawNoAppend(wce *Wce, src *raw.ModMaterial) error {
 
 	e.Tag = src.Name
 	e.ShaderTag = src.ShaderName
-	if src.Flags&0x01 != 0 {
-		e.HexOneFlag = 1
-	}
 	for _, prop := range src.Properties {
 		mp := &MaterialProperty{
 			Name:  prop.Name,
