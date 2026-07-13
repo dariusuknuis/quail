@@ -50,16 +50,37 @@ func (ter *Ter) Write(w io.Writer) error {
 			enc.Uint32(uint32(ter.name.offsetByName(prop.Name)))
 			enc.Uint32(uint32(prop.Type))
 			switch prop.Type {
-			case 0:
+
+			case 0: // float
 				fval, err := strconv.ParseFloat(prop.Value, 32)
 				if err != nil {
-					return err
+					return fmt.Errorf("%s: invalid float %q: %w", prop.Name, prop.Value, err)
 				}
 				enc.Float32(float32(fval))
-			case 2:
+
+			case 1: // int
+				ival, err := strconv.ParseInt(prop.Value, 10, 32)
+				if err != nil {
+					return fmt.Errorf("%s: invalid int %q: %w", prop.Name, prop.Value, err)
+				}
+				enc.Int32(int32(ival))
+
+			case 2: // string/name table offset
 				enc.Int32(ter.name.offsetByName(prop.Value))
+
+			case 3: // ARGB
+				var a, r, g, b uint32
+
+				_, err := fmt.Sscanf(prop.Value, "%d %d %d %d", &a, &r, &g, &b)
+				if err != nil {
+					return fmt.Errorf("%s: invalid ARGB value %q", prop.Name, prop.Value)
+				}
+
+				argb := (a << 24) | (r << 16) | (g << 8) | b
+				enc.Int32(int32(argb))
+
 			default:
-				return err
+				return fmt.Errorf("unsupported property type %d", prop.Type)
 			}
 		}
 	}

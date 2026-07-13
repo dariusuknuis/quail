@@ -145,16 +145,28 @@ func (mod *Mod) Read(r io.ReadSeeker) error {
 			param.Name = mod.name.byOffset(dec.Int32())
 
 			param.Type = MaterialParamType(dec.Uint32())
-			if param.Type == 0 {
+			switch param.Type {
+			case 0:
 				param.Value = fmt.Sprintf("%0.8f", dec.Float32())
-			} else {
-				val := dec.Int32()
-				if param.Type == 2 {
-					param.Value = mod.name.byOffset(val)
 
-				} else {
-					param.Value = fmt.Sprintf("%d", val)
-				}
+			case 1:
+				param.Value = fmt.Sprintf("%d", dec.Int32())
+
+			case 2:
+				param.Value = mod.name.byOffset(dec.Int32())
+
+			case 3:
+				argb := uint32(dec.Int32())
+
+				a := (argb >> 24) & 0xFF
+				r := (argb >> 16) & 0xFF
+				g := (argb >> 8) & 0xFF
+				b := argb & 0xFF
+
+				param.Value = fmt.Sprintf("%d %d %d %d", a, r, g, b)
+
+			default:
+				return fmt.Errorf("unsupported property type %d", param.Type)
 			}
 			material.Properties = append(material.Properties, param)
 		}

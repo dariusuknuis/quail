@@ -111,17 +111,29 @@ func (mds *Mds) Read(r io.ReadSeeker) error {
 			property.Name = mds.name.byOffset(dec.Int32())
 
 			property.Type = MaterialParamType(dec.Uint32())
-			if property.Type == 0 {
+			switch property.Type {
+			case 0:
 				property.Value = fmt.Sprintf("%0.8f", dec.Float32())
-			} else {
-				val := dec.Int32()
-				if property.Type == 2 {
-					property.Value = mds.name.byOffset(val)
-				} else {
-					property.Value = fmt.Sprintf("%d", val)
-				}
-			}
 
+			case 1:
+				property.Value = fmt.Sprintf("%d", dec.Int32())
+
+			case 2:
+				property.Value = mds.name.byOffset(dec.Int32())
+
+			case 3:
+				argb := uint32(dec.Int32())
+
+				a := (argb >> 24) & 0xFF
+				r := (argb >> 16) & 0xFF
+				g := (argb >> 8) & 0xFF
+				b := argb & 0xFF
+
+				property.Value = fmt.Sprintf("%d %d %d %d", a, r, g, b)
+
+			default:
+				return fmt.Errorf("unsupported property type %d", property.Type)
+			}
 			material.Properties = append(material.Properties, property)
 		}
 	}
