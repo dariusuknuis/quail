@@ -1,0 +1,29 @@
+name: "EQGANLDEF"
+hasTag: true
+note: "EQG Animation List Definition"
+properties:
+  - name: "VERSION"
+    note: ""
+    args:
+      - name: ""
+        note: ""
+        format: "%d"
+  - name: "NUMANIMATIONS"
+    note: ""
+    args:
+      - name: ""
+        note: ""
+        format: "%d"
+    properties:
+      - name: "ANIMATION"
+        note: ""
+        args:
+          - name: ""
+            note: ""
+            format: "%s"
+  - name: "DEFAULTANIMATION"
+    note: ""
+    args:
+      - name: ""
+        note: ""
+        format: "%s"
