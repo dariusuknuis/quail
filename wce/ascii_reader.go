@@ -201,6 +201,7 @@ func (a *AsciiReadToken) readDefinitions() error {
 		&ActorDef{},
 		&ActorInst{},
 		&EqgAniDef{},
+		&EqgAnlDef{},
 		&AmbientLight{},
 		&BlitSpriteDef{},
 		&DefaultPalette{},
@@ -588,6 +589,13 @@ func (a *AsciiReadToken) readDefinitions() error {
 				frag.Tag = args[1]
 				a.wce.AniDefs = append(a.wce.AniDefs, frag)
 				definitions[i] = &EqgAniDef{}
+			case *EqgAnlDef:
+				if len(args) == 1 {
+					return fmt.Errorf("definition %s has no arguments", defName)
+				}
+				frag.Tag = args[1]
+				a.wce.AnlDefs = append(a.wce.AnlDefs, frag)
+				definitions[i] = &EqgAnlDef{}
 			case *EqgLodDef:
 				if len(args) == 1 {
 					return fmt.Errorf("definition %s has no arguments", defName)

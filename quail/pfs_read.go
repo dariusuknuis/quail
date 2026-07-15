@@ -87,6 +87,9 @@ func (q *Quail) PfsRead(path string) error {
 	if len(q.Wld.AniDefs) > 0 {
 		summary = fmt.Sprintf("%s%d animation%s, ", summary, len(q.Wld.AniDefs), helper.Pluralize(len(q.Wld.AniDefs)))
 	}
+	if len(q.Wld.AnlDefs) > 0 {
+		summary = fmt.Sprintf("%s%d animation list%s, ", summary, len(q.Wld.AnlDefs), helper.Pluralize(len(q.Wld.AnlDefs)))
+	}
 	if len(q.Wld.TrackDefs) > 0 {
 		summary = fmt.Sprintf("%s%d track%s, ", summary, len(q.Wld.TrackDefs), helper.Pluralize(len(q.Wld.TrackDefs)))
 	}

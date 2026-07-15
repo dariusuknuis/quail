@@ -112,6 +112,20 @@ func (wce *Wce) readEqgEntry(entry *pfs.FileEntry) error {
 			return fmt.Errorf("ani: %w", err)
 		}
 		wce.AniDefs = append(wce.AniDefs, def)
+	case ".anl":
+		rawSrc := &raw.Anl{
+			MetaFileName: strings.TrimSuffix(entry.Name(), ".anl"),
+		}
+		err = rawSrc.Read(bytes.NewReader(entry.Data()))
+		if err != nil {
+			return err
+		}
+		def := &EqgAnlDef{}
+		err := def.FromRaw(wce, rawSrc)
+		if err != nil {
+			return fmt.Errorf("anl: %w", err)
+		}
+		wce.AnlDefs = append(wce.AnlDefs, def)
 	case ".pts":
 		rawSrc := &raw.Pts{
 			MetaFileName: strings.TrimSuffix(entry.Name(), ".pts"),
@@ -329,6 +343,24 @@ func (wce *Wce) WriteEqgRaw(archive *pfs.Pfs) error {
 		err = archive.Add(ani.Tag+".ani", buf.Bytes())
 		if err != nil {
 			return fmt.Errorf("add ani: %w", err)
+		}
+	}
+
+	for _, anl := range wce.AnlDefs {
+		buf := &bytes.Buffer{}
+		dst := &raw.Anl{}
+		err = anl.ToRaw(wce, dst)
+		if err != nil {
+			return fmt.Errorf("anl to raw: %w", err)
+		}
+
+		err = dst.Write(buf)
+		if err != nil {
+			return fmt.Errorf("anl write: %w", err)
+		}
+		err = archive.Add(anl.Tag+".anl", buf.Bytes())
+		if err != nil {
+			return fmt.Errorf("add anl: %w", err)
 		}
 	}
 

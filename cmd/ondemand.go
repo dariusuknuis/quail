@@ -102,6 +102,8 @@ func ondemand(path string) error {
 		switch ext {
 		case ".ani":
 			fmt.Printf("%s^%s^%s^EQGA\n", eqgName, feName, strings.TrimSuffix(feName, filepath.Ext(feName)))
+		case ".anl":
+			fmt.Printf("%s^%s^%s^EQAL\n", eqgName, feName, strings.TrimSuffix(feName, filepath.Ext(feName)))
 		case ".lay":
 			lay := &raw.Lay{}
 			err = lay.Read(bytes.NewReader(fe.Data()))

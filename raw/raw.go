@@ -28,6 +28,8 @@ func New(ext string) ReadWriter {
 	switch ext {
 	case ".ani":
 		return &Ani{}
+	case ".anl":
+		return &Anl{}
 	case ".bmp":
 		return &Bmp{}
 	case ".dat":

@@ -1942,6 +1942,114 @@ func (e *EqgAniDef) FromRaw(wce *Wce, src *raw.Ani) error {
 	return nil
 }
 
+// EqgAnlDef represents an eqg .anl animation list file
+type EqgAnlDef struct {
+	folders          []string
+	Tag              string
+	Version          uint32
+	Animations       []string
+	DefaultAnimation string
+}
+
+func (e *EqgAnlDef) Definition() string {
+	return "EQGANLDEF"
+}
+
+func (e *EqgAnlDef) Write(token *AsciiWriteToken) error {
+	for _, folder := range e.folders {
+		err := token.SetWriter(folder)
+		if err != nil {
+			return err
+		}
+
+		w, err := token.Writer()
+		if err != nil {
+			return err
+		}
+
+		if token.TagIsWritten(e.Tag) {
+			return nil
+		}
+
+		token.TagSetIsWritten(e.Tag)
+
+		fmt.Fprintf(w, "%s \"%s\"\n", e.Definition(), e.Tag)
+		fmt.Fprintf(w, "\tVERSION %d\n", e.Version)
+		fmt.Fprintf(w, "\tNUMANIMATIONS %d\n", len(e.Animations))
+
+		for _, anim := range e.Animations {
+			fmt.Fprintf(w, "\t\tANIMATION \"%s\"\n", anim)
+		}
+
+		fmt.Fprintf(w, "\tDEFAULTANIMATION \"%s\"\n", e.DefaultAnimation)
+		fmt.Fprintf(w, "\n")
+	}
+
+	return nil
+}
+
+func (e *EqgAnlDef) Read(token *AsciiReadToken) error {
+
+	records, err := token.ReadProperty("VERSION", 1)
+	if err != nil {
+		return err
+	}
+	if err := parse(&e.Version, records[1]); err != nil {
+		return fmt.Errorf("version: %w", err)
+	}
+
+	records, err = token.ReadProperty("NUMANIMATIONS", 1)
+	if err != nil {
+		return err
+	}
+
+	numAnimations := 0
+	if err := parse(&numAnimations, records[1]); err != nil {
+		return fmt.Errorf("num animations: %w", err)
+	}
+
+	for i := 0; i < numAnimations; i++ {
+		records, err = token.ReadProperty("ANIMATION", 1)
+		if err != nil {
+			return fmt.Errorf("animation %d: %w", i, err)
+		}
+
+		e.Animations = append(e.Animations, records[1])
+	}
+
+	records, err = token.ReadProperty("DEFAULTANIMATION", 1)
+	if err != nil {
+		return err
+	}
+
+	e.DefaultAnimation = records[1]
+
+	return nil
+}
+
+func (e *EqgAnlDef) ToRaw(wce *Wce, dst *raw.Anl) error {
+
+	dst.MetaFileName = e.Tag
+	dst.Version = e.Version
+
+	dst.Animations = append(dst.Animations, e.Animations...)
+	dst.DefaultAnimation = e.DefaultAnimation
+
+	return nil
+}
+
+func (e *EqgAnlDef) FromRaw(wce *Wce, src *raw.Anl) error {
+	folder := strings.TrimSuffix(strings.ToLower(wce.FileName), ".eqg")
+	e.folders = append(e.folders, folder)
+
+	e.Tag = src.MetaFileName
+	e.Version = src.Version
+	e.Animations = append(e.Animations, src.Animations...)
+	e.DefaultAnimation = src.DefaultAnimation
+
+	return nil
+}
+
 // EqgLayDef represents an eqg .lay file
 type EqgLayDef struct {
 	folders []string

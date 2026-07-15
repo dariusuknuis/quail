@@ -103,6 +103,13 @@ func Open(name string, r io.ReadSeeker) (interface{}, error) {
 			return nil, fmt.Errorf("ani.Read: %w", err)
 		}
 		return ani, nil
+	case ".anl":
+		anl := &raw.Anl{}
+		err = anl.Read(r)
+		if err != nil {
+			return nil, fmt.Errorf("anl.Read: %w", err)
+		}
+		return anl, nil
 	case ".mod":
 		mod := &raw.Mod{}
 		err = mod.Read(r)

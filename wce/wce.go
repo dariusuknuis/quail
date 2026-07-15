@@ -55,6 +55,7 @@ type Wce struct {
 	WorldTrees             []*WorldTree
 	Zones                  []*Zone
 	AniDefs                []*EqgAniDef
+	AnlDefs                []*EqgAnlDef
 	MdsDefs                []*EqgMdsDef
 	ModDefs                []*EqgModDef
 	TerDefs                []*EqgTerDef
@@ -386,6 +387,8 @@ func (wce *Wce) reset() {
 	wce.RGBTrackDefs = []*RGBTrackDef{}
 	wce.ParticleCloudDefs = []*ParticleCloudDef{}
 	wce.Sprite2DDefs = []*Sprite2DDef{}
+	wce.AniDefs = []*EqgAniDef{}
+	wce.AnlDefs = []*EqgAnlDef{}
 	wce.MdsDefs = []*EqgMdsDef{}
 	wce.ModDefs = []*EqgModDef{}
 	wce.TerDefs = []*EqgTerDef{}

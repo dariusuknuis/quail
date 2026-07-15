@@ -275,6 +275,13 @@ func (wce *Wce) writeAsciiData(path string) error {
 		}
 	}
 
+	for _, anlDef := range wce.AnlDefs {
+		err = anlDef.Write(token)
+		if err != nil {
+			return fmt.Errorf("anldef %s: %w", anlDef.Tag, err)
+		}
+	}
+
 	for _, layDef := range wce.LayDefs {
 		err = layDef.Write(token)
 		if err != nil {
