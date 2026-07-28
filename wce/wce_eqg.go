@@ -91,7 +91,7 @@ func (e *EqgModDef) Write(token *AsciiWriteToken) error {
 			fmt.Fprintf(w, "\t\t\tUV %0.8e %0.8e\n", vert.Uv[0], vert.Uv[1])
 			fmt.Fprintf(w, "\t\t\tUV2 %0.8e %0.8e\n", vert.Uv2[0], vert.Uv2[1])
 			fmt.Fprintf(w, "\t\t\tNORMAL %0.8e %0.8e %0.8e\n", vert.Normal[0], vert.Normal[1], vert.Normal[2])
-			fmt.Fprintf(w, "\t\t\tTINT %d %d %d %d\n", vert.Tint[0], vert.Tint[1], vert.Tint[2], vert.Tint[3])
+			fmt.Fprintf(w, "\t\t\tTINT %d %d %d %d\n", vert.Tint[2], vert.Tint[1], vert.Tint[0], vert.Tint[3])
 			fmt.Fprintf(w, "\t\t\tNUMWEIGHTS %d\n", len(vert.Weights))
 			for _, weight := range vert.Weights {
 				fmt.Fprintf(w, "\t\t\t\tWEIGHT %d %0.8e\n", weight.BoneIndex, weight.Value)
@@ -226,10 +226,13 @@ func (e *EqgModDef) Read(token *AsciiReadToken) error {
 		if err != nil {
 			return fmt.Errorf("vertex %d tint: %w", j, err)
 		}
-		err = parse(&vertex.Tint, records[1:]...)
-		if err != nil {
+
+		vertex.Tint = [4]uint8{}
+		if err := parse(&vertex.Tint, records[1:]...); err != nil {
 			return fmt.Errorf("vertex %d tint: %w", j, err)
 		}
+
+		vertex.Tint = [4]uint8{vertex.Tint[2], vertex.Tint[1], vertex.Tint[0], vertex.Tint[3]}
 
 		records, err = token.ReadProperty("NUMWEIGHTS", 1)
 		if err != nil {
@@ -1249,7 +1252,7 @@ func (e *EqgTerDef) Write(token *AsciiWriteToken) error {
 			fmt.Fprintf(w, "\t\t\tUV %0.8e %0.8e\n", vert.Uv[0], vert.Uv[1])
 			fmt.Fprintf(w, "\t\t\tUV2 %0.8e %0.8e\n", vert.Uv2[0], vert.Uv2[1])
 			fmt.Fprintf(w, "\t\t\tNORMAL %0.8e %0.8e %0.8e\n", vert.Normal[0], vert.Normal[1], vert.Normal[2])
-			fmt.Fprintf(w, "\t\t\tTINT %d %d %d %d\n", vert.Tint[0], vert.Tint[1], vert.Tint[2], vert.Tint[3])
+			fmt.Fprintf(w, "\t\t\tTINT %d %d %d %d\n", vert.Tint[2], vert.Tint[1], vert.Tint[0], vert.Tint[3])
 		}
 
 		fmt.Fprintf(w, "\tNUMFACES %d\n", len(e.Faces))
@@ -1367,10 +1370,13 @@ func (e *EqgTerDef) Read(token *AsciiReadToken) error {
 		if err != nil {
 			return fmt.Errorf("vertex %d tint: %w", j, err)
 		}
-		err = parse(&vertex.Tint, records[1:]...)
-		if err != nil {
+
+		vertex.Tint = [4]uint8{}
+		if err := parse(&vertex.Tint, records[1:]...); err != nil {
 			return fmt.Errorf("vertex %d tint: %w", j, err)
 		}
+
+		vertex.Tint = [4]uint8{vertex.Tint[2], vertex.Tint[1], vertex.Tint[0], vertex.Tint[3]}
 
 		e.Vertices = append(e.Vertices, vertex)
 
