@@ -60,7 +60,7 @@ type ZonInstance struct {
 	Translation [3]float32
 	Rotation    [3]float32
 	Scale       float32
-	Lits        []uint32
+	Lits        [][4]uint8
 }
 
 // ZonArea is an area
@@ -152,7 +152,8 @@ func (zon *Zon) Read(r io.ReadSeeker) error {
 		if zon.Version > 1 {
 			litCount := dec.Uint32()
 			for j := 0; j < int(litCount); j++ {
-				instance.Lits = append(instance.Lits, dec.Uint32())
+				lit := [4]uint8{dec.Uint8(), dec.Uint8(), dec.Uint8(), dec.Uint8()}
+				instance.Lits = append(instance.Lits, lit)
 			}
 		}
 

@@ -2743,7 +2743,7 @@ type EqgZonInstance struct {
 	Translation [3]float32
 	Rotation    [3]float32
 	Scale       float32
-	Lits        []uint32
+	Lits        [][4]uint8
 }
 
 type EqgZonRegion struct {
@@ -2797,8 +2797,8 @@ func (e *EqgZonDef) Write(token *AsciiWriteToken) error {
 			fmt.Fprintf(w, "\t\t\tROTATION %0.8e %0.8e %0.8e\n", instance.Rotation[0], instance.Rotation[1], instance.Rotation[2])
 			fmt.Fprintf(w, "\t\t\tSCALE %0.8e\n", instance.Scale)
 			fmt.Fprintf(w, "\t\t\tNUMLITS %d\n", len(instance.Lits))
-			for _, lit := range instance.Lits {
-				fmt.Fprintf(w, "\t\t\t\tLIT %d\n", lit)
+			for l, lit := range instance.Lits {
+				fmt.Fprintf(w, "\t\t\t\tLIT %d %d %d %d //%d\n", lit[2], lit[1], lit[0], lit[3], l)
 			}
 		}
 
@@ -2919,17 +2919,18 @@ func (e *EqgZonDef) Read(token *AsciiReadToken) error {
 		}
 
 		for j := 0; j < numLits; j++ {
-			records, err = token.ReadProperty("LIT", 1)
+			records, err = token.ReadProperty("LIT", 4)
 			if err != nil {
 				return fmt.Errorf("instance %d lit %d: %w", i, j, err)
 			}
 
-			var lit uint32
-			err = parse(&lit, records[1])
+			lit := [4]uint8{}
+			err = parse(&lit, records[1:]...)
 			if err != nil {
 				return fmt.Errorf("instance %d lit %d: %w", i, j, err)
 			}
-			obj.Lits = append(obj.Lits, lit)
+			Lit := [4]uint8{lit[2], lit[1], lit[0], lit[3]}
+			obj.Lits = append(obj.Lits, Lit)
 		}
 
 		e.Instances = append(e.Instances, obj)

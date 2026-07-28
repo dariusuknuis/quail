@@ -21,6 +21,7 @@ var (
 		&wce.DMSpriteDef2{},
 		&wce.DMTrackDef2{},
 		&wce.EqgAniDef{},
+		&wce.EqgAnlDef{},
 		&wce.EqgLayDef{},
 		&wce.EqgMdsDef{},
 		&wce.EqgModDef{},

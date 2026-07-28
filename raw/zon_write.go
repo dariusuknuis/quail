@@ -82,7 +82,9 @@ func (zon *Zon) Write(w io.Writer) error {
 		if zon.Version > 1 {
 			enc.Uint32(uint32(len(instance.Lits)))
 			for _, lit := range instance.Lits {
-				enc.Uint32(lit)
+				for i := 0; i < 4; i++ {
+					enc.Uint8(lit[i])
+				}
 			}
 		}
 
