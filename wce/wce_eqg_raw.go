@@ -197,6 +197,20 @@ func (wce *Wce) readEqgEntry(entry *pfs.FileEntry) error {
 		}
 		wce.ZonDefs = append(wce.ZonDefs, def)
 		wce.WorldDef.Zone = 1
+	case ".lit":
+		rawSrc := &raw.Lit{
+			MetaFileName: strings.TrimSuffix(entry.Name(), ".lit"),
+		}
+		err = rawSrc.Read(bytes.NewReader(entry.Data()))
+		if err != nil {
+			return err
+		}
+		def := &EqgLit{}
+		err := def.FromRaw(wce, rawSrc)
+		if err != nil {
+			return fmt.Errorf("lit: %w", err)
+		}
+		wce.Lits = append(wce.Lits, def)
 	default:
 		return nil
 	}
@@ -451,6 +465,27 @@ func (wce *Wce) WriteEqgRaw(archive *pfs.Pfs) error {
 		err = archive.Add(lod.Tag+".lod", buf.Bytes())
 		if err != nil {
 			return fmt.Errorf("add lod: %w", err)
+		}
+	}
+
+	for _, lit := range wce.Lits {
+		buf := &bytes.Buffer{}
+		dst := &raw.Lit{
+			MetaFileName: lit.Tag,
+		}
+
+		err = lit.ToRaw(wce, dst)
+		if err != nil {
+			return fmt.Errorf("lit to raw: %w", err)
+		}
+
+		err := dst.Write(buf)
+		if err != nil {
+			return fmt.Errorf("lit write: %w", err)
+		}
+		err = archive.Add(lit.Tag+".lit", buf.Bytes())
+		if err != nil {
+			return fmt.Errorf("add lit: %w", err)
 		}
 	}
 

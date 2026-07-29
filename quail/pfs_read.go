@@ -40,18 +40,23 @@ func (q *Quail) PfsRead(path string) error {
 
 	for _, file := range pfs.Files() {
 		ext := strings.ToLower(filepath.Ext(file.Name()))
-		if ext == ".lit" {
-			q.assetAdd(file.Name(), file.Data())
-			continue
-		}
-		reader, err := raw.Read(ext, bytes.NewReader(file.Data()))
+
+		reader, err := raw.Read(
+			ext,
+			bytes.NewReader(file.Data()),
+		)
 		if err != nil {
 			return fmt.Errorf("%s: %w", file.Name(), err)
 		}
+
 		reader.SetFileName(file.Name())
-		err = q.RawRead(reader)
-		if err != nil {
-			return fmt.Errorf("q rawRead %s: %w", file.Name(), err)
+
+		if err := q.RawRead(reader); err != nil {
+			return fmt.Errorf(
+				"q rawRead %s: %w",
+				file.Name(),
+				err,
+			)
 		}
 	}
 

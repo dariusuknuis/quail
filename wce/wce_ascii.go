@@ -268,6 +268,13 @@ func (wce *Wce) writeAsciiData(path string) error {
 		}
 	}
 
+	for _, lit := range wce.Lits {
+		err = lit.Write(token)
+		if err != nil {
+			return fmt.Errorf("lit %s: %w", lit.Tag, err)
+		}
+	}
+
 	for _, aniDef := range wce.AniDefs {
 		err = aniDef.Write(token)
 		if err != nil {

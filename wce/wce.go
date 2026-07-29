@@ -64,6 +64,7 @@ type Wce struct {
 	PrtDefs                []*EqgParticleRenderDef
 	LodDefs                []*EqgLodDef
 	ZonDefs                []*EqgZonDef
+	Lits                   []*EqgLit
 	EffectOlds             []*EffectOld
 }
 
@@ -397,5 +398,6 @@ func (wce *Wce) reset() {
 	wce.PrtDefs = []*EqgParticleRenderDef{}
 	wce.LodDefs = []*EqgLodDef{}
 	wce.ZonDefs = []*EqgZonDef{}
+	wce.Lits = []*EqgLit{}
 	wce.EffectOlds = []*EffectOld{}
 }

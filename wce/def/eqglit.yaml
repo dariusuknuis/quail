@@ -1,0 +1,25 @@
+name: "EQGLIT"
+hasTag: true
+note: "EQG Vertex Lighting for Instances"
+properties:
+  - name: "NUMLITS"
+    args:
+      - name: "num of lit entries"
+        note: ""
+        format: "%d"
+    properties:
+      - name: "LIT"
+        note: ""
+        args:
+          - name: "r"
+            note: "Red"
+            format: "%d"
+          - name: "g"
+            note: "Green"
+            format: "%d"
+          - name: "b"
+            note: "Blue"
+            format: "%d"
+          - name: "a"
+            note: "Alpha"
+            format: "%d"

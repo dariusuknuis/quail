@@ -30,6 +30,7 @@ var (
 		&wce.EqgParticleRenderDef{},
 		&wce.EqgTerDef{},
 		&wce.EqgZonDef{},
+		&wce.EqgLit{},
 		&wce.GlobalAmbientLightDef{},
 		&wce.HierarchicalSpriteDef{},
 		&wce.LightDef{},

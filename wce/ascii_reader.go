@@ -221,6 +221,7 @@ func (a *AsciiReadToken) readDefinitions() error {
 		&EqgModDef{},
 		&EqgTerDef{},
 		&EqgZonDef{},
+		&EqgLit{},
 		&EqgLodDef{},
 		&EqgLayDef{},
 		&ParticleCloudDef{},
@@ -631,6 +632,13 @@ func (a *AsciiReadToken) readDefinitions() error {
 				frag.Tag = args[1]
 				a.wce.ZonDefs = append(a.wce.ZonDefs, frag)
 				definitions[i] = &EqgZonDef{}
+			case *EqgLit:
+				if len(args) == 1 {
+					return fmt.Errorf("definition %s has no arguments", defName)
+				}
+				frag.Tag = args[1]
+				a.wce.Lits = append(a.wce.Lits, frag)
+				definitions[i] = &EqgLit{}
 			case *EffectOld:
 				frag.TagIndex = len(a.wce.EffectOlds) // derive index from order
 				a.wce.EffectOlds = append(a.wce.EffectOlds, frag)

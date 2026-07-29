@@ -3132,3 +3132,120 @@ func (e *EqgZonDef) FromRaw(wce *Wce, src *raw.Zon) error {
 
 	return nil
 }
+
+// EqgLit is a set of vertex colors for an object.
+type EqgLit struct {
+	folders []string
+	Tag     string
+	Lits    [][4]uint8
+}
+
+func (e *EqgLit) Definition() string {
+	return "EQGLIT"
+}
+
+func (e *EqgLit) Write(token *AsciiWriteToken) error {
+	for _, folder := range e.folders {
+		if err := token.SetWriter(folder); err != nil {
+			return err
+		}
+
+		w, err := token.Writer()
+		if err != nil {
+			return err
+		}
+
+		if token.TagIsWritten(e.Tag) {
+			return nil
+		}
+
+		token.TagSetIsWritten(e.Tag)
+
+		fmt.Fprintf(w, "%s \"%s\"\n", e.Definition(), e.Tag)
+		fmt.Fprintf(w, "\tNUMLITS %d\n", len(e.Lits))
+
+		for index, lit := range e.Lits {
+			// The raw binary order is BGRA. Write readable RGBA.
+			fmt.Fprintf(
+				w,
+				"\t\tLIT %d %d %d %d //%d\n",
+				lit[2],
+				lit[1],
+				lit[0],
+				lit[3],
+				index,
+			)
+		}
+
+		fmt.Fprintln(w)
+	}
+
+	return nil
+}
+
+func (e *EqgLit) Read(token *AsciiReadToken) error {
+	records, err := token.ReadProperty("NUMLITS", 1)
+	if err != nil {
+		return fmt.Errorf("num lits: %w", err)
+	}
+
+	numLits := 0
+	if err := parse(&numLits, records[1]); err != nil {
+		return fmt.Errorf("num lits: %w", err)
+	}
+
+	if numLits < 0 {
+		return fmt.Errorf("num lits cannot be negative: %d", numLits)
+	}
+
+	e.Lits = make([][4]uint8, 0, numLits)
+
+	for i := 0; i < numLits; i++ {
+		records, err = token.ReadProperty("LIT", 4)
+		if err != nil {
+			return fmt.Errorf("lit %d: %w", i, err)
+		}
+
+		rgba := [4]uint8{}
+		if err := parse(&rgba, records[1:]...); err != nil {
+			return fmt.Errorf("lit %d: %w", i, err)
+		}
+
+		// The WCE representation is RGBA. Convert back to raw BGRA.
+		bgra := [4]uint8{
+			rgba[2],
+			rgba[1],
+			rgba[0],
+			rgba[3],
+		}
+
+		e.Lits = append(e.Lits, bgra)
+	}
+
+	return nil
+}
+
+func (e *EqgLit) ToRaw(wce *Wce, dst *raw.Lit) error {
+	if dst == nil {
+		return fmt.Errorf("destination LIT is nil")
+	}
+
+	dst.Entries = make([][4]uint8, len(e.Lits))
+	copy(dst.Entries, e.Lits)
+
+	return nil
+}
+
+func (e *EqgLit) FromRaw(wce *Wce, src *raw.Lit) error {
+	if src == nil {
+		return fmt.Errorf("source LIT is nil")
+	}
+
+	e.Tag = src.FileName()
+	e.folders = []string{"ZONE"}
+
+	e.Lits = make([][4]uint8, len(src.Entries))
+	copy(e.Lits, src.Entries)
+
+	return nil
+}
