@@ -116,7 +116,7 @@ properties:
           - name: ""
             note: ""
             format: "%0.8e"
-      - name: "COLOR"
+      - name: "ORIENTATION"
         note: ""
         args:
           - name: ""

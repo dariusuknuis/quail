@@ -2753,10 +2753,10 @@ type EqgZonInstance struct {
 }
 
 type EqgZonRegion struct {
-	Name     string
-	Position [3]float32
-	Color    [3]float32
-	Extents  [3]float32
+	Name        string
+	Position    [3]float32
+	Orientation [3]float32
+	Extents     [3]float32
 }
 
 type EqgZonLight struct {
@@ -2812,7 +2812,7 @@ func (e *EqgZonDef) Write(token *AsciiWriteToken) error {
 		for _, region := range e.Areas {
 			fmt.Fprintf(w, "\t\tAREA \"%s\"\n", region.Name)
 			fmt.Fprintf(w, "\t\t\tPOSITION %0.8e %0.8e %0.8e\n", region.Position[0], region.Position[1], region.Position[2])
-			fmt.Fprintf(w, "\t\t\tCOLOR %0.8e %0.8e %0.8e\n", region.Color[0], region.Color[1], region.Color[2])
+			fmt.Fprintf(w, "\t\t\tORIENTATION %0.8e %0.8e %0.8e\n", region.Orientation[0], region.Orientation[1], region.Orientation[2])
 			fmt.Fprintf(w, "\t\t\tEXTENTS %0.8e %0.8e %0.8e\n", region.Extents[0], region.Extents[1], region.Extents[2])
 		}
 
@@ -2972,13 +2972,13 @@ func (e *EqgZonDef) Read(token *AsciiReadToken) error {
 			return fmt.Errorf("area %d position: %w", i, err)
 		}
 
-		records, err = token.ReadProperty("COLOR", 3)
+		records, err = token.ReadProperty("ORIENTATION", 3)
 		if err != nil {
-			return fmt.Errorf("area %d color: %w", i, err)
+			return fmt.Errorf("area %d orientation: %w", i, err)
 		}
-		err = parse(&region.Color, records[1:]...)
+		err = parse(&region.Orientation, records[1:]...)
 		if err != nil {
-			return fmt.Errorf("area %d color: %w", i, err)
+			return fmt.Errorf("area %d orientation: %w", i, err)
 		}
 
 		records, err = token.ReadProperty("EXTENTS", 3)
@@ -3069,7 +3069,7 @@ func (e *EqgZonDef) ToRaw(wce *Wce, dst *raw.Zon) error {
 		rawRegion := raw.ZonArea{
 			Name:        area.Name,
 			Center:      area.Position,
-			Orientation: area.Color,
+			Orientation: area.Orientation,
 			Extents:     area.Extents,
 		}
 		dst.Areas = append(dst.Areas, rawRegion)
@@ -3112,10 +3112,10 @@ func (e *EqgZonDef) FromRaw(wce *Wce, src *raw.Zon) error {
 
 	for _, region := range src.Areas {
 		eqRegion := EqgZonRegion{
-			Name:     region.Name,
-			Position: region.Center,
-			Color:    region.Orientation,
-			Extents:  region.Extents,
+			Name:        region.Name,
+			Position:    region.Center,
+			Orientation: region.Orientation,
+			Extents:     region.Extents,
 		}
 		e.Areas = append(e.Areas, eqRegion)
 	}
