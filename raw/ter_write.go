@@ -112,13 +112,18 @@ func (ter *Ter) Write(w io.Writer) error {
 		enc.Uint32(tri.Index[0])
 		enc.Uint32(tri.Index[1])
 		enc.Uint32(tri.Index[2])
-		matID := int32(0)
-		for i, mat := range ter.Materials {
-			if mat.Name == tri.MaterialName {
-				matID = int32(i)
-				break
+
+		matID := int32(-1)
+
+		if tri.MaterialName != "FailsafeShader" {
+			for i, mat := range ter.Materials {
+				if mat.Name == tri.MaterialName {
+					matID = int32(i)
+					break
+				}
 			}
 		}
+
 		enc.Int32(matID)
 		enc.Uint32(tri.Flags)
 	}
