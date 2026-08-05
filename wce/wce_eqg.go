@@ -2357,19 +2357,18 @@ type EqgParticleRenderDef struct {
 }
 
 type ParticleRenderEntry struct {
-	ID              uint32
-	ID2             uint32
-	ParticlePoint   string
-	ParticleSuffix  string
-	UnknownA1       uint32
-	UnknownA2       uint32
-	UnknownA3       uint32
-	UnknownA4       uint32
-	UnknownA5       uint32
-	Duration        uint32
-	UnknownB        uint32
-	UnknownFFFFFFFF int32
-	UnknownC        uint32
+	EmitterID     int32
+	ParticlePoint string
+	ParticleType  int32
+	AnimNumber    int32
+	AnimVariation int32
+	RandomAnim    int32
+	StartTime     int32
+	Lifespan      int32
+	Ground        int32
+	PlayWithMat   int32
+	Sporadic      int32
+	ColdEmitterID int32
 }
 
 func (e *EqgParticleRenderDef) Definition() string {
@@ -2391,19 +2390,18 @@ func (e *EqgParticleRenderDef) Write(token *AsciiWriteToken) error {
 		fmt.Fprintf(w, "\tVERSION %d\n", e.Version)
 		fmt.Fprintf(w, "\tNUMRENDERS %d\n", len(e.Renders))
 		for i, render := range e.Renders {
-			fmt.Fprintf(w, "\t\tRENDER %d // %d\n", render.ID, i)
-			fmt.Fprintf(w, "\t\t\tID2 %d\n", render.ID2)
+			fmt.Fprintf(w, "\t\tRENDER %d // %d\n", render.EmitterID, i)
 			fmt.Fprintf(w, "\t\t\tPARTICLEPOINT \"%s\"\n", render.ParticlePoint)
-			fmt.Fprintf(w, "\t\t\tPARTICLESUFFIX \"%s\"\n", render.ParticleSuffix)
-			fmt.Fprintf(w, "\t\t\tUNKNOWNA1 %d\n", render.UnknownA1)
-			fmt.Fprintf(w, "\t\t\tUNKNOWNA2 %d\n", render.UnknownA2)
-			fmt.Fprintf(w, "\t\t\tUNKNOWNA3 %d\n", render.UnknownA3)
-			fmt.Fprintf(w, "\t\t\tUNKNOWNA4 %d\n", render.UnknownA4)
-			fmt.Fprintf(w, "\t\t\tUNKNOWNA5 %d\n", render.UnknownA5)
-			fmt.Fprintf(w, "\t\t\tDURATION %d\n", render.Duration)
-			fmt.Fprintf(w, "\t\t\tUNKNOWNB %d\n", render.UnknownB)
-			fmt.Fprintf(w, "\t\t\tUNKNOWNFFFFFFFF %d\n", render.UnknownFFFFFFFF)
-			fmt.Fprintf(w, "\t\t\tUNKNOWNC %d\n", render.UnknownC)
+			fmt.Fprintf(w, "\t\t\tPARTICLETYPE %d\n", render.ParticleType)
+			fmt.Fprintf(w, "\t\t\tANIMNUMBER %d\n", render.AnimNumber)
+			fmt.Fprintf(w, "\t\t\tANIMVARIATION %d\n", render.AnimVariation)
+			fmt.Fprintf(w, "\t\t\tRANDOMANIM %d\n", render.RandomAnim)
+			fmt.Fprintf(w, "\t\t\tSTARTTIME %d\n", render.StartTime)
+			fmt.Fprintf(w, "\t\t\tLIFESPAN %d\n", render.Lifespan)
+			fmt.Fprintf(w, "\t\t\tGROUND %d\n", render.Ground)
+			fmt.Fprintf(w, "\t\t\tPLAYWITHMAT %d\n", render.PlayWithMat)
+			fmt.Fprintf(w, "\t\t\tSPORADIC %d\n", render.Sporadic)
+			fmt.Fprintf(w, "\t\t\tCOLDEMITTERID %d\n", render.ColdEmitterID)
 		}
 		fmt.Fprintf(w, "\n")
 
@@ -2443,16 +2441,7 @@ func (e *EqgParticleRenderDef) Read(token *AsciiReadToken) error {
 			return fmt.Errorf("entry %d render: %w", i, err)
 		}
 
-		err = parse(&render.ID, records[1])
-		if err != nil {
-			return err
-		}
-
-		records, err = token.ReadProperty("ID2", 1)
-		if err != nil {
-			return fmt.Errorf("entry %d id2: %w", i, err)
-		}
-		err = parse(&render.ID2, records[1])
+		err = parse(&render.EmitterID, records[1])
 		if err != nil {
 			return err
 		}
@@ -2463,89 +2452,92 @@ func (e *EqgParticleRenderDef) Read(token *AsciiReadToken) error {
 		}
 		render.ParticlePoint = records[1]
 
-		records, err = token.ReadProperty("PARTICLESUFFIX", 1)
+		records, err = token.ReadProperty("PARTICLETYPE", 1)
 		if err != nil {
-			return fmt.Errorf("entry %d particlesuffix: %w", i, err)
+			return fmt.Errorf("entry %d particletype: %w", i, err)
 		}
-		render.ParticleSuffix = records[1]
-
-		records, err = token.ReadProperty("UNKNOWNA1", 1)
-		if err != nil {
-			return fmt.Errorf("entry %d unknowna1: %w", i, err)
-		}
-		err = parse(&render.UnknownA1, records[1])
+		err = parse(&render.ParticleType, records[1])
 		if err != nil {
 			return err
 		}
 
-		records, err = token.ReadProperty("UNKNOWNA2", 1)
+		records, err = token.ReadProperty("ANIMNUMBER", 1)
 		if err != nil {
-			return fmt.Errorf("entry %d unknowna2: %w", i, err)
+			return fmt.Errorf("entry %d animnumber: %w", i, err)
 		}
-		err = parse(&render.UnknownA2, records[1])
-		if err != nil {
-			return err
-		}
-
-		records, err = token.ReadProperty("UNKNOWNA3", 1)
-		if err != nil {
-			return fmt.Errorf("entry %d unknowna3: %w", i, err)
-		}
-		err = parse(&render.UnknownA3, records[1])
+		err = parse(&render.AnimNumber, records[1])
 		if err != nil {
 			return err
 		}
 
-		records, err = token.ReadProperty("UNKNOWNA4", 1)
+		records, err = token.ReadProperty("ANIMVARIATION", 1)
 		if err != nil {
-			return fmt.Errorf("entry %d unknowna4: %w", i, err)
+			return fmt.Errorf("entry %d animvariation: %w", i, err)
 		}
-		err = parse(&render.UnknownA4, records[1])
-		if err != nil {
-			return err
-		}
-
-		records, err = token.ReadProperty("UNKNOWNA5", 1)
-		if err != nil {
-			return fmt.Errorf("entry %d unknowna5: %w", i, err)
-		}
-		err = parse(&render.UnknownA5, records[1])
+		err = parse(&render.AnimVariation, records[1])
 		if err != nil {
 			return err
 		}
 
-		records, err = token.ReadProperty("DURATION", 1)
+		records, err = token.ReadProperty("RANDOMANIM", 1)
 		if err != nil {
-			return fmt.Errorf("entry %d duration: %w", i, err)
+			return fmt.Errorf("entry %d randomanim: %w", i, err)
 		}
-		err = parse(&render.Duration, records[1])
-		if err != nil {
-			return err
-		}
-
-		records, err = token.ReadProperty("UNKNOWNB", 1)
-		if err != nil {
-			return fmt.Errorf("entry %d unknownb: %w", i, err)
-		}
-		err = parse(&render.UnknownB, records[1])
+		err = parse(&render.RandomAnim, records[1])
 		if err != nil {
 			return err
 		}
 
-		records, err = token.ReadProperty("UNKNOWNFFFFFFFF", 1)
+		records, err = token.ReadProperty("STARTTIME", 1)
 		if err != nil {
-			return fmt.Errorf("entry %d unknownffffffff: %w", i, err)
+			return fmt.Errorf("entry %d starttime: %w", i, err)
 		}
-		err = parse(&render.UnknownFFFFFFFF, records[1])
+		err = parse(&render.StartTime, records[1])
 		if err != nil {
 			return err
 		}
 
-		records, err = token.ReadProperty("UNKNOWNC", 1)
+		records, err = token.ReadProperty("LIFESPAN", 1)
 		if err != nil {
-			return fmt.Errorf("entry %d unknownc: %w", i, err)
+			return fmt.Errorf("entry %d lifespan: %w", i, err)
 		}
-		err = parse(&render.UnknownC, records[1])
+		err = parse(&render.Lifespan, records[1])
+		if err != nil {
+			return err
+		}
+
+		records, err = token.ReadProperty("GROUND", 1)
+		if err != nil {
+			return fmt.Errorf("entry %d ground: %w", i, err)
+		}
+		err = parse(&render.Ground, records[1])
+		if err != nil {
+			return err
+		}
+
+		records, err = token.ReadProperty("PLAYWITHMAT", 1)
+		if err != nil {
+			return fmt.Errorf("entry %d playwithmat: %w", i, err)
+		}
+		err = parse(&render.PlayWithMat, records[1])
+		if err != nil {
+			return err
+		}
+
+		records, err = token.ReadProperty("SPORADIC", 1)
+		if err != nil {
+			return fmt.Errorf("entry %d sporadic: %w", i, err)
+		}
+		err = parse(&render.Sporadic, records[1])
+		if err != nil {
+			return err
+		}
+
+		records, err = token.ReadProperty("COLDEMITTERID", 1)
+		if err != nil {
+			return fmt.Errorf("entry %d coldemitterid: %w", i, err)
+		}
+		err = parse(&render.ColdEmitterID, records[1])
 		if err != nil {
 			return err
 		}
@@ -2560,19 +2552,18 @@ func (e *EqgParticleRenderDef) ToRaw(wce *Wce, dst *raw.Prt) error {
 	dst.Version = e.Version
 	for _, render := range e.Renders {
 		prtEntry := &raw.PrtEntry{
-			ID:              render.ID,
-			ID2:             render.ID2,
-			ParticlePoint:   render.ParticlePoint,
-			ParticleSuffix:  render.ParticleSuffix,
-			UnknownA1:       render.UnknownA1,
-			UnknownA2:       render.UnknownA2,
-			UnknownA3:       render.UnknownA3,
-			UnknownA4:       render.UnknownA4,
-			UnknownA5:       render.UnknownA5,
-			Duration:        render.Duration,
-			UnknownB:        render.UnknownB,
-			UnknownFFFFFFFF: render.UnknownFFFFFFFF,
-			UnknownC:        render.UnknownC,
+			EmitterID:     render.EmitterID,
+			ParticlePoint: render.ParticlePoint,
+			ParticleType:  render.ParticleType,
+			AnimNumber:    render.AnimNumber,
+			AnimVariation: render.AnimVariation,
+			RandomAnim:    render.RandomAnim,
+			StartTime:     render.StartTime,
+			Lifespan:      render.Lifespan,
+			Ground:        render.Ground,
+			PlayWithMat:   render.PlayWithMat,
+			Sporadic:      render.Sporadic,
+			ColdEmitterID: render.ColdEmitterID,
 		}
 		dst.Entries = append(dst.Entries, prtEntry)
 	}
@@ -2588,19 +2579,18 @@ func (e *EqgParticleRenderDef) FromRaw(wce *Wce, src *raw.Prt) error {
 
 	for _, render := range src.Entries {
 		prtEntry := &ParticleRenderEntry{
-			ID:              render.ID,
-			ID2:             render.ID2,
-			ParticlePoint:   render.ParticlePoint,
-			ParticleSuffix:  render.ParticleSuffix,
-			UnknownA1:       render.UnknownA1,
-			UnknownA2:       render.UnknownA2,
-			UnknownA3:       render.UnknownA3,
-			UnknownA4:       render.UnknownA4,
-			UnknownA5:       render.UnknownA5,
-			Duration:        render.Duration,
-			UnknownB:        render.UnknownB,
-			UnknownFFFFFFFF: render.UnknownFFFFFFFF,
-			UnknownC:        render.UnknownC,
+			EmitterID:     render.EmitterID,
+			ParticlePoint: render.ParticlePoint,
+			ParticleType:  render.ParticleType,
+			AnimNumber:    render.AnimNumber,
+			AnimVariation: render.AnimVariation,
+			RandomAnim:    render.RandomAnim,
+			StartTime:     render.StartTime,
+			Lifespan:      render.Lifespan,
+			Ground:        render.Ground,
+			PlayWithMat:   render.PlayWithMat,
+			Sporadic:      render.Sporadic,
+			ColdEmitterID: render.ColdEmitterID,
 		}
 		e.Renders = append(e.Renders, prtEntry)
 	}

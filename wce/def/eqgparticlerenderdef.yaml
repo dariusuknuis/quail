@@ -1,94 +1,101 @@
 name: "EQGPARTICLERENDERDEF"
 hasTag: true
-note: "EQG Particle Point Definition"
+note: "EQG Particle Render Definition"
 properties:
   - name: "VERSION"
-    note: ""
+    note: "PRT format version"
     args:
       - name: ""
         note: ""
         format: "%d"
+
   - name: "NUMRENDERS"
-    note: ""
+    note: "Number of actor particle render entries"
     args:
       - name: ""
         note: ""
         format: "%d"
+
     properties:
       - name: "RENDER"
-        note: ""
+        note: "Emitter definition ID"
         args:
           - name: ""
             note: ""
             format: "%d"
-      - name: "ID2"
-        note: ""
-        args:
-          - name: ""
-            note: ""
-            format: "%d"
+
       - name: "PARTICLEPOINT"
-        note: ""
+        note: "Particle attachment-point name"
         args:
           - name: ""
             note: ""
             format: "%s"
-      - name: "PARTICLESUFFIX"
-        note: ""
-        args:
-          - name: ""
-            note: ""
-            format: "%s"
-      - name: "UNKNOWNA1"
-        note: ""
+
+      - name: "PARTICLETYPE"
+        note: "Persistent or animation-based particle type"
         args:
           - name: ""
             note: ""
             format: "%d"
-      - name: "UNKNOWNA2"
-        note: ""
+
+      - name: "ANIMNUMBER"
+        note: "Animation number"
         args:
           - name: ""
             note: ""
             format: "%d"
-      - name: "UNKNOWNA3"
-        note: ""
+
+      - name: "ANIMVARIATION"
+        note: "Animation variation"
         args:
           - name: ""
             note: ""
             format: "%d"
-      - name: "UNKNOWNA4"
-        note: ""
+
+      - name: "RANDOMANIM"
+        note: "Random animation variation"
         args:
           - name: ""
             note: ""
             format: "%d"
-      - name: "UNKNOWNA5"
-        note: ""
+
+      - name: "STARTTIME"
+        note: "Particle start time"
         args:
           - name: ""
             note: ""
             format: "%d"
-      - name: "DURATION"
-        note: ""
+
+      - name: "LIFESPAN"
+        note: "Particle lifespan"
         args:
           - name: ""
             note: ""
             format: "%d"
-      - name: "UNKNOWNB"
-        note: ""
+
+      - name: "GROUND"
+        note: "Ground-based particle flag"
         args:
           - name: ""
             note: ""
             format: "%d"
-      - name: "UNKNOWNFFFFFFFF"
-        note: ""
+
+      - name: "PLAYWITHMAT"
+        note: "Material variation controlling the particle"
         args:
           - name: ""
             note: ""
             format: "%d"
-      - name: "UNKNOWNC"
-        note: ""
+
+      - name: "SPORADIC"
+        note: "Sporadic particle flag"
+        args:
+          - name: ""
+            note: ""
+            format: "%d"
+
+      - name: "COLDEMITTERID"
+        note: "Cold-state emitter definition ID"
         args:
           - name: ""
             note: ""

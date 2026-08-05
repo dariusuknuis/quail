@@ -19,19 +19,18 @@ type Prt struct {
 
 // PrtEntry is  ParticleRender entry
 type PrtEntry struct {
-	ID              uint32
-	ID2             uint32
-	ParticlePoint   string
-	ParticleSuffix  string
-	UnknownA1       uint32
-	UnknownA2       uint32
-	UnknownA3       uint32
-	UnknownA4       uint32
-	UnknownA5       uint32
-	Duration        uint32
-	UnknownB        uint32
-	UnknownFFFFFFFF int32
-	UnknownC        uint32
+	EmitterID     int32
+	ParticlePoint string
+	ParticleType  int32
+	AnimNumber    int32
+	AnimVariation int32
+	RandomAnim    int32
+	StartTime     int32
+	Lifespan      int32
+	Ground        int32
+	PlayWithMat   int32
+	Sporadic      int32
+	ColdEmitterID int32
 }
 
 // Identity returns the type of the struct
@@ -44,77 +43,151 @@ func (prt *Prt) String() string {
 	out += fmt.Sprintf("metafilename: %s\n", prt.MetaFileName)
 	out += fmt.Sprintf("version: %d\n", prt.Version)
 	out += fmt.Sprintf("entries: %d\n", len(prt.Entries))
+
 	for i, entry := range prt.Entries {
-		out += fmt.Sprintf("  %d: %s %d %d %d %d %d\n", i, entry.ParticlePoint, entry.ID, entry.ID2, entry.Duration, entry.UnknownA1, entry.UnknownA2)
-
+		out += fmt.Sprintf(
+			"  %d: point=%s emitter=%d coldEmitter=%d "+
+				"type=%d animation=%d variation=%d randomVariation=%d "+
+				"start=%d lifespan=%d ground=%d playWithMat=%d sporadic=%d\n",
+			i,
+			entry.ParticlePoint,
+			entry.EmitterID,
+			entry.ColdEmitterID,
+			entry.ParticleType,
+			entry.AnimNumber,
+			entry.AnimVariation,
+			entry.RandomAnim,
+			entry.StartTime,
+			entry.Lifespan,
+			entry.Ground,
+			entry.PlayWithMat,
+			entry.Sporadic,
+		)
 	}
-	return out
 
+	return out
 }
 
 // Read reads a PRT file
 func (prt *Prt) Read(r io.ReadSeeker) error {
-
 	dec := encdec.NewDecoder(r, binary.LittleEndian)
 
 	header := dec.StringFixed(4)
 	if header != "PTCL" {
-		return fmt.Errorf("invalid header %s, wanted EQGS", header)
+		return fmt.Errorf("invalid header %q, wanted PTCL", header)
 	}
 
 	particleCount := dec.Uint32()
 	prt.Version = dec.Uint32()
-	if prt.Version < 4 {
-		return nil
-		//return fmt.Errorf("invalid version %d, wanted 4+", prt.Version)
+
+	if prt.Version < 1 || prt.Version > 5 {
+		return fmt.Errorf(
+			"unsupported PRT version %d, wanted version 1 through 5",
+			prt.Version,
+		)
 	}
 
-	for i := 0; i < int(particleCount); i++ {
+	prt.Entries = nil
+
+	for i := uint32(0); i < particleCount; i++ {
 		entry := &PrtEntry{}
-		entry.ID = dec.Uint32()
-		if prt.Version >= 5 {
-			entry.ID2 = dec.Uint32()
+
+		// Present in every version.
+		entry.EmitterID = dec.Int32()
+
+		// Fixed char particlePointName[64].
+		pointData := dec.Bytes(64)
+
+		nullIndex := bytes.IndexByte(pointData, 0)
+		if nullIndex < 0 {
+			return fmt.Errorf(
+				"particle %d: particle-point name is not null-terminated",
+				i,
+			)
 		}
 
-		entry.ParticlePoint = dec.StringZero()
-		data := dec.Bytes(64 - len(entry.ParticlePoint) - 1) // was entry.ParticlePointSuffix
-		entry.ParticleSuffix = hex.EncodeToString(data)
+		entry.ParticlePoint = string(pointData[:nullIndex])
 
-		entry.UnknownA1 = dec.Uint32()
-		entry.UnknownA2 = dec.Uint32()
-		entry.UnknownA3 = dec.Uint32()
-		entry.UnknownA4 = dec.Uint32()
-		entry.UnknownA5 = dec.Uint32()
+		// Present in every version.
+		entry.ParticleType = dec.Int32()
+		entry.AnimNumber = dec.Int32()
+		entry.AnimVariation = dec.Int32()
+		entry.RandomAnim = dec.Int32()
+		entry.StartTime = dec.Int32()
+		entry.Lifespan = dec.Int32()
 
-		entry.Duration = dec.Uint32()
-		entry.UnknownB = dec.Uint32()
-		entry.UnknownFFFFFFFF = dec.Int32()
-		entry.UnknownC = dec.Uint32()
+		// Added in version 2.
+		if prt.Version >= 2 {
+			entry.Ground = dec.Int32()
+		}
+
+		// Added in version 3.
+		if prt.Version >= 3 {
+			entry.PlayWithMat = dec.Int32()
+		} else {
+			entry.PlayWithMat = -1
+		}
+
+		// Added in version 4.
+		if prt.Version >= 4 {
+			entry.Sporadic = dec.Int32()
+		}
+
+		// Added in version 5 at the end of the record.
+		if prt.Version >= 5 {
+			entry.ColdEmitterID = dec.Int32()
+		} else {
+			entry.ColdEmitterID = entry.EmitterID
+		}
 
 		prt.Entries = append(prt.Entries, entry)
 	}
 
+	if err := dec.Error(); err != nil {
+		return fmt.Errorf("read PRT version %d: %w", prt.Version, err)
+	}
+
+	// Check for trailing data
 	pos := dec.Pos()
+
 	endPos, err := r.Seek(0, io.SeekEnd)
 	if err != nil {
-		return fmt.Errorf("seek end: %w", err)
+		return fmt.Errorf("seek to end: %w", err)
 	}
+
+	if pos > endPos {
+		return fmt.Errorf(
+			"read past end of PRT file: position %d, size %d",
+			pos,
+			endPos,
+		)
+	}
+
 	if pos < endPos {
-		remaining := dec.Bytes(int(endPos - pos))
-		if !bytes.Equal(remaining, []byte{0x0, 0x0, 0x0, 0x0}) {
-			fmt.Printf("remaining bytes: %s\n", hex.Dump(remaining))
-			return fmt.Errorf("%d bytes remaining (%d total)", endPos-pos, endPos)
+		if _, err := r.Seek(pos, io.SeekStart); err != nil {
+			return fmt.Errorf("seek to trailing data: %w", err)
+		}
+
+		remaining, err := io.ReadAll(r)
+		if err != nil {
+			return fmt.Errorf("read trailing data: %w", err)
+		}
+
+		// Some files contain a trailing zero DWORD. Accept zero
+		// padding, but reject unexplained nonzero data.
+		if len(bytes.Trim(remaining, "\x00")) != 0 {
+			fmt.Printf(
+				"remaining PRT bytes:\n%s\n",
+				hex.Dump(remaining),
+			)
+
+			return fmt.Errorf(
+				"%d non-padding bytes remain in PRT file",
+				len(remaining),
+			)
 		}
 	}
-	if pos > endPos {
-		return fmt.Errorf("read past end of file")
-	}
 
-	if dec.Error() != nil {
-		return fmt.Errorf("read: %w", dec.Error())
-	}
-
-	//fmt.Printf("%s (prt) readd %d entries\n", render.Header.Name, len(render.Entries))
 	return nil
 }
 
