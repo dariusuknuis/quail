@@ -59,6 +59,13 @@ func Open(name string, r io.ReadSeeker) (interface{}, error) {
 		default:
 			return nil, nil
 		}
+	case ".edd":
+		edd := &raw.Edd{}
+		err = edd.Read(r)
+		if err != nil {
+			return nil, fmt.Errorf("edd.Decode: %w", err)
+		}
+		return edd, nil
 	case ".zon":
 		zon := &raw.Zon{}
 		err = zon.Read(r)

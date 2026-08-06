@@ -338,6 +338,13 @@ func (wce *Wce) writeAsciiData(path string) error {
 		}
 	}
 
+	for _, edd := range wce.EmitterDefs {
+		err = edd.Write(token)
+		if err != nil {
+			return fmt.Errorf("emitter def %d: %w", edd.TagIndex, err)
+		}
+	}
+
 	token.Close()
 
 	type folderType struct {

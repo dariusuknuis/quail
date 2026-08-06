@@ -648,6 +648,10 @@ func (a *AsciiReadToken) readDefinitions() error {
 				frag.TagIndex = len(a.wce.EffectNews) // derive index from order
 				a.wce.EffectNews = append(a.wce.EffectNews, frag)
 				definitions[i] = &EffectNew{}
+			case *EmitterDef:
+				frag.TagIndex = len(a.wce.EmitterDefs) // derive index from order
+				a.wce.EmitterDefs = append(a.wce.EmitterDefs, frag)
+				definitions[i] = &EmitterDef{}
 			default:
 				return fmt.Errorf("unknown definition type for rebuild: %T", definitions[i])
 			}

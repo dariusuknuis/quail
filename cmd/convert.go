@@ -74,6 +74,11 @@ func runConvertE(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return fmt.Errorf("eff read: %w", err)
 		}
+	case ".edd":
+		err = q.EddRead(srcPath)
+		if err != nil {
+			return fmt.Errorf("edd read: %w", err)
+		}
 	default:
 		baseName := filepath.Base(srcPath)
 		err = q.PfsRead(srcPath)
@@ -124,6 +129,11 @@ func runConvertE(cmd *cobra.Command, args []string) error {
 		err = q.EffWrite(dstPath)
 		if err != nil {
 			return fmt.Errorf("eff write: %w", err)
+		}
+	case ".edd":
+		err = q.EddWrite(dstPath)
+		if err != nil {
+			return fmt.Errorf("edd write: %w", err)
 		}
 	default:
 		err = q.PfsWrite(1, 1, dstPath)
