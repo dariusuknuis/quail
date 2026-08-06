@@ -66,6 +66,7 @@ type Wce struct {
 	ZonDefs                []*EqgZonDef
 	Lits                   []*EqgLit
 	EffectOlds             []*EffectOld
+	EffectNews             []*EffectNew
 }
 
 type WldDefinitioner interface {
@@ -400,4 +401,5 @@ func (wce *Wce) reset() {
 	wce.ZonDefs = []*EqgZonDef{}
 	wce.Lits = []*EqgLit{}
 	wce.EffectOlds = []*EffectOld{}
+	wce.EffectNews = []*EffectNew{}
 }

@@ -498,3 +498,205 @@ func (e *EffectOld) FromRaw(_ *Wce, src *raw.EffOldRecord) error {
 
 	return nil
 }
+
+type EffectNew struct {
+	folders        []string
+	TagIndex       int
+	Name           string
+	FirstEmitters  [4]EffectNewEmitterRef
+	Unknown        [19]int32
+	SecondEmitters [4]EffectNewEmitterRef
+}
+
+type EffectNewEmitterRef struct {
+	UnknownA  int32
+	EmitterID int32
+	UnknownB  int32
+	UnknownC  int32
+}
+
+func (e *EffectNew) Definition() string {
+	return "NEWSPELLEFFECT"
+}
+
+func (e *EffectNew) Write(token *AsciiWriteToken) error {
+	for _, folder := range e.folders {
+		if err := token.SetWriter(folder); err != nil {
+			return err
+		}
+		w, err := token.Writer()
+		if err != nil {
+			return err
+		}
+
+		fmt.Fprintf(w, "%s \"%d\"\n", e.Definition(), e.TagIndex)
+		fmt.Fprintf(w, "\tNAME \"%s\"\n", e.Name)
+
+		for i := 0; i < 4; i++ {
+			emitter := e.FirstEmitters[i]
+			fmt.Fprintf(w, "\tFIRSTEMITTER // %d\n", i)
+			fmt.Fprintf(w, "\t\tUNKNOWNA %d\n", emitter.UnknownA)
+			fmt.Fprintf(w, "\t\tEMITTERID %d\n", emitter.EmitterID)
+			fmt.Fprintf(w, "\t\tUNKNOWNB %d\n", emitter.UnknownB)
+			fmt.Fprintf(w, "\t\tUNKNOWNC %d\n", emitter.UnknownC)
+		}
+
+		for i := 0; i < 19; i++ {
+			fmt.Fprintf(w, "\tUNKNOWN %d // %d\n", e.Unknown[i], i)
+		}
+
+		for i := 0; i < 4; i++ {
+			emitter := e.SecondEmitters[i]
+			fmt.Fprintf(w, "\tSECONDEMITTER // %d\n", i)
+			fmt.Fprintf(w, "\t\tUNKNOWNA %d\n", emitter.UnknownA)
+			fmt.Fprintf(w, "\t\tEMITTERID %d\n", emitter.EmitterID)
+			fmt.Fprintf(w, "\t\tUNKNOWNB %d\n", emitter.UnknownB)
+			fmt.Fprintf(w, "\t\tUNKNOWNC %d\n", emitter.UnknownC)
+		}
+
+		fmt.Fprintln(w)
+	}
+	return nil
+}
+
+func (e *EffectNew) Read(token *AsciiReadToken) error {
+	records, err := token.ReadProperty("NAME", 1)
+	if err != nil {
+		return err
+	}
+	e.Name = records[1]
+
+	readEmitter := func(which string, index int, emitter *EffectNewEmitterRef) error {
+		_, err := token.ReadProperty(which, 0)
+		if err != nil {
+			return fmt.Errorf("%s %d: %w", which, index, err)
+		}
+
+		records, err := token.ReadProperty("UNKNOWNA", 1)
+		if err != nil {
+			return fmt.Errorf("%s %d unknown A: %w", which, index, err)
+		}
+		err = parse(&emitter.UnknownA, records[1])
+		if err != nil {
+			return fmt.Errorf("%s %d unknown A: %w", which, index, err)
+		}
+
+		records, err = token.ReadProperty("EMITTERID", 1)
+		if err != nil {
+			return fmt.Errorf("%s %d emitter ID: %w", which, index, err)
+		}
+		err = parse(&emitter.EmitterID, records[1])
+		if err != nil {
+			return fmt.Errorf("%s %d emitter ID: %w", which, index, err)
+		}
+
+		records, err = token.ReadProperty("UNKNOWNB", 1)
+		if err != nil {
+			return fmt.Errorf("%s %d unknown B: %w", which, index, err)
+		}
+		err = parse(&emitter.UnknownB, records[1])
+		if err != nil {
+			return fmt.Errorf("%s %d unknown B: %w", which, index, err)
+		}
+
+		records, err = token.ReadProperty("UNKNOWNC", 1)
+		if err != nil {
+			return fmt.Errorf("%s %d unknown C: %w", which, index, err)
+		}
+		err = parse(&emitter.UnknownC, records[1])
+		if err != nil {
+			return fmt.Errorf("%s %d unknown C: %w", which, index, err)
+		}
+
+		return nil
+	}
+
+	for i := 0; i < 4; i++ {
+		err = readEmitter(
+			"FIRSTEMITTER",
+			i,
+			&e.FirstEmitters[i],
+		)
+		if err != nil {
+			return err
+		}
+	}
+
+	for i := 0; i < 19; i++ {
+		records, err = token.ReadProperty("UNKNOWN", 1)
+		if err != nil {
+			return fmt.Errorf("unknown %d: %w", i, err)
+		}
+		err = parse(&e.Unknown[i], records[1])
+		if err != nil {
+			return fmt.Errorf("unknown %d: %w", i, err)
+		}
+	}
+
+	for i := 0; i < 4; i++ {
+		err = readEmitter(
+			"SECONDEMITTER",
+			i,
+			&e.SecondEmitters[i],
+		)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (e *EffectNew) ToRaw(wce *Wce, dst *raw.EffNewRecord) error {
+	if e == nil || dst == nil {
+		return fmt.Errorf("nil receiver or destination")
+	}
+
+	dst.Name = e.Name
+	dst.Unknown = e.Unknown
+
+	for i := 0; i < 4; i++ {
+		dst.FirstEmitters[i] = raw.EffNewEmitterRef{
+			UnknownA:  e.FirstEmitters[i].UnknownA,
+			EmitterID: e.FirstEmitters[i].EmitterID,
+			UnknownB:  e.FirstEmitters[i].UnknownB,
+			UnknownC:  e.FirstEmitters[i].UnknownC,
+		}
+
+		dst.SecondEmitters[i] = raw.EffNewEmitterRef{
+			UnknownA:  e.SecondEmitters[i].UnknownA,
+			EmitterID: e.SecondEmitters[i].EmitterID,
+			UnknownB:  e.SecondEmitters[i].UnknownB,
+			UnknownC:  e.SecondEmitters[i].UnknownC,
+		}
+	}
+
+	return nil
+}
+
+func (e *EffectNew) FromRaw(_ *Wce, src *raw.EffNewRecord) error {
+	if e == nil || src == nil {
+		return fmt.Errorf("nil receiver or source")
+	}
+
+	e.Name = src.Name
+	e.Unknown = src.Unknown
+
+	for i := 0; i < 4; i++ {
+		e.FirstEmitters[i] = EffectNewEmitterRef{
+			UnknownA:  src.FirstEmitters[i].UnknownA,
+			EmitterID: src.FirstEmitters[i].EmitterID,
+			UnknownB:  src.FirstEmitters[i].UnknownB,
+			UnknownC:  src.FirstEmitters[i].UnknownC,
+		}
+
+		e.SecondEmitters[i] = EffectNewEmitterRef{
+			UnknownA:  src.SecondEmitters[i].UnknownA,
+			EmitterID: src.SecondEmitters[i].EmitterID,
+			UnknownB:  src.SecondEmitters[i].UnknownB,
+			UnknownC:  src.SecondEmitters[i].UnknownC,
+		}
+	}
+
+	return nil
+}

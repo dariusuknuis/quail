@@ -57,3 +57,51 @@ func (w *Wce) WriteEffRaw(dst *raw.EffOld) error {
 	}
 	return nil
 }
+
+func (w *Wce) ReadEffNewRaw(src *raw.EffNew) error {
+	if src == nil {
+		return fmt.Errorf("src is nil")
+	}
+
+	w.reset()
+	w.FileName = src.FileName()
+	w.EffectNews = w.EffectNews[:0]
+
+	if w.WorldDef == nil {
+		w.WorldDef = &WorldDef{folders: []string{"spellsnew"}}
+	}
+
+	for i, rr := range src.Records {
+		if rr == nil {
+			return fmt.Errorf("record %d is nil", i)
+		}
+		def := &EffectNew{
+			folders:  []string{"spellsnew"},
+			TagIndex: i,
+		}
+		if err := def.FromRaw(w, rr); err != nil {
+			return fmt.Errorf("record %d: %w", i, err)
+		}
+		w.EffectNews = append(w.EffectNews, def)
+	}
+	return nil
+}
+
+func (w *Wce) WriteEffNewRaw(dst *raw.EffNew) error {
+	if dst == nil {
+		return fmt.Errorf("dst is nil")
+	}
+	dst.Records = dst.Records[:0]
+
+	for i, def := range w.EffectNews {
+		if def == nil {
+			return fmt.Errorf("effect %d is nil", i)
+		}
+		rec := &raw.EffNewRecord{}
+		if err := def.ToRaw(w, rec); err != nil {
+			return fmt.Errorf("effect %d: %w", i, err)
+		}
+		dst.Records = append(dst.Records, rec)
+	}
+	return nil
+}

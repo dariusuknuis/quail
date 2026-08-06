@@ -331,6 +331,13 @@ func (wce *Wce) writeAsciiData(path string) error {
 		}
 	}
 
+	for _, eff := range wce.EffectNews {
+		err = eff.Write(token)
+		if err != nil {
+			return fmt.Errorf("newerspelleffect %d: %w", eff.TagIndex, err)
+		}
+	}
+
 	token.Close()
 
 	type folderType struct {

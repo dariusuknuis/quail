@@ -41,12 +41,24 @@ func Open(name string, r io.ReadSeeker) (interface{}, error) {
 	//name = filepath.Base(name)
 	switch ext {
 	case ".eff":
-		eff := &raw.EffOld{}
-		err = eff.Read(r)
-		if err != nil {
-			return nil, fmt.Errorf("effects.Decode: %w", err)
+		switch strings.ToLower(filepath.Base(name)) {
+		case "spells.eff":
+			eff := &raw.EffOld{}
+			err = eff.Read(r)
+			if err != nil {
+				return nil, fmt.Errorf("effects old.Decode: %w", err)
+			}
+			return eff, nil
+		case "spellsnew.eff":
+			eff := &raw.EffNew{}
+			err = eff.Read(r)
+			if err != nil {
+				return nil, fmt.Errorf("effects new.Decode: %w", err)
+			}
+			return eff, nil
+		default:
+			return nil, nil
 		}
-		return eff, nil
 	case ".zon":
 		zon := &raw.Zon{}
 		err = zon.Read(r)

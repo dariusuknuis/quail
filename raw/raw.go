@@ -3,6 +3,7 @@ package raw
 import (
 	"fmt"
 	"io"
+	"path/filepath"
 	"strings"
 )
 
@@ -24,7 +25,8 @@ type ReadWriter interface {
 }
 
 // New takes an extension and returns a ReadWriter that can parse it
-func New(ext string) ReadWriter {
+func New(name string) ReadWriter {
+	ext := strings.ToLower(filepath.Ext(name))
 	switch ext {
 	case ".ani":
 		return &Ani{}
@@ -39,7 +41,14 @@ func New(ext string) ReadWriter {
 	case ".edd":
 		return &Edd{}
 	case ".eff":
-		return &EffOld{}
+		switch strings.ToLower(filepath.Base(name)) {
+		case "spells.eff":
+			return &EffOld{}
+		case "spellsnew.eff":
+			return &EffNew{}
+		default:
+			return nil
+		}
 	case ".lay":
 		return &Lay{}
 	case ".lit":
@@ -110,14 +119,14 @@ func New(ext string) ReadWriter {
 }
 
 // Read takes an extension and a reader and returns a ReadWriter that can parse it
-func Read(ext string, r io.ReadSeeker) (ReadWriter, error) {
-	reader := New(ext)
+func Read(name string, r io.ReadSeeker) (ReadWriter, error) {
+	reader := New(name)
 	if reader == nil {
-		return nil, fmt.Errorf("unknown extension %s", ext)
+		return nil, fmt.Errorf("unknown or unsupported file %s", name)
 	}
 	err := reader.Read(r)
 	if err != nil {
-		if ext == ".wld" && strings.Contains(err.Error(), "header wanted 0x023d5054") {
+		if strings.EqualFold(filepath.Ext(name), ".wld") && strings.Contains(err.Error(), "header wanted 0x023d5054") {
 			r.Seek(0, io.SeekStart)
 			reader = &WldAscii{}
 			err = reader.Read(r)
@@ -128,14 +137,15 @@ func Read(ext string, r io.ReadSeeker) (ReadWriter, error) {
 		}
 		return nil, err
 	}
+	reader.SetFileName(filepath.Base(name))
 	return reader, nil
 }
 
 // Write takes an extension and a writer and returns a ReadWriter that can parse it
-func Write(ext string, w io.Writer) (ReadWriter, error) {
-	writer := New(ext)
+func Write(name string, w io.Writer) (ReadWriter, error) {
+	writer := New(name)
 	if writer == nil {
-		return nil, fmt.Errorf("unknown extension %s", ext)
+		return nil, fmt.Errorf("unknown or unsupported file %s", name)
 	}
 	err := writer.Write(w)
 	if err != nil {

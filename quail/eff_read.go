@@ -17,20 +17,37 @@ func (q *Quail) EffRead(path string) error {
 	}
 	defer f.Close()
 
-	eff := &raw.EffOld{}
-	err = eff.Read(f)
-	if err != nil {
-		return fmt.Errorf("read eff: %w", err)
-	}
-	eff.SetFileName(filepath.Base(path))
-
-	baseName := strings.TrimSuffix(filepath.Base(path), ".eff")
+	fileName := filepath.Base(path)
+	baseName := strings.TrimSuffix(fileName, filepath.Ext(fileName))
 	q.Wld = wce.New(baseName)
 
-	// No WorldDef manipulation here — ReadEffRaw will ensure it exists with the correct folder.
-	err = q.Wld.ReadEffRaw(eff)
-	if err != nil {
-		return fmt.Errorf("convert eff: %w", err)
+	switch strings.ToLower(fileName) {
+	case "spells.eff":
+		eff := &raw.EffOld{}
+		err = eff.Read(f)
+		if err != nil {
+			return fmt.Errorf("read old eff: %w", err)
+		}
+		eff.SetFileName(fileName)
+
+		err = q.Wld.ReadEffRaw(eff)
+		if err != nil {
+			return fmt.Errorf("convert old eff: %w", err)
+		}
+	case "spellsnew.eff":
+		eff := &raw.EffNew{}
+		err = eff.Read(f)
+		if err != nil {
+			return fmt.Errorf("read new eff: %w", err)
+		}
+		eff.SetFileName(fileName)
+
+		err = q.Wld.ReadEffNewRaw(eff)
+		if err != nil {
+			return fmt.Errorf("convert new eff: %w", err)
+		}
+	default:
+		return fmt.Errorf("unsupported eff file %s: expected spells.eff or spellsnew.eff", fileName)
 	}
 
 	return nil
