@@ -4,10 +4,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/xackery/quail/raw"
-	"github.com/xackery/quail/wce"
 )
 
 func (q *Quail) EddWrite(path string) error {

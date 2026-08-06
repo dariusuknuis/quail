@@ -242,6 +242,7 @@ func (a *AsciiReadToken) readDefinitions() error {
 		&Zone{},
 		&EffectOld{},
 		&EffectNew{},
+		&EmitterDef{},
 	}
 
 	definition := ""
