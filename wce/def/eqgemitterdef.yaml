@@ -1,0 +1,502 @@
+name: "EQGEMITTERDEF"
+hasTag: true
+note: "EQG Particle Emitter Definition"
+properties:
+
+- name: "NAME"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%s"
+
+- name: "TEXTURE"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%s"
+
+- name: "RELATIVETOBONE"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%d"
+
+- name: "NOOCCLUSION"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%d"
+
+- name: "ADDITIVEBLENDING"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%d"
+
+- name: "SCALEWITHACTOR"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%d"
+
+- name: "SPRITEORIENTATION"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%d"
+
+- name: "STICKTOACTOR"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%d"
+
+- name: "DEFAULTLIFESPAN"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%0.8e"
+
+- name: "PARTICLELIFESPAN"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%0.8e"
+
+- name: "PARTICLESATCREATION"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%d"
+
+- name: "PARTICLESATINTERVAL"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%d"
+
+- name: "INTERVALSPERSECOND"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%0.8e"
+
+- name: "SPAWNDELAY"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%0.8e"
+
+- name: "FADEINTIME"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%0.8e"
+
+- name: "FADEOUTTIME"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%0.8e"
+
+- name: "SCALEINTIME"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%0.8e"
+
+- name: "SCALEOUTTIME"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%0.8e"
+
+- name: "REDUCTIONDISTANCE"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%0.8e"
+
+- name: "MAXALPHA"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%0.8e"
+
+- name: "SPAWNSHAPE"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%d"
+
+- name: "SHAPERADIUS"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%0.8e"
+
+- name: "SHAPERADIUSMINOR"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%0.8e"
+
+- name: "SHAPEHEIGHT"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%0.8e"
+
+- name: "SHAPEOFFSET"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%0.8e"
+  - name: ""
+    note: ""
+    format: "%0.8e"
+  - name: ""
+    note: ""
+    format: "%0.8e"
+
+- name: "SHAPETILT"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%0.8e"
+  - name: ""
+    note: ""
+    format: "%0.8e"
+
+- name: "PARTICLEWIDTHMIN"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%0.8e"
+
+- name: "PARTICLEZBIAS"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%0.8e"
+
+- name: "TINTSTART"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%d"
+  - name: ""
+    note: ""
+    format: "%d"
+  - name: ""
+    note: ""
+    format: "%d"
+
+- name: "TINTEND"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%d"
+  - name: ""
+    note: ""
+    format: "%d"
+  - name: ""
+    note: ""
+    format: "%d"
+
+- name: "SPEEDMIN"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%0.8e"
+  - name: ""
+    note: ""
+    format: "%0.8e"
+  - name: ""
+    note: ""
+    format: "%0.8e"
+
+- name: "SPEEDMAX"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%0.8e"
+  - name: ""
+    note: ""
+    format: "%0.8e"
+  - name: ""
+    note: ""
+    format: "%0.8e"
+
+- name: "ACCELERATION"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%0.8e"
+  - name: ""
+    note: ""
+    format: "%0.8e"
+  - name: ""
+    note: ""
+    format: "%0.8e"
+
+- name: "OUTWARDSPEEDMIN"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%0.8e"
+
+- name: "OUTWARDSPEEDMAX"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%0.8e"
+
+- name: "OUTWARDSPEEDACCELERATION"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%0.8e"
+
+- name: "ORBITALSPEEDMIN"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%0.8e"
+
+- name: "ORBITALSPEEDMAX"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%0.8e"
+
+- name: "ORBITALSPEEDACCELERATION"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%0.8e"
+
+- name: "SCALARGRAVITY"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%0.8e"
+
+- name: "WINDSPEED"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%0.8e"
+
+- name: "ANIMATIONFRAMES"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%d"
+
+- name: "ANIMATIONRATE"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%0.8e"
+
+- name: "PARTICLESPINRATE"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%0.8e"
+
+- name: "OLDPARTICLETYPE"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%d"
+
+- name: "OLDFLAGS"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%d"
+
+- name: "OLDSIZE"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%d"
+
+- name: "GRAVITY"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%0.8e"
+  - name: ""
+    note: ""
+    format: "%0.8e"
+  - name: ""
+    note: ""
+    format: "%0.8e"
+
+- name: "BBMIN"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%0.8e"
+  - name: ""
+    note: ""
+    format: "%0.8e"
+  - name: ""
+    note: ""
+    format: "%0.8e"
+
+- name: "BBMAX"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%0.8e"
+  - name: ""
+    note: ""
+    format: "%0.8e"
+  - name: ""
+    note: ""
+    format: "%0.8e"
+
+- name: "SPAWNSCALE"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%0.8e"
+
+- name: "ALPHA"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%0.8e"
+
+- name: "RANDOMROTATION"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%d"
+
+- name: "PARTICLEORIENTATION"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%d"
+
+- name: "PARTICLEHEIGHTMIN"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%0.8e"
+
+- name: "PARTICLEHEIGHTMAX"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%0.8e"
+
+- name: "PARTICLEWIDTHMAX"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%0.8e"
+
+- name: "PARTICLESPINRATEMAX"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%0.8e"
+
+- name: "PROPORTIONALSIZESCALING"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%d"
+
+- name: "HEIGHTSQUASHTIME"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%0.8e"
+
+- name: "WIDTHSQUASHTIME"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%0.8e"
+
+- name: "ALLOWCENTERPASSTHROUGH"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%d"
+
+- name: "SCALEEMITTERWITHACTOR"
+  note: ""
+  args:
+  - name: ""
+    note: ""
+    format: "%d"
