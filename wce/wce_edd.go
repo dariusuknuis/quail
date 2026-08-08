@@ -76,7 +76,7 @@ type EmitterDef struct {
 }
 
 func (e *EmitterDef) Definition() string {
-	return "EQGEMITTERDEF"
+	return "EMITTERDEF"
 }
 
 func (e *EmitterDef) Write(token *AsciiWriteToken) error {

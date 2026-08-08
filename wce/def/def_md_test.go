@@ -49,6 +49,7 @@ var (
 		&wce.WorldDef{},
 		&wce.WorldTree{},
 		&wce.Zone{},
+		&wce.EmitterDef{},
 	}
 )
 

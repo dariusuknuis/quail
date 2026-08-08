@@ -1,6 +1,6 @@
-name: "EQGEMITTERDEF"
+name: "EMITTERDEF"
 hasTag: true
-note: "EQG Particle Emitter Definition"
+note: "Particle Emitter Definition"
 properties:
 
 - name: "NAME"
